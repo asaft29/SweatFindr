@@ -1,6 +1,6 @@
 # POS - solutii proiect
 
-| **Deadline&nbsp;general** | **_18.01.2025_** (_duminica, S14_) |
+| **Deadline&nbsp;general** | **_18.01.2026_** (_duminica, S14_) |
 | :--- | :--- |
 | **_Branch_ proiect** | Acest _branch_ va fi folosit de studentii care doresc sa dezvolte proiectul propus pentru disciplina. _Commit_-urile trebuie realizate saptamanal. Codurile sursa vor fi organizate pe module, iar in cadrul fiecauri astfel de modul se vor incarca un set de _log_-uri demonstrative. |
 | **_Branch_&nbsp;laborator** | Acest _branch_ va fi folosit de studentii care se vor concentra doar pe aplicatiile de baza propuse. Pentru fiecare laborator se va crea cate un director separat in cadrul caruia se vor incarca fisierele sursa, alaturi de un set de _log_-uri demonstrative.<br/><br/>**_Fiecare laborator are un deadline de maxim doua saptamani de la data finalizarii acestuia!! Commit-urile ulterioare NU vor fi considerate in evaluare_** |
