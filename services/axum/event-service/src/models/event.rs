@@ -1,23 +1,31 @@
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 
-#[derive(Debug, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct Event {
-    #[sqlx(rename = "ID")]
     pub id: i32,
-
-    #[sqlx(rename = "ID_OWNER")]
-    pub owner_id: i32,
-
-    #[sqlx(rename = "nume")]
-    pub name: String,
-
-    #[sqlx(rename = "locatie")]
-    pub location: String,
-
-    #[sqlx(rename = "descriere")]
-    pub description: Option<String>,
-
+    pub id_owner: i32,
+    pub nume: String,
+    pub locatie: String,
+    pub descriere: Option<String>,
     #[sqlx(rename = "numarlocuri")]
-    pub sit_count: Option<i32>,
+    #[serde(rename = "numarlocuri")]
+    pub locuri: Option<i32>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct CreateEvent {
+    pub id_owner: i32,
+    pub nume: String,
+    pub locatie: String,
+    pub descriere: String,
+    pub locuri: i32,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct UpdateEvent {
+    pub nume: String,
+    pub locatie: String,
+    pub descriere: String,
+    pub locuri: i32,
 }

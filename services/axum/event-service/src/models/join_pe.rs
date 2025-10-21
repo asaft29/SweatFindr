@@ -3,12 +3,12 @@ use sqlx::FromRow;
 
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct JoinPe {
-    #[sqlx(rename = "PachetID")]
-    pub pachet_id: i32,
+    #[sqlx(rename = "pachetid")]
+    pub id_pachet: i32,
 
-    #[sqlx(rename = "EvenimentID")]
-    pub eveniment_id: i32,
+    #[sqlx(rename = "evenimentid")]
+    pub id_eveniment: i32,
 
-    #[sqlx(rename = "numarLocuri")]
-    pub numar_locuri: Option<i32>,
+    #[sqlx(rename = "numarlocuri")]
+    pub locuri: Option<i32>,
 }

@@ -1,12 +1,10 @@
-use std::sync::Arc;
-
 use anyhow::Result;
 use axum::{Router, extract::State, routing::get};
-use event_service::{handlers, repositories::event_repo::EventRepo};
+use event_service::{AppState, handlers, repositories::event_repo::EventRepo};
 use sqlx::postgres::PgPoolOptions;
+use std::sync::Arc;
 use tower_http::trace::TraceLayer;
 use tracing::{Level, info};
-
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt()
@@ -23,17 +21,20 @@ async fn main() -> Result<()> {
 
     info!("{:<12} - Database connection pool created.", "DB");
 
-    let repo = Arc::new(EventRepo::new(pool.clone()));
+    let app_state = Arc::new(AppState {
+        repo: Arc::new(EventRepo::new(pool.clone())),
+        base_url: "/api/event-manager".to_string(), // Or from config
+    });
 
     // Correct router setup
     let app = Router::new()
         .route("/api", get(check_state))
         .nest(
             "/api/event-manager",
-            handlers::routes::event_manager_router(),
+            handlers::events::event_manager_router(),
         )
-        .layer(TraceLayer::new_for_http()) // top-level layer
-        .with_state(repo); // top-level state
+        .layer(TraceLayer::new_for_http())
+        .with_state(app_state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await?;
     info!("{:<12} - {:?}\n", "LISTENING", listener.local_addr());
@@ -44,8 +45,8 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-async fn check_state(State(repo): State<Arc<EventRepo>>) -> &'static str {
-    match repo.check().await {
+async fn check_state(State(status): State<Arc<AppState>>) -> &'static str {
+    match status.repo.check().await {
         Ok(_) => "PostgreSQL works! :p",
         Err(_) => "PostgreSQL DOESN'T work! :(",
     }

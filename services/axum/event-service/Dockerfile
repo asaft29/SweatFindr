@@ -3,6 +3,8 @@ WORKDIR /app
 
 RUN apk add --no-cache musl-dev pkgconfig openssl-dev openssl-libs-static
 
+ENV SQLX_OFFLINE=true
+
 COPY services/axum/Cargo.toml ./Cargo.toml
 COPY services/axum/Cargo.lock ./Cargo.lock
 
@@ -10,12 +12,15 @@ COPY services/axum/event-service/Cargo.toml ./event-service/Cargo.toml
 COPY services/axum/auth-service/Cargo.toml ./auth-service/Cargo.toml
 COPY services/axum/client-service/Cargo.toml ./client-service/Cargo.toml
 
+COPY services/axum/.sqlx ./.sqlx
+
 RUN mkdir -p event-service/src && \
     echo "fn main() {}" > event-service/src/main.rs && \
     mkdir -p auth-service/src && \
     echo "fn main() {}" > auth-service/src/main.rs && \
     mkdir -p client-service/src && \
     echo "fn main() {}" > client-service/src/main.rs
+
 
 RUN cargo build --release --manifest-path event-service/Cargo.toml
 

@@ -3,18 +3,13 @@ use sqlx::prelude::FromRow;
 
 #[derive(Debug, Serialize, Deserialize, FromRow)]
 pub struct Package {
-    #[sqlx(rename = "ID")]
     pub id: i32,
 
-    #[sqlx(rename = "ID_OWNER")]
-    pub owner_id: i32,
+    pub id_owner: i32,
 
-    #[sqlx(rename = "nume")]
-    pub name: String,
+    pub nume: String,
 
-    #[sqlx(rename = "locatie")]
-    pub location: String,
+    pub locatie: String,
 
-    #[sqlx(rename = "descriere")]
-    pub description: Option<String>,
+    pub descriere: Option<String>,
 }
