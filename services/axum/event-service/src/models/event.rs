@@ -18,14 +18,16 @@ pub struct CreateEvent {
     pub id_owner: i32,
     pub nume: String,
     pub locatie: String,
-    pub descriere: String,
-    pub locuri: i32,
+    pub descriere: Option<String>,
+    #[serde(rename = "numarlocuri")]
+    pub locuri: Option<i32>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct UpdateEvent {
     pub nume: String,
     pub locatie: String,
-    pub descriere: String,
-    pub locuri: i32,
+    pub descriere: Option<String>,
+    #[serde(rename = "numarlocuri")]
+    pub locuri: Option<i32>,
 }
