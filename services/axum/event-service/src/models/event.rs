@@ -6,28 +6,31 @@ pub struct Event {
     pub id: i32,
     pub id_owner: i32,
     pub nume: String,
-    pub locatie: String,
+    pub locatie: Option<String>,
     pub descriere: Option<String>,
-    #[sqlx(rename = "numarlocuri")]
     #[serde(rename = "numarlocuri")]
+    #[sqlx(rename = "numarlocuri")]
     pub locuri: Option<i32>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct CreateEvent {
     pub id_owner: i32,
     pub nume: String,
-    pub locatie: String,
+    pub locatie: Option<String>,
     pub descriere: Option<String>,
     #[serde(rename = "numarlocuri")]
+    #[sqlx(rename = "numarlocuri")]
     pub locuri: Option<i32>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, FromRow)]
 pub struct UpdateEvent {
+    pub id_owner: Option<i32>,
     pub nume: String,
-    pub locatie: String,
+    pub locatie: Option<String>,
     pub descriere: Option<String>,
     #[serde(rename = "numarlocuri")]
+    #[sqlx(rename = "numarlocuri")]
     pub locuri: Option<i32>,
 }

@@ -15,7 +15,7 @@ CREATE TABLE EVENIMENTE (
     ID          SERIAL          PRIMARY KEY,
     ID_OWNER    INTEGER         NOT NULL REFERENCES UTILIZATORI(ID),
     nume        VARCHAR(255)    UNIQUE NOT NULL,
-    locatie     VARCHAR(255)    NOT NULL,
+    locatie     VARCHAR(255)    NULL,
     descriere   TEXT            NULL,
     numarLocuri INTEGER         NULL
 );
@@ -24,7 +24,7 @@ CREATE TABLE PACHETE (
     ID          SERIAL          PRIMARY KEY,
     ID_OWNER    INTEGER         NOT NULL REFERENCES UTILIZATORI(ID),
     nume        VARCHAR(255)    UNIQUE NOT NULL,
-    locatie     VARCHAR(255)    NOT NULL,
+    locatie     VARCHAR(255)    NULL,
     descriere   TEXT            NULL
 );
 

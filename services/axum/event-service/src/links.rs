@@ -1,4 +1,5 @@
 use crate::models::event::Event;
+use crate::models::event_packets::EventPackets;
 use serde::Serialize;
 use std::collections::HashMap;
 
@@ -23,6 +24,14 @@ pub struct Links {
 pub struct EventResponse {
     #[serde(flatten)]
     pub event: Event,
+    #[serde(rename = "_links")]
+    pub links: Links,
+}
+
+#[derive(Serialize, Debug)]
+pub struct EventPacketResponse {
+    #[serde(flatten)]
+    pub event_packet: EventPackets,
     #[serde(rename = "_links")]
     pub links: Links,
 }
@@ -67,7 +76,42 @@ impl EventResponse {
     }
 }
 
-#[derive(Serialize, Debug)]
-pub struct EventResponseWrapper {
-    pub event: EventResponse,
+impl EventPacketResponse {
+    pub fn new(event_packet: EventPackets, base_url: &str) -> Self {
+        let packet_id = event_packet.id;
+        let self_href = format!("{}/event-packets/{}", base_url, packet_id);
+
+        let mut other_links = HashMap::new();
+
+        other_links.insert(
+            "events".to_string(),
+            Link {
+                href: format!("{}/event-packets/{}/events", base_url, packet_id),
+                r#type: Some("GET".to_string()),
+            },
+        );
+
+        other_links.insert(
+            "tickets".to_string(),
+            Link {
+                href: format!("{}/event-packets/{}/tickets", base_url, packet_id),
+                r#type: Some("GET".to_string()),
+            },
+        );
+
+        Self {
+            event_packet,
+            links: Links {
+                link: Link {
+                    href: self_href,
+                    r#type: None,
+                },
+                parent: Some(Link {
+                    href: format!("{}/event-packets", base_url),
+                    r#type: None,
+                }),
+                others: other_links,
+            },
+        }
+    }
 }

@@ -1,6 +1,9 @@
 use anyhow::Result;
 use axum::{Router, extract::State, routing::get};
-use event_service::{AppState, handlers, repositories::event_repo::EventRepo};
+use event_service::{
+    AppState, handlers,
+    repositories::{event_packets_repo::EventPacketRepo, event_repo::EventRepo},
+};
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use tower_http::trace::TraceLayer;
@@ -22,17 +25,15 @@ async fn main() -> Result<()> {
     info!("{:<12} - Database connection pool created.", "DB");
 
     let app_state = Arc::new(AppState {
-        repo: Arc::new(EventRepo::new(pool.clone())),
-        base_url: "/api/event-manager".to_string(), // Or from config
+        event_repo: Arc::new(EventRepo::new(pool.clone())),
+        event_packet_repo: Arc::new(EventPacketRepo::new(pool.clone())),
+        base_url: "/api/event-manager".to_string(),
     });
 
     // Correct router setup
     let app = Router::new()
         .route("/api", get(check_state))
-        .nest(
-            "/api/event-manager",
-            handlers::events::event_manager_router(),
-        )
+        .nest("/api/event-manager", handlers::api_router())
         .layer(TraceLayer::new_for_http())
         .with_state(app_state);
 
@@ -46,7 +47,7 @@ async fn main() -> Result<()> {
 }
 
 async fn check_state(State(status): State<Arc<AppState>>) -> &'static str {
-    match status.repo.check().await {
+    match status.event_repo.check().await {
         Ok(_) => "PostgreSQL works! :p",
         Err(_) => "PostgreSQL DOESN'T work! :(",
     }
