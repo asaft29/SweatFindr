@@ -1,0 +1,613 @@
+{
+  "name": "axum",
+  "version": "1",
+  "items": [
+    {
+      "type": "folder",
+      "name": "event-service",
+      "filename": "event-service",
+      "seq": 1,
+      "root": {
+        "request": {
+          "auth": {
+            "mode": "inherit"
+          }
+        },
+        "meta": {
+          "name": "event-service",
+          "seq": 1
+        }
+      },
+      "items": [
+        {
+          "type": "folder",
+          "name": "event",
+          "filename": "event",
+          "seq": 1,
+          "root": {
+            "request": {
+              "auth": {
+                "mode": "inherit"
+              }
+            },
+            "meta": {
+              "name": "event",
+              "seq": 1
+            }
+          },
+          "items": [
+            {
+              "type": "http",
+              "name": "Create Event",
+              "filename": "Create Event.bru",
+              "seq": 1,
+              "settings": {
+                "encodeUrl": true
+              },
+              "tags": [],
+              "request": {
+                "url": "http://localhost:8001/api/event-manager/events",
+                "method": "POST",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "json",
+                  "json": "{\n  \"id_owner\": 4,\n  \"nume\": \"Iași International Film Arena\",\n  \"locatie\": \"Iulius, Iași\",\n  \"descriere\": \"Annual festival celebrating for independent cinema.\",\n  \"numarlocuri\": 2000\n}",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {},
+                "vars": {},
+                "assertions": [],
+                "tests": "",
+                "docs": "",
+                "auth": {
+                  "mode": "inherit"
+                }
+              }
+            },
+            {
+              "type": "http",
+              "name": "Delete Event",
+              "filename": "Delete Event.bru",
+              "seq": 1,
+              "settings": {
+                "encodeUrl": true
+              },
+              "tags": [],
+              "request": {
+                "url": "http://localhost:8001/api/event-manager/events/1",
+                "method": "DELETE",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "none",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {},
+                "vars": {},
+                "assertions": [],
+                "tests": "",
+                "docs": "",
+                "auth": {
+                  "mode": "inherit"
+                }
+              }
+            },
+            {
+              "type": "http",
+              "name": "Get Event",
+              "filename": "Get Event.bru",
+              "seq": 2,
+              "settings": {
+                "encodeUrl": true
+              },
+              "tags": [],
+              "request": {
+                "url": "http://localhost:8001/api/event-manager/events/2",
+                "method": "GET",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "none",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {},
+                "vars": {},
+                "assertions": [],
+                "tests": "",
+                "docs": "",
+                "auth": {
+                  "mode": "inherit"
+                }
+              }
+            },
+            {
+              "type": "http",
+              "name": "Search by Location",
+              "filename": "Search by Location.bru",
+              "seq": 5,
+              "settings": {
+                "encodeUrl": true
+              },
+              "tags": [],
+              "request": {
+                "url": "http://localhost:8001/api/event-manager/events?location=ia",
+                "method": "GET",
+                "headers": [],
+                "params": [
+                  {
+                    "name": "location",
+                    "value": "ia",
+                    "type": "query",
+                    "enabled": true
+                  }
+                ],
+                "body": {
+                  "mode": "none",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {},
+                "vars": {},
+                "assertions": [],
+                "tests": "",
+                "docs": "",
+                "auth": {
+                  "mode": "inherit"
+                }
+              }
+            },
+            {
+              "type": "http",
+              "name": "Search by Name",
+              "filename": "Search by Name.bru",
+              "seq": 6,
+              "settings": {
+                "encodeUrl": true
+              },
+              "tags": [],
+              "request": {
+                "url": "http://localhost:8001/api/event-manager/events?location=cluj",
+                "method": "GET",
+                "headers": [],
+                "params": [
+                  {
+                    "name": "location",
+                    "value": "cluj",
+                    "type": "query",
+                    "enabled": true
+                  }
+                ],
+                "body": {
+                  "mode": "none",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {},
+                "vars": {},
+                "assertions": [],
+                "tests": "",
+                "docs": "",
+                "auth": {
+                  "mode": "inherit"
+                }
+              }
+            },
+            {
+              "type": "http",
+              "name": "Update Event",
+              "filename": "Update Event.bru",
+              "seq": 1,
+              "settings": {
+                "encodeUrl": true
+              },
+              "tags": [],
+              "request": {
+                "url": "http://localhost:8001/api/event-manager/events/2",
+                "method": "PUT",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "json",
+                  "json": "{\n  \"nume\": \"La Titel\",\n  \"locatie\": \"Cinema Victoria, Iași\",\n  \"descriere\": \"An updated description for the annual festival celebrating independent cinema.\",\n  \"numarlocuri\": 250\n}",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {},
+                "vars": {},
+                "assertions": [],
+                "tests": "",
+                "docs": "",
+                "auth": {
+                  "mode": "inherit"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "folder",
+          "name": "event-packets",
+          "filename": "event-packets",
+          "seq": 2,
+          "root": {
+            "request": {
+              "auth": {
+                "mode": "inherit"
+              }
+            },
+            "meta": {
+              "name": "event-packets",
+              "seq": 2
+            }
+          },
+          "items": [
+            {
+              "type": "http",
+              "name": "Create Event Packet",
+              "filename": "Create Event Packet.bru",
+              "seq": 3,
+              "settings": {
+                "encodeUrl": true
+              },
+              "tags": [],
+              "request": {
+                "url": "http://localhost:8001/api/event-manager/event-packets",
+                "method": "POST",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "json",
+                  "json": "{\n    \"id_owner\": 2,\n    \"nume\": \"Pachetul Bucurestiul Mic\",\n    \"locatie\": \"Bucuresti\"\n  }",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {},
+                "vars": {},
+                "assertions": [],
+                "tests": "",
+                "docs": "",
+                "auth": {
+                  "mode": "inherit"
+                }
+              }
+            },
+            {
+              "type": "http",
+              "name": "Delete Event Packet",
+              "filename": "Delete Event Packet.bru",
+              "seq": 2,
+              "settings": {
+                "encodeUrl": true
+              },
+              "tags": [],
+              "request": {
+                "url": "http://localhost:8001/api/event-manager/event-packets/6",
+                "method": "DELETE",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "none",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {},
+                "vars": {},
+                "assertions": [],
+                "tests": "",
+                "docs": "",
+                "auth": {
+                  "mode": "inherit"
+                }
+              }
+            },
+            {
+              "type": "http",
+              "name": "Get Event Packet",
+              "filename": "Get Event Packet.bru",
+              "seq": 1,
+              "settings": {
+                "encodeUrl": true
+              },
+              "tags": [],
+              "request": {
+                "url": "http://localhost:8001/api/event-manager/event-packets/4",
+                "method": "GET",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "none",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {},
+                "vars": {},
+                "assertions": [],
+                "tests": "",
+                "docs": "",
+                "auth": {
+                  "mode": "inherit"
+                }
+              }
+            },
+            {
+              "type": "http",
+              "name": "Update Event Packet",
+              "filename": "Update Event Packet.bru",
+              "seq": 4,
+              "settings": {
+                "encodeUrl": true
+              },
+              "tags": [],
+              "request": {
+                "url": "http://localhost:8001/api/event-manager/event-packets/7",
+                "method": "PUT",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "json",
+                  "json": "{\n    \"nume\": \"Pachetul Bucurestiul Mic\",\n    \"locatie\": \"Bucuresti\",\n    \"descriere\": \"What the hell\"\n  }",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {},
+                "vars": {},
+                "assertions": [],
+                "tests": "",
+                "docs": "",
+                "auth": {
+                  "mode": "inherit"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "folder",
+          "name": "join_pe",
+          "filename": "join_pe",
+          "seq": 4,
+          "root": {
+            "request": {
+              "auth": {
+                "mode": "inherit"
+              }
+            },
+            "meta": {
+              "name": "join_pe",
+              "seq": 4
+            }
+          },
+          "items": [
+            {
+              "type": "http",
+              "name": "Get Event Packets from Event",
+              "filename": "Get Event Packets from Event.bru",
+              "seq": 1,
+              "settings": {
+                "encodeUrl": true
+              },
+              "tags": [],
+              "request": {
+                "url": "http://localhost:8001/api/event-manager/events/2/event-packets",
+                "method": "GET",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "none",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {},
+                "vars": {},
+                "assertions": [],
+                "tests": "",
+                "docs": "",
+                "auth": {
+                  "mode": "inherit"
+                }
+              }
+            },
+            {
+              "type": "http",
+              "name": "Get Events from Event Packet",
+              "filename": "Get Events from Event Packet.bru",
+              "seq": 2,
+              "settings": {
+                "encodeUrl": true
+              },
+              "tags": [],
+              "request": {
+                "url": "http://localhost:8001/api/event-manager/event-packets/4/events",
+                "method": "GET",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "none",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {},
+                "vars": {},
+                "assertions": [],
+                "tests": "",
+                "docs": "",
+                "auth": {
+                  "mode": "inherit"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "folder",
+          "name": "ticket",
+          "filename": "ticket",
+          "seq": 3,
+          "root": {
+            "request": {
+              "auth": {
+                "mode": "inherit"
+              }
+            },
+            "meta": {
+              "name": "ticket",
+              "seq": 3
+            }
+          },
+          "items": [
+            {
+              "type": "http",
+              "name": "Create Ticket",
+              "filename": "Create Ticket.bru",
+              "seq": 3,
+              "settings": {
+                "encodeUrl": true
+              },
+              "tags": [],
+              "request": {
+                "url": "http://localhost:8001/api/event-manager/tickets",
+                "method": "POST",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "json",
+                  "json": " {\n      \"cod\": \"PKT-NEW-005\",\n      \"pachetid\": 2,\n      \"evenimentid\": 1\n }",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {},
+                "vars": {},
+                "assertions": [],
+                "tests": "",
+                "docs": "",
+                "auth": {
+                  "mode": "inherit"
+                }
+              }
+            },
+            {
+              "type": "http",
+              "name": "Delete Ticket",
+              "filename": "Delete Ticket.bru",
+              "seq": 2,
+              "settings": {
+                "encodeUrl": true
+              },
+              "tags": [],
+              "request": {
+                "url": "http://localhost:8001/api/event-manager/tickets/PKT-NEW-005",
+                "method": "DELETE",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "none",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {},
+                "vars": {},
+                "assertions": [],
+                "tests": "",
+                "docs": "",
+                "auth": {
+                  "mode": "inherit"
+                }
+              }
+            },
+            {
+              "type": "http",
+              "name": "Get Ticket",
+              "filename": "Get Ticket.bru",
+              "seq": 1,
+              "settings": {
+                "encodeUrl": true
+              },
+              "tags": [],
+              "request": {
+                "url": "http://localhost:8001/api/event-manager/tickets/PKT-NEW-005",
+                "method": "GET",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "none",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {},
+                "vars": {},
+                "assertions": [],
+                "tests": "",
+                "docs": "",
+                "auth": {
+                  "mode": "inherit"
+                }
+              }
+            },
+            {
+              "type": "http",
+              "name": "Update Ticket",
+              "filename": "Update Ticket.bru",
+              "seq": 4,
+              "settings": {
+                "encodeUrl": true
+              },
+              "tags": [],
+              "request": {
+                "url": "http://localhost:8001/api/event-manager/tickets/PKT-NEW-005",
+                "method": "PUT",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "json",
+                  "json": "{\n    \"pachetid\": null,\n    \"evenimentid\": 2\n}",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {},
+                "vars": {},
+                "assertions": [],
+                "tests": "",
+                "docs": "",
+                "auth": {
+                  "mode": "inherit"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "environments": [],
+  "brunoConfig": {
+    "version": "1",
+    "name": "axum",
+    "type": "collection",
+    "ignore": [
+      "node_modules",
+      ".git"
+    ],
+    "size": 0.0040569305419921875,
+    "filesCount": 21
+  }
+}

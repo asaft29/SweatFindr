@@ -16,7 +16,6 @@ impl EventPacketRepo {
         &self,
         packet_id: i32,
     ) -> Result<EventPackets, EventPacketRepoError> {
-        // <-- Renamed here
         let result = sqlx::query_as::<_, EventPackets>(
             r#"
             SELECT id, id_owner, nume, locatie, descriere
@@ -30,8 +29,8 @@ impl EventPacketRepo {
 
         match result {
             Ok(packet) => Ok(packet),
-            Err(Error::RowNotFound) => Err(EventPacketRepoError::NotFound), // <-- Renamed here
-            Err(e) => Err(EventPacketRepoError::InternalError(e)),          // <-- Renamed here
+            Err(Error::RowNotFound) => Err(EventPacketRepoError::NotFound),
+            Err(e) => Err(EventPacketRepoError::InternalError(e)),
         }
     }
 

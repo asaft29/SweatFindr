@@ -1,7 +1,7 @@
 use crate::error::*;
-use crate::models::event::{CreateEvent, Event, UpdateEvent};
+use crate::models::event::{CreateEvent, Event, EventQuery, UpdateEvent};
 use anyhow::Result;
-use sqlx::{Error, PgPool};
+use sqlx::{Error, PgPool, Postgres, QueryBuilder};
 
 pub struct EventRepo {
     pool: PgPool,
@@ -15,6 +15,41 @@ impl EventRepo {
     pub async fn check(&self) -> Result<(), Error> {
         sqlx::query("select 1").execute(&self.pool).await?;
         Ok(())
+    }
+
+    pub async fn list_events(&self, params: EventQuery) -> Result<Vec<Event>, EventRepoError> {
+        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+            "SELECT ID, ID_OWNER, nume, locatie, descriere, numarlocuri FROM EVENIMENTE",
+        );
+
+        let mut has_condition = false;
+
+        let location = params.locatie.filter(|s| !s.is_empty());
+        let name = params.nume.filter(|s| !s.is_empty());
+
+        if let Some(location) = location {
+            query_builder.push(" WHERE unaccent(locatie) ILIKE unaccent(");
+            query_builder.push_bind(format!("{}%", location));
+            query_builder.push(")");
+            has_condition = true;
+        }
+
+        if let Some(name) = name {
+            if has_condition {
+                query_builder.push(" AND unaccent(nume) ILIKE unaccent(");
+            } else {
+                query_builder.push(" WHERE unaccent(nume) ILIKE unaccent(");
+            }
+            query_builder.push_bind(format!("%{}%", name));
+            query_builder.push(")");
+        }
+
+        let query = query_builder.build_query_as::<Event>();
+        let events = query
+            .fetch_all(&self.pool)
+            .await
+            .map_err(|e| EventRepoError::InternalError(e))?;
+        Ok(events)
     }
 
     pub async fn get_event(&self, event_id: i32) -> Result<Event, EventRepoError> {

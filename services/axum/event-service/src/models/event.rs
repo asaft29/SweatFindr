@@ -34,3 +34,11 @@ pub struct UpdateEvent {
     #[sqlx(rename = "numarlocuri")]
     pub locuri: Option<i32>,
 }
+
+#[derive(Deserialize)]
+pub struct EventQuery {
+    #[serde(rename = "location")]
+    pub locatie: Option<String>,
+    #[serde(rename = "name")]
+    pub nume: Option<String>,
+}
