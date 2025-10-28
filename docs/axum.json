@@ -372,6 +372,115 @@
                   "mode": "inherit"
                 }
               }
+            },
+            {
+              "type": "http",
+              "name": "Search by Type",
+              "filename": "Search by Type.bru",
+              "seq": 5,
+              "settings": {
+                "encodeUrl": true
+              },
+              "tags": [],
+              "request": {
+                "url": "",
+                "method": "GET",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "none",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {},
+                "vars": {},
+                "assertions": [],
+                "tests": "",
+                "docs": "",
+                "auth": {
+                  "mode": "inherit"
+                }
+              }
+            },
+            {
+              "type": "http",
+              "name": "Search by Tickets",
+              "filename": "Search by Tickets.bru",
+              "seq": 6,
+              "settings": {
+                "encodeUrl": true
+              },
+              "tags": [],
+              "request": {
+                "url": "http://localhost:8001/api/event-manager/event-packets?available_tickets=200&items_per_page=2&page=4",
+                "method": "GET",
+                "headers": [],
+                "params": [
+                  {
+                    "name": "available_tickets",
+                    "value": "200",
+                    "type": "query",
+                    "enabled": true
+                  },
+                  {
+                    "name": "items_per_page",
+                    "value": "2",
+                    "type": "query",
+                    "enabled": true
+                  },
+                  {
+                    "name": "page",
+                    "value": "4",
+                    "type": "query",
+                    "enabled": true
+                  }
+                ],
+                "body": {
+                  "mode": "none",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {},
+                "vars": {},
+                "assertions": [],
+                "tests": "",
+                "docs": "",
+                "auth": {
+                  "mode": "inherit"
+                }
+              }
+            },
+            {
+              "type": "http",
+              "name": "Search by Page",
+              "filename": "Search by Page.bru",
+              "seq": 7,
+              "settings": {
+                "encodeUrl": true
+              },
+              "tags": [],
+              "request": {
+                "url": "",
+                "method": "GET",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "none",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {},
+                "vars": {},
+                "assertions": [],
+                "tests": "",
+                "docs": "",
+                "auth": {
+                  "mode": "inherit"
+                }
+              }
             }
           ]
         },
@@ -542,7 +651,7 @@
               },
               "tags": [],
               "request": {
-                "url": "http://localhost:8001/api/event-manager/tickets/PKT-NEW-005",
+                "url": "http://localhost:8001/api/event-manager/tickets/EVT-STREETFOOD-TM-001",
                 "method": "GET",
                 "headers": [],
                 "params": [],
@@ -608,6 +717,6 @@
       ".git"
     ],
     "size": 0.0040569305419921875,
-    "filesCount": 21
+    "filesCount": 22
   }
 }

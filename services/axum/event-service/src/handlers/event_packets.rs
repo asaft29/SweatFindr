@@ -1,7 +1,8 @@
 use crate::AppState;
 use crate::error::EventPacketRepoError;
 use crate::links::EventPacketResponse;
-use crate::models::event_packets::{CreateEventPacket, UpdateEventPacket};
+use crate::models::event_packets::{CreateEventPacket, EventPacketQuery, UpdateEventPacket};
+use axum::extract::Query;
 use axum::response::IntoResponse;
 use axum::{
     Json, Router,
@@ -11,14 +12,26 @@ use axum::{
 };
 use std::sync::Arc;
 
+pub async fn get_event_packets(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<EventPacketQuery>,
+) -> Result<impl IntoResponse, EventPacketRepoError> {
+    let event_packets = state.event_packet_repo.list_event_packets(params).await?;
+
+    let wrapped: Vec<EventPacketResponse> = event_packets
+        .into_iter()
+        .map(|e| EventPacketResponse::new(e, &state.base_url))
+        .collect();
+
+    Ok(Json(wrapped))
+}
+
 pub async fn get_event_packet(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i32>,
 ) -> Result<Json<EventPacketResponse>, EventPacketRepoError> {
-    // Use the packet_repo
     let event_packet = state.event_packet_repo.get_event_packet(id).await?;
 
-    // Use the EventPacketResponse
     let packet_response = EventPacketResponse::new(event_packet, &state.base_url);
     Ok(Json(packet_response))
 }
@@ -40,7 +53,7 @@ pub async fn update_event_packet(
 
 pub async fn create_event_packet(
     State(state): State<Arc<AppState>>,
-    Json(payload): Json<CreateEventPacket>, // Use CreateEventPacket
+    Json(payload): Json<CreateEventPacket>,
 ) -> Result<impl IntoResponse, EventPacketRepoError> {
     let event_packet = state.event_packet_repo.create_event_packet(payload).await?;
 
@@ -59,7 +72,10 @@ pub async fn delete_event_packet(
 
 pub fn event_packet_manager_router() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/event-packets", post(create_event_packet))
+        .route(
+            "/event-packets",
+            post(create_event_packet).get(get_event_packets),
+        )
         .route(
             "/event-packets/{id}",
             get(get_event_packet)

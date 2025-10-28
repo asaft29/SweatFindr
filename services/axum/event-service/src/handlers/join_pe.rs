@@ -1,5 +1,6 @@
 use crate::AppState;
 use crate::error::JoinPeRepoError;
+use crate::links::{EventPacketResponse, EventResponse};
 use crate::models::event::Event;
 use crate::models::event_packets::EventPackets;
 use crate::models::join_pe::{AddEventToPacket, AddPacketToEvent};
@@ -16,17 +17,29 @@ use std::sync::Arc;
 pub async fn get_packets_for_event(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i32>,
-) -> Result<Json<Vec<EventPackets>>, JoinPeRepoError> {
+) -> Result<impl IntoResponse, JoinPeRepoError> {
     let packets = state.join_repo.get_packets_for_event(id).await?;
-    Ok(Json(packets))
+
+    let wrapped: Vec<EventPacketResponse> = packets
+        .into_iter()
+        .map(|e| EventPacketResponse::new(e, &state.base_url))
+        .collect();
+
+    Ok(Json(wrapped))
 }
 
 pub async fn get_events_for_packet(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i32>,
-) -> Result<Json<Vec<Event>>, JoinPeRepoError> {
+) -> Result<impl IntoResponse, JoinPeRepoError> {
     let events = state.join_repo.get_events_for_packet(id).await?;
-    Ok(Json(events))
+
+    let wrapped: Vec<EventResponse> = events
+        .into_iter()
+        .map(|e| EventResponse::new(e, &state.base_url))
+        .collect();
+
+    Ok(Json(wrapped))
 }
 
 pub async fn add_event_to_packet(

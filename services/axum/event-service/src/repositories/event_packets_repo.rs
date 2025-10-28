@@ -1,7 +1,12 @@
 use crate::error::*;
-use crate::models::event_packets::{CreateEventPacket, EventPackets, UpdateEventPacket};
+use crate::models::event_packets::{
+    CreateEventPacket, EventPacketQuery, EventPackets, PaginationParams, UpdateEventPacket,
+};
 use anyhow::Result;
-use sqlx::{Error, PgPool};
+use sqlx::{Error, PgPool, Postgres, QueryBuilder};
+
+const DEFAULT_PAGE: i64 = 1;
+const DEFAULT_ITEMS_PER_PAGE: i64 = 10;
 
 pub struct EventPacketRepo {
     pool: PgPool,
@@ -12,6 +17,66 @@ impl EventPacketRepo {
         Self { pool }
     }
 
+    pub async fn list_event_packets(
+        &self,
+        params: EventPacketQuery,
+    ) -> Result<Vec<EventPackets>, EventPacketRepoError> {
+        let mut query_builder: QueryBuilder<Postgres> =
+            QueryBuilder::new("SELECT ID, ID_OWNER, nume, locatie, descriere FROM PACHETE");
+
+        let mut has_condition = false;
+
+        let type_filter = params.descriere.filter(|s| !s.is_empty());
+
+        if let Some(desc_filter) = type_filter {
+            query_builder.push(" WHERE unaccent(descriere) ILIKE unaccent(");
+            query_builder.push_bind(format!("%{}%", desc_filter));
+            query_builder.push(")");
+            has_condition = true;
+        }
+
+        if let Some(min_tickets) = params.bilete {
+            if has_condition {
+                query_builder.push(" AND ");
+            } else {
+                query_builder.push(" WHERE ");
+            }
+
+            query_builder
+                .push("(SELECT SUM(numarlocuri) FROM JOIN_PE WHERE pachetid = PACHETE.ID) >= ");
+            query_builder.push_bind(min_tickets);
+        }
+
+        self.apply_pagination(&mut query_builder, params.paginare);
+
+        let query = query_builder.build_query_as::<EventPackets>();
+        let packets = query
+            .fetch_all(&self.pool)
+            .await
+            .map_err(|e| EventPacketRepoError::InternalError(e))?;
+
+        Ok(packets)
+    }
+
+    fn apply_pagination(
+        &self,
+        query_builder: &mut QueryBuilder<Postgres>,
+        pagination: PaginationParams,
+    ) {
+        let page = pagination.page.unwrap_or(DEFAULT_PAGE).max(DEFAULT_PAGE);
+
+        let items_per_page = pagination
+            .items_per_page
+            .unwrap_or(DEFAULT_ITEMS_PER_PAGE)
+            .max(1);
+
+        let offset = (page - 1) * items_per_page;
+
+        query_builder.push(" LIMIT ");
+        query_builder.push_bind(items_per_page);
+        query_builder.push(" OFFSET ");
+        query_builder.push_bind(offset);
+    }
     pub async fn get_event_packet(
         &self,
         packet_id: i32,

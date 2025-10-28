@@ -188,8 +188,5 @@ pub fn map_sqlx_join_pe_error(err: Error) -> JoinPeRepoError {
             }
         }
     }
-    match err {
-        // No RowNotFound for these queries, as they return Vec
-        e => JoinPeRepoError::InternalError(e),
-    }
+    JoinPeRepoError::InternalError(err)
 }

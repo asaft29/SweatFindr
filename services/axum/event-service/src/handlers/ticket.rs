@@ -14,7 +14,7 @@ use std::sync::Arc;
 
 pub async fn get_ticket(
     State(state): State<Arc<AppState>>,
-    Path(cod): Path<String>, // Note: Path<String> because COD is VARCHAR
+    Path(cod): Path<String>,
 ) -> Result<Json<TicketResponse>, TicketRepoError> {
     let ticket = state.ticket_repo.get_ticket(cod).await?;
 
@@ -24,7 +24,7 @@ pub async fn get_ticket(
 
 pub async fn update_ticket(
     State(state): State<Arc<AppState>>,
-    Path(cod): Path<String>, // Note: Path<String>
+    Path(cod): Path<String>,
     Json(payload): Json<UpdateTicket>,
 ) -> Result<Json<TicketResponse>, TicketRepoError> {
     let ticket = state.ticket_repo.update_ticket(cod, payload).await?;
@@ -55,7 +55,7 @@ pub async fn delete_ticket(
 
 pub fn ticket_manager_router() -> Router<Arc<AppState>> {
     Router::new().route("/tickets", post(create_ticket)).route(
-        "/tickets/{cod}", // Use {cod} to match the path parameter
+        "/tickets/{cod}",
         get(get_ticket).put(update_ticket).delete(delete_ticket),
     )
 }
