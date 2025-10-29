@@ -44,6 +44,17 @@ impl TicketRepo {
         result.map_err(map_sqlx_ticket_error)
     }
 
+    pub async fn list_tickets(&self) -> Result<Vec<Ticket>, TicketRepoError> {
+        let result = sqlx::query_as::<_, Ticket>(
+            r#"
+            SELECT * FROM BILETE
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await;
+
+        result.map_err(map_sqlx_ticket_error)
+    }
     pub async fn update_ticket(
         &self,
         cod: String,

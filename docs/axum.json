@@ -344,49 +344,31 @@
             },
             {
               "type": "http",
-              "name": "Update Event Packet",
-              "filename": "Update Event Packet.bru",
-              "seq": 4,
+              "name": "Search by Page",
+              "filename": "Search by Page.bru",
+              "seq": 7,
               "settings": {
                 "encodeUrl": true
               },
               "tags": [],
               "request": {
-                "url": "http://localhost:8001/api/event-manager/event-packets/7",
-                "method": "PUT",
-                "headers": [],
-                "params": [],
-                "body": {
-                  "mode": "json",
-                  "json": "{\n    \"nume\": \"Pachetul Bucurestiul Mic\",\n    \"locatie\": \"Bucuresti\",\n    \"descriere\": \"What the hell\"\n  }",
-                  "formUrlEncoded": [],
-                  "multipartForm": [],
-                  "file": []
-                },
-                "script": {},
-                "vars": {},
-                "assertions": [],
-                "tests": "",
-                "docs": "",
-                "auth": {
-                  "mode": "inherit"
-                }
-              }
-            },
-            {
-              "type": "http",
-              "name": "Search by Type",
-              "filename": "Search by Type.bru",
-              "seq": 5,
-              "settings": {
-                "encodeUrl": true
-              },
-              "tags": [],
-              "request": {
-                "url": "",
+                "url": "http://localhost:8001/api/event-manager/event-packets?items_per_page=5&page=2",
                 "method": "GET",
                 "headers": [],
-                "params": [],
+                "params": [
+                  {
+                    "name": "items_per_page",
+                    "value": "5",
+                    "type": "query",
+                    "enabled": true
+                  },
+                  {
+                    "name": "page",
+                    "value": "2",
+                    "type": "query",
+                    "enabled": true
+                  }
+                ],
                 "body": {
                   "mode": "none",
                   "formUrlEncoded": [],
@@ -413,25 +395,13 @@
               },
               "tags": [],
               "request": {
-                "url": "http://localhost:8001/api/event-manager/event-packets?available_tickets=200&items_per_page=2&page=4",
+                "url": "http://localhost:8001/api/event-manager/event-packets?available_tickets=5000",
                 "method": "GET",
                 "headers": [],
                 "params": [
                   {
                     "name": "available_tickets",
-                    "value": "200",
-                    "type": "query",
-                    "enabled": true
-                  },
-                  {
-                    "name": "items_per_page",
-                    "value": "2",
-                    "type": "query",
-                    "enabled": true
-                  },
-                  {
-                    "name": "page",
-                    "value": "4",
+                    "value": "5000",
                     "type": "query",
                     "enabled": true
                   }
@@ -454,20 +424,58 @@
             },
             {
               "type": "http",
-              "name": "Search by Page",
-              "filename": "Search by Page.bru",
-              "seq": 7,
+              "name": "Search by Type",
+              "filename": "Search by Type.bru",
+              "seq": 5,
               "settings": {
                 "encodeUrl": true
               },
               "tags": [],
               "request": {
-                "url": "",
+                "url": "http://localhost:8001/api/event-manager/event-packets?type=abona",
                 "method": "GET",
+                "headers": [],
+                "params": [
+                  {
+                    "name": "type",
+                    "value": "abona",
+                    "type": "query",
+                    "enabled": true
+                  }
+                ],
+                "body": {
+                  "mode": "none",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {},
+                "vars": {},
+                "assertions": [],
+                "tests": "",
+                "docs": "",
+                "auth": {
+                  "mode": "inherit"
+                }
+              }
+            },
+            {
+              "type": "http",
+              "name": "Update Event Packet",
+              "filename": "Update Event Packet.bru",
+              "seq": 4,
+              "settings": {
+                "encodeUrl": true
+              },
+              "tags": [],
+              "request": {
+                "url": "http://localhost:8001/api/event-manager/event-packets/7",
+                "method": "PUT",
                 "headers": [],
                 "params": [],
                 "body": {
-                  "mode": "none",
+                  "mode": "json",
+                  "json": "{\n    \"nume\": \"Pachetul Bucurestiul Mic\",\n    \"locatie\": \"Bucuresti\",\n    \"descriere\": \"What the hell\"\n  }",
                   "formUrlEncoded": [],
                   "multipartForm": [],
                   "file": []
@@ -688,6 +696,36 @@
                 "body": {
                   "mode": "json",
                   "json": "{\n    \"pachetid\": null,\n    \"evenimentid\": 2\n}",
+                  "formUrlEncoded": [],
+                  "multipartForm": [],
+                  "file": []
+                },
+                "script": {},
+                "vars": {},
+                "assertions": [],
+                "tests": "",
+                "docs": "",
+                "auth": {
+                  "mode": "inherit"
+                }
+              }
+            },
+            {
+              "type": "http",
+              "name": "Get Tickets",
+              "filename": "Get Tickets.bru",
+              "seq": 5,
+              "settings": {
+                "encodeUrl": true
+              },
+              "tags": [],
+              "request": {
+                "url": "http://localhost:8001/api/event-manager/tickets",
+                "method": "GET",
+                "headers": [],
+                "params": [],
+                "body": {
+                  "mode": "none",
                   "formUrlEncoded": [],
                   "multipartForm": [],
                   "file": []

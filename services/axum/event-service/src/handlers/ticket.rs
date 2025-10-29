@@ -22,6 +22,18 @@ pub async fn get_ticket(
     Ok(Json(ticket_response))
 }
 
+pub async fn get_tickets(
+    State(state): State<Arc<AppState>>,
+) -> Result<impl IntoResponse, TicketRepoError> {
+    let tickets = state.ticket_repo.list_tickets().await?;
+
+    let wrapped: Vec<TicketResponse> = tickets
+        .into_iter()
+        .map(|e| TicketResponse::new(e, &state.base_url))
+        .collect();
+
+    Ok(Json(wrapped))
+}
 pub async fn update_ticket(
     State(state): State<Arc<AppState>>,
     Path(cod): Path<String>,
@@ -54,8 +66,10 @@ pub async fn delete_ticket(
 }
 
 pub fn ticket_manager_router() -> Router<Arc<AppState>> {
-    Router::new().route("/tickets", post(create_ticket)).route(
-        "/tickets/{cod}",
-        get(get_ticket).put(update_ticket).delete(delete_ticket),
-    )
+    Router::new()
+        .route("/tickets", post(create_ticket).get(get_tickets))
+        .route(
+            "/tickets/{cod}",
+            get(get_ticket).put(update_ticket).delete(delete_ticket),
+        )
 }

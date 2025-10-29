@@ -1,11 +1,11 @@
+pub mod event;
 pub mod event_packets;
-pub mod events;
 pub mod join_pe;
 pub mod ticket;
 
 use crate::AppState;
+use crate::handlers::event::event_manager_router;
 use crate::handlers::event_packets::event_packet_manager_router;
-use crate::handlers::events::event_manager_router;
 use crate::handlers::join_pe::join_pe_manager_router;
 use crate::handlers::ticket::ticket_manager_router;
 use axum::Router;
