@@ -1,5 +1,6 @@
 use crate::AppState;
 use crate::error::EventRepoError;
+use crate::handlers::ticket;
 use crate::links::EventResponse;
 use crate::models::event::{CreateEvent, Event, EventQuery, UpdateEvent};
 use axum::response::IntoResponse;
@@ -11,7 +12,7 @@ use axum::{
 };
 use std::sync::Arc;
 
-pub async fn get_events(
+pub async fn list_events(
     State(state): State<Arc<AppState>>,
     Query(params): Query<EventQuery>,
 ) -> Result<impl IntoResponse, EventRepoError> {
@@ -68,10 +69,16 @@ pub async fn delete_event(
 
 pub fn event_manager_router() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/events", get(get_events))
-        .route("/events", post(create_event))
+        .route("/events", get(list_events))
+        .route("/events/{id}", get(get_event))
         .route(
-            "/events/{id}",
-            get(get_event).put(update_event).delete(delete_event),
+            "/events/{id}/tickets",
+            get(ticket::get_tickets_for_event).post(ticket::create_ticket_for_event),
+        )
+        .route(
+            "/events/{id}/tickets/{cod}",
+            get(ticket::get_ticket_for_event)
+                .put(ticket::update_ticket_for_event)
+                .delete(ticket::delete_ticket_for_event),
         )
 }

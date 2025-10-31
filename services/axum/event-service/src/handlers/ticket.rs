@@ -16,7 +16,7 @@ pub async fn get_ticket(
     State(state): State<Arc<AppState>>,
     Path(cod): Path<String>,
 ) -> Result<Json<TicketResponse>, TicketRepoError> {
-    let ticket = state.ticket_repo.get_ticket(cod).await?;
+    let ticket = state.ticket_repo.get_ticket(&cod).await?;
 
     let ticket_response = TicketResponse::new(ticket, &state.base_url);
     Ok(Json(ticket_response))
@@ -39,7 +39,7 @@ pub async fn update_ticket(
     Path(cod): Path<String>,
     Json(payload): Json<UpdateTicket>,
 ) -> Result<Json<TicketResponse>, TicketRepoError> {
-    let ticket = state.ticket_repo.update_ticket(cod, payload).await?;
+    let ticket = state.ticket_repo.update_ticket(&cod, payload).await?;
 
     let ticket_response = TicketResponse::new(ticket, &state.base_url);
 
@@ -59,9 +59,72 @@ pub async fn create_ticket(
 
 pub async fn delete_ticket(
     State(state): State<Arc<AppState>>,
-    Path(cod): Path<String>, // Note: Path<String>
+    Path(cod): Path<String>,
 ) -> Result<impl IntoResponse, TicketRepoError> {
-    state.ticket_repo.delete_ticket(cod).await?;
+    state.ticket_repo.delete_ticket(&cod).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn get_ticket_for_event(
+    State(state): State<Arc<AppState>>,
+    Path((event_id, ticket_cod)): Path<(i32, String)>,
+) -> Result<Json<TicketResponse>, TicketRepoError> {
+    let ticket = state
+        .ticket_repo
+        .get_ticket_for_event(event_id, &ticket_cod)
+        .await?;
+
+    let ticket_response = TicketResponse::new(ticket, &state.base_url);
+    Ok(Json(ticket_response))
+}
+
+pub async fn get_tickets_for_event(
+    State(state): State<Arc<AppState>>,
+    Path(event_id): Path<i32>,
+) -> Result<impl IntoResponse, TicketRepoError> {
+    let tickets = state.ticket_repo.list_tickets_for_event(event_id).await?;
+    let wrapped: Vec<TicketResponse> = tickets
+        .into_iter()
+        .map(|t| TicketResponse::new(t, &state.base_url))
+        .collect();
+    Ok(Json(wrapped))
+}
+
+pub async fn update_ticket_for_event(
+    State(state): State<Arc<AppState>>,
+    Path((event_id, ticket_cod)): Path<(i32, String)>,
+    Json(payload): Json<UpdateTicket>,
+) -> Result<Json<TicketResponse>, TicketRepoError> {
+    let ticket = state
+        .ticket_repo
+        .update_ticket_for_event(event_id, &ticket_cod, payload)
+        .await?;
+    let ticket_response = TicketResponse::new(ticket, &state.base_url);
+    Ok(Json(ticket_response))
+}
+
+pub async fn create_ticket_for_event(
+    State(state): State<Arc<AppState>>,
+    Path(event_id): Path<i32>,
+    Json(payload): Json<CreateTicket>,
+) -> Result<impl IntoResponse, TicketRepoError> {
+    let ticket = state
+        .ticket_repo
+        .create_ticket_for_event(event_id, payload)
+        .await?;
+
+    let ticket_response = TicketResponse::new(ticket, &state.base_url);
+    Ok((StatusCode::CREATED, Json(ticket_response)))
+}
+
+pub async fn delete_ticket_for_event(
+    State(state): State<Arc<AppState>>,
+    Path((event_id, ticket_cod)): Path<(i32, String)>,
+) -> Result<impl IntoResponse, TicketRepoError> {
+    state
+        .ticket_repo
+        .delete_ticket_for_event(event_id, ticket_cod)
+        .await?;
     Ok(StatusCode::NO_CONTENT)
 }
 

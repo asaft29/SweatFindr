@@ -77,6 +77,7 @@ impl EventPacketRepo {
         query_builder.push(" OFFSET ");
         query_builder.push_bind(offset);
     }
+
     pub async fn get_event_packet(
         &self,
         packet_id: i32,

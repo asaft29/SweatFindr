@@ -1,7 +1,8 @@
 use crate::AppState;
-use crate::error::EventPacketRepoError;
-use crate::links::EventPacketResponse;
+use crate::error::{EventPacketRepoError, TicketRepoError};
+use crate::links::{EventPacketResponse, TicketResponse};
 use crate::models::event_packets::{CreateEventPacket, EventPacketQuery, UpdateEventPacket};
+use crate::models::ticket::{CreateTicket, UpdateTicket};
 use axum::extract::Query;
 use axum::response::IntoResponse;
 use axum::{
@@ -70,6 +71,67 @@ pub async fn delete_event_packet(
     Ok(StatusCode::NO_CONTENT)
 }
 
+pub async fn list_tickets_for_packet(
+    State(state): State<Arc<AppState>>,
+    Path(packet_id): Path<i32>,
+) -> Result<impl IntoResponse, TicketRepoError> {
+    let tickets = state.ticket_repo.list_tickets_for_packet(packet_id).await?;
+    let wrapped: Vec<TicketResponse> = tickets
+        .into_iter()
+        .map(|t| TicketResponse::new(t, &state.base_url))
+        .collect();
+    Ok(Json(wrapped))
+}
+
+pub async fn get_ticket_for_packet(
+    State(state): State<Arc<AppState>>,
+    Path((packet_id, ticket_cod)): Path<(i32, String)>,
+) -> Result<Json<TicketResponse>, TicketRepoError> {
+    let ticket = state
+        .ticket_repo
+        .get_ticket_for_packet(packet_id, &ticket_cod)
+        .await?;
+    let ticket_response = TicketResponse::new(ticket, &state.base_url);
+    Ok(Json(ticket_response))
+}
+
+pub async fn create_ticket_for_packet(
+    State(state): State<Arc<AppState>>,
+    Path(packet_id): Path<i32>,
+    Json(payload): Json<CreateTicket>,
+) -> Result<impl IntoResponse, TicketRepoError> {
+    let ticket = state
+        .ticket_repo
+        .create_ticket_for_packet(packet_id, payload)
+        .await?;
+    let ticket_response = TicketResponse::new(ticket, &state.base_url);
+    Ok((StatusCode::CREATED, Json(ticket_response)))
+}
+
+pub async fn update_ticket_for_packet(
+    State(state): State<Arc<AppState>>,
+    Path((packet_id, ticket_cod)): Path<(i32, String)>,
+    Json(payload): Json<UpdateTicket>,
+) -> Result<Json<TicketResponse>, TicketRepoError> {
+    let ticket = state
+        .ticket_repo
+        .update_ticket_for_packet(packet_id, &ticket_cod, payload)
+        .await?;
+    let ticket_response = TicketResponse::new(ticket, &state.base_url);
+    Ok(Json(ticket_response))
+}
+
+pub async fn delete_ticket_for_packet(
+    State(state): State<Arc<AppState>>,
+    Path((packet_id, ticket_cod)): Path<(i32, String)>,
+) -> Result<impl IntoResponse, TicketRepoError> {
+    state
+        .ticket_repo
+        .delete_ticket_for_packet(packet_id, &ticket_cod)
+        .await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
 pub fn event_packet_manager_router() -> Router<Arc<AppState>> {
     Router::new()
         .route(
@@ -81,5 +143,15 @@ pub fn event_packet_manager_router() -> Router<Arc<AppState>> {
             get(get_event_packet)
                 .put(update_event_packet)
                 .delete(delete_event_packet),
+        )
+        .route(
+            "/event-packets/{id}/tickets",
+            get(list_tickets_for_packet).post(create_ticket_for_packet),
+        )
+        .route(
+            "/event-packets/{id}/tickets/{ticket_cod}",
+            get(get_ticket_for_packet)
+                .put(update_ticket_for_packet)
+                .delete(delete_ticket_for_packet),
         )
 }
