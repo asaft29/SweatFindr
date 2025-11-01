@@ -3,6 +3,7 @@ services:
     build:
       context: ../../../
       dockerfile: services/axum/event-service/Dockerfile
+    image: event-service:latest
     container_name: event-service
     ports:
       - "8001:8080"
