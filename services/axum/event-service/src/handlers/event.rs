@@ -1,17 +1,30 @@
 use crate::AppState;
-use crate::error::EventRepoError;
 use crate::handlers::ticket;
-use crate::links::{Response, build_filtered_event, build_simple_event};
 use crate::models::event::{CreateEvent, Event, EventQuery, UpdateEvent};
+use crate::shared::error::EventRepoError;
+use crate::shared::links::{Response, build_filtered_event, build_simple_event};
 use axum::response::IntoResponse;
 use axum::{
     Json, Router,
     extract::{Path, Query, State},
     http::StatusCode,
-    routing::{get, post},
+    routing::get,
 };
 use std::sync::Arc;
 
+#[utoipa::path(
+    get,
+    path = "/api/event-manager/events",
+    params(
+        ("location" = Option<String>, Query, description = "Filter by location of the event"),
+        ("name" = Option<String>, Query, description = "Filter by event name")
+    ),
+    responses(
+        (status = 200, description = "List events (optionally filtered by location or name)", body = [Response<Event>]),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Events"
+)]
 pub async fn list_events(
     State(state): State<Arc<AppState>>,
     Query(params): Query<EventQuery>,
@@ -32,6 +45,18 @@ pub async fn list_events(
     Ok((StatusCode::OK, Json(response)))
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/event-manager/events/{id}",
+    params(
+        ("id" = i32, Path, description = "ID of the event to retrieve")
+    ),
+    responses(
+        (status = 200, description = "Return an event by ID", body = Response<Event>),
+        (status = 404, description = "Event not found")
+    ),
+    tag = "Events"
+)]
 pub async fn get_event(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i32>,
@@ -43,6 +68,19 @@ pub async fn get_event(
     Ok(Json(event_response))
 }
 
+#[utoipa::path(
+    put,
+    path = "/api/event-manager/events/{id}",
+    params(
+        ("id" = i32, Path, description = "ID of the event to update")
+    ),
+    request_body = UpdateEvent,
+    responses(
+        (status = 200, description = "Updated event", body = Response<Event>),
+        (status = 404, description = "Event not found")
+    ),
+    tag = "Events"
+)]
 pub async fn update_event(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i32>,
@@ -55,6 +93,15 @@ pub async fn update_event(
     Ok(Json(event_response))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/event-manager/events",
+    request_body = CreateEvent,
+    responses(
+        (status = 201, description = "Event created successfully", body = Response<Event>)
+    ),
+    tag = "Events"
+)]
 pub async fn create_event(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<CreateEvent>,
@@ -66,6 +113,18 @@ pub async fn create_event(
     Ok((StatusCode::CREATED, Json(event_response)))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/api/event-manager/events/{id}",
+    params(
+        ("id" = i32, Path, description = "ID of the event to delete")
+    ),
+    responses(
+        (status = 204, description = "Event deleted successfully"),
+        (status = 404, description = "Event not found")
+    ),
+    tag = "Events"
+)]
 pub async fn delete_event(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i32>,
@@ -81,7 +140,7 @@ pub fn event_manager_router() -> Router<Arc<AppState>> {
         .route("/events/{id}", get(get_event))
         .route(
             "/events/{id}/tickets",
-            get(ticket::get_tickets_for_event).post(ticket::create_ticket_for_event),
+            get(ticket::list_tickets_for_event).post(ticket::create_ticket_for_event),
         )
         .route(
             "/events/{id}/tickets/{cod}",

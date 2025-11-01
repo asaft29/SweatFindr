@@ -1,5 +1,5 @@
-use crate::error::*;
 use crate::models::event::{CreateEvent, Event, EventQuery, UpdateEvent};
+use crate::shared::error::*;
 use anyhow::Result;
 use sqlx::{Error, PgPool, Postgres, QueryBuilder};
 

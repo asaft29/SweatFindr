@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
+use utoipa::ToSchema;
 
-#[derive(Debug, Deserialize, Serialize, FromRow)]
+#[derive(Debug, Deserialize, Serialize, FromRow, ToSchema)]
 pub struct Event {
     pub id: i32,
     pub id_owner: i32,
@@ -13,7 +14,7 @@ pub struct Event {
     pub locuri: Option<i32>,
 }
 
-#[derive(Debug, Deserialize, Serialize, FromRow)]
+#[derive(Debug, Deserialize, Serialize, FromRow, ToSchema)]
 pub struct CreateEvent {
     pub id_owner: i32,
     pub nume: String,
@@ -24,7 +25,7 @@ pub struct CreateEvent {
     pub locuri: Option<i32>,
 }
 
-#[derive(Debug, Deserialize, Serialize, FromRow)]
+#[derive(Debug, Deserialize, Serialize, FromRow, ToSchema)]
 pub struct UpdateEvent {
     pub id_owner: Option<i32>,
     pub nume: String,
@@ -35,7 +36,7 @@ pub struct UpdateEvent {
     pub locuri: Option<i32>,
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, ToSchema)]
 pub struct EventQuery {
     #[serde(rename = "location")]
     pub locatie: Option<String>,

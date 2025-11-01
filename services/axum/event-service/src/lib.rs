@@ -1,8 +1,7 @@
-pub mod error;
 pub mod handlers;
-pub mod links;
 pub mod models;
 pub mod repositories;
+pub mod shared;
 
 use crate::repositories::event_packets_repo::EventPacketRepo;
 use crate::repositories::event_repo::EventRepo;

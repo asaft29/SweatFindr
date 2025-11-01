@@ -38,6 +38,7 @@ async fn main() -> Result<()> {
     let app = Router::new()
         .route("/api", get(check_state))
         .nest("/api/event-manager", handlers::api_router())
+        .merge(handlers::swagger_router())
         .layer(TraceLayer::new_for_http())
         .with_state(app_state);
 

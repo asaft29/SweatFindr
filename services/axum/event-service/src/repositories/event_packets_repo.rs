@@ -1,7 +1,7 @@
-use crate::error::*;
 use crate::models::event_packets::{
     CreateEventPacket, EventPacketQuery, EventPackets, PaginationParams, UpdateEventPacket,
 };
+use crate::shared::error::*;
 use anyhow::Result;
 use sqlx::{Error, PgPool, Postgres, QueryBuilder};
 

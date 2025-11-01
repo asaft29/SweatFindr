@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
+use utoipa::ToSchema;
 
-#[derive(Debug, Serialize, FromRow)]
+#[derive(Debug, Serialize, FromRow, ToSchema)]
 pub struct EventPacketRelation {
     #[sqlx(rename = "pachetid")]
     #[serde(rename = "pachetid")]
@@ -14,7 +15,7 @@ pub struct EventPacketRelation {
     pub locuri: Option<i32>,
 }
 
-#[derive(Debug, Deserialize, FromRow)]
+#[derive(Debug, Deserialize, FromRow, ToSchema)]
 pub struct AddEventToPacket {
     #[sqlx(rename = "pachetid")]
     #[serde(rename = "pachetid")]
@@ -24,7 +25,7 @@ pub struct AddEventToPacket {
     pub locuri: Option<i32>,
 }
 
-#[derive(Debug, Deserialize, FromRow)]
+#[derive(Debug, Deserialize, FromRow, ToSchema)]
 pub struct AddPacketToEvent {
     #[sqlx(rename = "evenimentid")]
     #[serde(rename = "evenimentid")]

@@ -3,15 +3,16 @@ use crate::models::event_packets::{EventPacketQuery, EventPackets};
 use crate::models::ticket::Ticket;
 use serde::Serialize;
 use std::collections::HashMap;
+use utoipa::ToSchema;
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Debug, Clone, ToSchema)]
 pub struct Link {
     pub href: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub r#type: Option<String>,
 }
 
-#[derive(Serialize, Debug, Clone)]
+#[derive(Serialize, Debug, Clone, ToSchema)]
 pub struct Links {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub parent: Option<Link>,
@@ -39,8 +40,11 @@ impl Link {
     }
 }
 
-#[derive(Serialize, Debug)]
-pub struct Response<T> {
+#[derive(Serialize, Debug, ToSchema)]
+pub struct Response<T>
+where
+    T: ToSchema + Serialize,
+{
     #[serde(flatten)]
     pub data: T,
     #[serde(rename = "_links")]
@@ -54,7 +58,10 @@ pub struct ResponseBuilder<T> {
     other_links: HashMap<String, Link>,
 }
 
-impl<T> ResponseBuilder<T> {
+impl<T> ResponseBuilder<T>
+where
+    T: ToSchema + Serialize,
+{
     pub fn new(data: T, self_href: impl Into<String>) -> Self {
         Self {
             data,

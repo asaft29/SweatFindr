@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
+use utoipa::ToSchema;
 
-#[derive(Debug, Serialize, Deserialize, FromRow)]
+#[derive(Debug, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct Ticket {
     pub cod: String,
 
@@ -14,7 +15,7 @@ pub struct Ticket {
     pub id_event: Option<i32>,
 }
 
-#[derive(Debug, Deserialize, FromRow)]
+#[derive(Debug, Deserialize, FromRow, ToSchema)]
 pub struct CreateTicket {
     pub cod: String,
 
@@ -27,7 +28,7 @@ pub struct CreateTicket {
     pub id_event: Option<i32>,
 }
 
-#[derive(Debug, Deserialize, FromRow)]
+#[derive(Debug, Deserialize, FromRow, ToSchema)]
 pub struct UpdateTicket {
     #[sqlx(rename = "pachetid")]
     #[serde(rename = "pachetid")]

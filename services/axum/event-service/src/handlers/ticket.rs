@@ -1,17 +1,31 @@
-use crate::error::TicketRepoError;
-use crate::links::{Response, build_ticket_over_event};
+use crate::AppState;
 use crate::models::ticket::{CreateTicket, Ticket, UpdateTicket};
-use crate::{AppState, links};
+use crate::shared::error::TicketRepoError;
+use crate::shared::links;
+use crate::shared::links::{Response, build_ticket_over_event, build_ticket_over_packet};
 use axum::response::IntoResponse;
 
 use axum::{
     Json, Router,
     extract::{Path, State},
     http::StatusCode,
-    routing::{delete, get, post, put},
+    routing::{get, post},
 };
 use std::sync::Arc;
 
+#[utoipa::path(
+    get,
+    path = "/api/event-manager/tickets/{cod}",
+    params(
+        ("cod" = String, Path, description = "Ticket code")
+    ),
+    responses(
+        (status = 200, description = "Ticket found", body = Response<Ticket>),
+        (status = 404, description = "Ticket not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Tickets"
+)]
 pub async fn get_ticket(
     State(state): State<Arc<AppState>>,
     Path(cod): Path<String>,
@@ -23,7 +37,16 @@ pub async fn get_ticket(
     Ok(Json(ticket_response))
 }
 
-pub async fn get_tickets(
+#[utoipa::path(
+    get,
+    path = "/api/event-manager/tickets",
+    responses(
+        (status = 200, description = "List of all tickets", body = [Response<Ticket>]),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Tickets"
+)]
+pub async fn list_tickets(
     State(state): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse, TicketRepoError> {
     let tickets = state.ticket_repo.list_tickets().await?;
@@ -35,6 +58,21 @@ pub async fn get_tickets(
 
     Ok(Json(wrapped))
 }
+
+#[utoipa::path(
+    put,
+    path = "/api/event-manager/tickets/{cod}",
+    request_body = UpdateTicket,
+    params(
+        ("cod" = String, Path, description = "Ticket code")
+    ),
+    responses(
+        (status = 200, description = "Ticket updated", body = Response<Ticket>),
+        (status = 404, description = "Ticket not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Tickets"
+)]
 pub async fn update_ticket(
     State(state): State<Arc<AppState>>,
     Path(cod): Path<String>,
@@ -47,6 +85,16 @@ pub async fn update_ticket(
     Ok(Json(ticket_response))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/event-manager/tickets",
+    request_body = CreateTicket,
+    responses(
+        (status = 201, description = "Ticket created", body = Response<Ticket>),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Tickets"
+)]
 pub async fn create_ticket(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<CreateTicket>,
@@ -58,6 +106,19 @@ pub async fn create_ticket(
     Ok((StatusCode::CREATED, Json(ticket_response)))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/api/event-manager/tickets/{cod}",
+    params(
+        ("cod" = String, Path, description = "Ticket code")
+    ),
+    responses(
+        (status = 204, description = "Ticket deleted"),
+        (status = 404, description = "Ticket not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Tickets"
+)]
 pub async fn delete_ticket(
     State(state): State<Arc<AppState>>,
     Path(cod): Path<String>,
@@ -66,6 +127,20 @@ pub async fn delete_ticket(
     Ok(StatusCode::NO_CONTENT)
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/event-manager/events/{event_id}/tickets/{ticket_cod}",
+    params(
+        ("event_id" = i32, Path, description = "Event ID"),
+        ("ticket_cod" = String, Path, description = "Ticket code")
+    ),
+    responses(
+        (status = 200, description = "Get ticket for event", body = Response<Ticket>),
+        (status = 404, description = "Ticket not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Tickets"
+)]
 pub async fn get_ticket_for_event(
     State(state): State<Arc<AppState>>,
     Path((event_id, ticket_cod)): Path<(i32, String)>,
@@ -80,7 +155,19 @@ pub async fn get_ticket_for_event(
     Ok(Json(ticket_response))
 }
 
-pub async fn get_tickets_for_event(
+#[utoipa::path(
+    get,
+    path = "/api/event-manager/events/{event_id}/tickets",
+    params(
+        ("event_id" = i32, Path, description = "Event ID")
+    ),
+    responses(
+        (status = 200, description = "List of tickets for the event", body = [Response<Ticket>]),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Tickets"
+)]
+pub async fn list_tickets_for_event(
     State(state): State<Arc<AppState>>,
     Path(event_id): Path<i32>,
 ) -> Result<impl IntoResponse, TicketRepoError> {
@@ -94,6 +181,21 @@ pub async fn get_tickets_for_event(
     Ok(Json(wrapped))
 }
 
+#[utoipa::path(
+    put,
+    path = "/api/event-manager/events/{event_id}/tickets/{ticket_cod}",
+    request_body = UpdateTicket,
+    params(
+        ("event_id" = i32, Path, description = "Event ID"),
+        ("ticket_cod" = String, Path, description = "Ticket code")
+    ),
+    responses(
+        (status = 200, description = "Ticket updated for event", body = Response<Ticket>),
+        (status = 404, description = "Ticket not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Tickets"
+)]
 pub async fn update_ticket_for_event(
     State(state): State<Arc<AppState>>,
     Path((event_id, ticket_cod)): Path<(i32, String)>,
@@ -109,6 +211,19 @@ pub async fn update_ticket_for_event(
     Ok(Json(ticket_response))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/event-manager/events/{event_id}/tickets",
+    request_body = CreateTicket,
+    params(
+        ("event_id" = i32, Path, description = "Event ID")
+    ),
+    responses(
+        (status = 201, description = "Ticket created for event", body = Response<Ticket>),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Tickets"
+)]
 pub async fn create_ticket_for_event(
     State(state): State<Arc<AppState>>,
     Path(event_id): Path<i32>,
@@ -124,6 +239,20 @@ pub async fn create_ticket_for_event(
     Ok((StatusCode::CREATED, Json(ticket_response)))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/api/event-manager/events/{event_id}/tickets/{ticket_cod}",
+    params(
+        ("event_id" = i32, Path, description = "Event ID"),
+        ("ticket_cod" = String, Path, description = "Ticket code")
+    ),
+    responses(
+        (status = 204, description = "Ticket deleted for event"),
+        (status = 404, description = "Ticket not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Tickets"
+)]
 pub async fn delete_ticket_for_event(
     State(state): State<Arc<AppState>>,
     Path((event_id, ticket_cod)): Path<(i32, String)>,
@@ -135,9 +264,146 @@ pub async fn delete_ticket_for_event(
     Ok(StatusCode::NO_CONTENT)
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/event-manager/event-packets/{packet_id}/tickets",
+    params(
+        ("packet_id" = i32, Path, description = "Packet ID")
+    ),
+    responses(
+        (status = 200, description = "List of tickets for the packet", body = [Response<Ticket>]),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Tickets"
+)]
+pub async fn list_tickets_for_packet(
+    State(state): State<Arc<AppState>>,
+    Path(packet_id): Path<i32>,
+) -> Result<impl IntoResponse, TicketRepoError> {
+    let tickets = state.ticket_repo.list_tickets_for_packet(packet_id).await?;
+
+    let wrapped: Vec<Response<Ticket>> = tickets
+        .into_iter()
+        .map(|t| build_ticket_over_packet(t, packet_id, &state.base_url))
+        .collect();
+
+    Ok(Json(wrapped))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/event-manager/event-packets/{packet_id}/tickets/{ticket_cod}",
+    params(
+        ("packet_id" = i32, Path, description = "Packet ID"),
+        ("ticket_cod" = String, Path, description = "Ticket code")
+    ),
+    responses(
+        (status = 200, description = "Get ticket for packet", body = Response<Ticket>),
+        (status = 404, description = "Ticket not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Tickets"
+)]
+pub async fn get_ticket_for_packet(
+    State(state): State<Arc<AppState>>,
+    Path((packet_id, ticket_cod)): Path<(i32, String)>,
+) -> Result<impl IntoResponse, TicketRepoError> {
+    let ticket = state
+        .ticket_repo
+        .get_ticket_for_packet(packet_id, &ticket_cod)
+        .await?;
+
+    let ticket_response = build_ticket_over_packet(ticket, packet_id, &state.base_url);
+
+    Ok(Json(ticket_response))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/event-manager/event-packets/{packet_id}/tickets",
+    request_body = CreateTicket,
+    params(
+        ("packet_id" = i32, Path, description = "Packet ID")
+    ),
+    responses(
+        (status = 201, description = "Ticket created for packet", body = Response<Ticket>),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Tickets"
+)]
+pub async fn create_ticket_for_packet(
+    State(state): State<Arc<AppState>>,
+    Path(packet_id): Path<i32>,
+    Json(payload): Json<CreateTicket>,
+) -> Result<impl IntoResponse, TicketRepoError> {
+    let ticket = state
+        .ticket_repo
+        .create_ticket_for_packet(packet_id, payload)
+        .await?;
+
+    let ticket_response = build_ticket_over_packet(ticket, packet_id, &state.base_url);
+
+    Ok((StatusCode::CREATED, Json(ticket_response)))
+}
+
+#[utoipa::path(
+    put,
+    path = "/api/event-manager/event-packets/{packet_id}/tickets/{ticket_cod}",
+    request_body = UpdateTicket,
+    params(
+        ("packet_id" = i32, Path, description = "Packet ID"),
+        ("ticket_cod" = String, Path, description = "Ticket code")
+    ),
+    responses(
+        (status = 200, description = "Ticket updated for packet", body = Response<Ticket>),
+        (status = 404, description = "Ticket not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Tickets"
+)]
+pub async fn update_ticket_for_packet(
+    State(state): State<Arc<AppState>>,
+    Path((packet_id, ticket_cod)): Path<(i32, String)>,
+    Json(payload): Json<UpdateTicket>,
+) -> Result<impl IntoResponse, TicketRepoError> {
+    let ticket = state
+        .ticket_repo
+        .update_ticket_for_packet(packet_id, &ticket_cod, payload)
+        .await?;
+
+    let ticket_response = build_ticket_over_packet(ticket, packet_id, &state.base_url);
+
+    Ok(Json(ticket_response))
+}
+
+#[utoipa::path(
+    delete,
+    path = "/api/event-manager/event-packets/{packet_id}/tickets/{ticket_cod}",
+    params(
+        ("packet_id" = i32, Path, description = "Packet ID"),
+        ("ticket_cod" = String, Path, description = "Ticket code")
+    ),
+    responses(
+        (status = 204, description = "Ticket deleted for packet"),
+        (status = 404, description = "Ticket not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Tickets"
+)]
+pub async fn delete_ticket_for_packet(
+    State(state): State<Arc<AppState>>,
+    Path((packet_id, ticket_cod)): Path<(i32, String)>,
+) -> Result<impl IntoResponse, TicketRepoError> {
+    state
+        .ticket_repo
+        .delete_ticket_for_packet(packet_id, &ticket_cod)
+        .await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
 pub fn ticket_manager_router() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/tickets", post(create_ticket).get(get_tickets))
+        .route("/tickets", post(create_ticket).get(list_tickets))
         .route(
             "/tickets/{cod}",
             get(get_ticket).put(update_ticket).delete(delete_ticket),
