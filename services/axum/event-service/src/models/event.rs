@@ -35,7 +35,7 @@ pub struct UpdateEvent {
     pub locuri: Option<i32>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct EventQuery {
     #[serde(rename = "location")]
     pub locatie: Option<String>,

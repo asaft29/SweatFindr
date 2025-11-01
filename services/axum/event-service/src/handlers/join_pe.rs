@@ -1,6 +1,6 @@
 use crate::AppState;
 use crate::error::JoinPeRepoError;
-use crate::links::{EventPacketResponse, EventResponse};
+use crate::links::{Response, build_event_over_packet, build_packet_over_event};
 use crate::models::event::Event;
 use crate::models::event_packets::EventPackets;
 use crate::models::join_pe::{AddEventToPacket, AddPacketToEvent};
@@ -20,9 +20,9 @@ pub async fn get_packets_for_event(
 ) -> Result<impl IntoResponse, JoinPeRepoError> {
     let packets = state.join_repo.get_packets_for_event(id).await?;
 
-    let wrapped: Vec<EventPacketResponse> = packets
+    let wrapped: Vec<Response<EventPackets>> = packets
         .into_iter()
-        .map(|e| EventPacketResponse::new(e, &state.base_url))
+        .map(|e| build_packet_over_event(e, id, &state.base_url))
         .collect();
 
     Ok(Json(wrapped))
@@ -34,9 +34,9 @@ pub async fn get_events_for_packet(
 ) -> Result<impl IntoResponse, JoinPeRepoError> {
     let events = state.join_repo.get_events_for_packet(id).await?;
 
-    let wrapped: Vec<EventResponse> = events
+    let wrapped: Vec<Response<Event>> = events
         .into_iter()
-        .map(|e| EventResponse::new(e, &state.base_url))
+        .map(|e| build_event_over_packet(e, id, &state.base_url))
         .collect();
 
     Ok(Json(wrapped))

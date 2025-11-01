@@ -1,7 +1,7 @@
 use crate::AppState;
 use crate::error::EventRepoError;
 use crate::handlers::ticket;
-use crate::links::EventResponse;
+use crate::links::{Response, build_filtered_event, build_simple_event};
 use crate::models::event::{CreateEvent, Event, EventQuery, UpdateEvent};
 use axum::response::IntoResponse;
 use axum::{
@@ -16,14 +16,20 @@ pub async fn list_events(
     State(state): State<Arc<AppState>>,
     Query(params): Query<EventQuery>,
 ) -> Result<impl IntoResponse, EventRepoError> {
-    let events: Vec<Event> = state.event_repo.list_events(params).await?;
+    let events: Vec<Event> = state.event_repo.list_events(params.clone()).await?;
 
-    let event_responses: Vec<EventResponse> = events
-        .into_iter()
-        .map(|event| EventResponse::new(event, &state.base_url))
-        .collect();
+    let has_filters = params.locatie.is_some() || params.nume.is_some();
 
-    Ok((StatusCode::OK, Json(event_responses)))
+    let response: Vec<Response<Event>> = if has_filters {
+        build_filtered_event(events, &params, &state.base_url)
+    } else {
+        events
+            .into_iter()
+            .map(|event| build_simple_event(event, &state.base_url))
+            .collect()
+    };
+
+    Ok((StatusCode::OK, Json(response)))
 }
 
 pub async fn get_event(
@@ -32,7 +38,8 @@ pub async fn get_event(
 ) -> Result<impl IntoResponse, EventRepoError> {
     let event = state.event_repo.get_event(id).await?;
 
-    let event_response = EventResponse::new(event, &state.base_url);
+    let event_response = build_simple_event(event, &state.base_url);
+
     Ok(Json(event_response))
 }
 
@@ -43,7 +50,7 @@ pub async fn update_event(
 ) -> Result<impl IntoResponse, EventRepoError> {
     let event = state.event_repo.update_event(id, payload).await?;
 
-    let event_response = EventResponse::new(event, &state.base_url);
+    let event_response = build_simple_event(event, &state.base_url);
 
     Ok(Json(event_response))
 }
@@ -54,7 +61,7 @@ pub async fn create_event(
 ) -> Result<impl IntoResponse, EventRepoError> {
     let event = state.event_repo.create_event(payload).await?;
 
-    let event_response = EventResponse::new(event, &state.base_url);
+    let event_response = build_simple_event(event, &state.base_url);
 
     Ok((StatusCode::CREATED, Json(event_response)))
 }
@@ -64,6 +71,7 @@ pub async fn delete_event(
     Path(id): Path<i32>,
 ) -> Result<impl IntoResponse, EventRepoError> {
     state.event_repo.delete_event(id).await?;
+
     Ok(StatusCode::NO_CONTENT)
 }
 

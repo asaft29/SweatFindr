@@ -27,7 +27,7 @@ pub struct UpdateEventPacket {
     pub descriere: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct EventPacketQuery {
     #[serde(rename = "type")]
     pub descriere: Option<String>,
@@ -38,7 +38,7 @@ pub struct EventPacketQuery {
 }
 
 #[serde_as]
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct PaginationParams {
     #[serde_as(as = "Option<DisplayFromStr>")]
     pub page: Option<i64>,

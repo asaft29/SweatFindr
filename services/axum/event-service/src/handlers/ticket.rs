@@ -1,7 +1,7 @@
-use crate::AppState;
 use crate::error::TicketRepoError;
-use crate::links::TicketResponse;
-use crate::models::ticket::{CreateTicket, UpdateTicket};
+use crate::links::{Response, build_ticket_over_event};
+use crate::models::ticket::{CreateTicket, Ticket, UpdateTicket};
+use crate::{AppState, links};
 use axum::response::IntoResponse;
 
 use axum::{
@@ -15,10 +15,11 @@ use std::sync::Arc;
 pub async fn get_ticket(
     State(state): State<Arc<AppState>>,
     Path(cod): Path<String>,
-) -> Result<Json<TicketResponse>, TicketRepoError> {
+) -> Result<impl IntoResponse, TicketRepoError> {
     let ticket = state.ticket_repo.get_ticket(&cod).await?;
 
-    let ticket_response = TicketResponse::new(ticket, &state.base_url);
+    let ticket_response = links::build_simple_ticket(ticket, &state.base_url);
+
     Ok(Json(ticket_response))
 }
 
@@ -27,9 +28,9 @@ pub async fn get_tickets(
 ) -> Result<impl IntoResponse, TicketRepoError> {
     let tickets = state.ticket_repo.list_tickets().await?;
 
-    let wrapped: Vec<TicketResponse> = tickets
+    let wrapped: Vec<Response<Ticket>> = tickets
         .into_iter()
-        .map(|e| TicketResponse::new(e, &state.base_url))
+        .map(|e| links::build_simple_ticket(e, &state.base_url))
         .collect();
 
     Ok(Json(wrapped))
@@ -38,10 +39,10 @@ pub async fn update_ticket(
     State(state): State<Arc<AppState>>,
     Path(cod): Path<String>,
     Json(payload): Json<UpdateTicket>,
-) -> Result<Json<TicketResponse>, TicketRepoError> {
+) -> Result<impl IntoResponse, TicketRepoError> {
     let ticket = state.ticket_repo.update_ticket(&cod, payload).await?;
 
-    let ticket_response = TicketResponse::new(ticket, &state.base_url);
+    let ticket_response = links::build_simple_ticket(ticket, &state.base_url);
 
     Ok(Json(ticket_response))
 }
@@ -52,7 +53,7 @@ pub async fn create_ticket(
 ) -> Result<impl IntoResponse, TicketRepoError> {
     let ticket = state.ticket_repo.create_ticket(payload).await?;
 
-    let ticket_response = TicketResponse::new(ticket, &state.base_url);
+    let ticket_response = links::build_simple_ticket(ticket, &state.base_url);
 
     Ok((StatusCode::CREATED, Json(ticket_response)))
 }
@@ -68,13 +69,14 @@ pub async fn delete_ticket(
 pub async fn get_ticket_for_event(
     State(state): State<Arc<AppState>>,
     Path((event_id, ticket_cod)): Path<(i32, String)>,
-) -> Result<Json<TicketResponse>, TicketRepoError> {
+) -> Result<impl IntoResponse, TicketRepoError> {
     let ticket = state
         .ticket_repo
         .get_ticket_for_event(event_id, &ticket_cod)
         .await?;
 
-    let ticket_response = TicketResponse::new(ticket, &state.base_url);
+    let ticket_response = build_ticket_over_event(ticket, event_id, &state.base_url);
+
     Ok(Json(ticket_response))
 }
 
@@ -83,10 +85,12 @@ pub async fn get_tickets_for_event(
     Path(event_id): Path<i32>,
 ) -> Result<impl IntoResponse, TicketRepoError> {
     let tickets = state.ticket_repo.list_tickets_for_event(event_id).await?;
-    let wrapped: Vec<TicketResponse> = tickets
+
+    let wrapped: Vec<Response<Ticket>> = tickets
         .into_iter()
-        .map(|t| TicketResponse::new(t, &state.base_url))
+        .map(|t| build_ticket_over_event(t, event_id, &state.base_url))
         .collect();
+
     Ok(Json(wrapped))
 }
 
@@ -94,12 +98,14 @@ pub async fn update_ticket_for_event(
     State(state): State<Arc<AppState>>,
     Path((event_id, ticket_cod)): Path<(i32, String)>,
     Json(payload): Json<UpdateTicket>,
-) -> Result<Json<TicketResponse>, TicketRepoError> {
+) -> Result<impl IntoResponse, TicketRepoError> {
     let ticket = state
         .ticket_repo
         .update_ticket_for_event(event_id, &ticket_cod, payload)
         .await?;
-    let ticket_response = TicketResponse::new(ticket, &state.base_url);
+
+    let ticket_response = build_ticket_over_event(ticket, event_id, &state.base_url);
+
     Ok(Json(ticket_response))
 }
 
@@ -113,7 +119,8 @@ pub async fn create_ticket_for_event(
         .create_ticket_for_event(event_id, payload)
         .await?;
 
-    let ticket_response = TicketResponse::new(ticket, &state.base_url);
+    let ticket_response = build_ticket_over_event(ticket, event_id, &state.base_url);
+
     Ok((StatusCode::CREATED, Json(ticket_response)))
 }
 
