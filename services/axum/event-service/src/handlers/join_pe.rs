@@ -2,7 +2,7 @@ use crate::AppState;
 use crate::models::event::Event;
 use crate::models::event_packets::EventPackets;
 use crate::models::join_pe::{AddEventToPacket, AddPacketToEvent};
-use crate::shared::error::JoinPeRepoError;
+use crate::shared::error::ApiError;
 use crate::shared::links::{Response, build_event_over_packet, build_packet_over_event};
 use axum::Router;
 use axum::response::IntoResponse;
@@ -30,7 +30,10 @@ use std::sync::Arc;
 pub async fn list_packets_for_event(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i32>,
-) -> Result<impl IntoResponse, JoinPeRepoError> {
+) -> Result<impl IntoResponse, ApiError> {
+    if id < 0 {
+        return Err(ApiError::BadRequest("Cannot get with negative ID".into()));
+    }
     let packets = state.join_repo.get_packets_for_event(id).await?;
 
     let wrapped: Vec<Response<EventPackets>> = packets
@@ -57,7 +60,10 @@ pub async fn list_packets_for_event(
 pub async fn list_events_for_packet(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i32>,
-) -> Result<impl IntoResponse, JoinPeRepoError> {
+) -> Result<impl IntoResponse, ApiError> {
+    if id < 0 {
+        return Err(ApiError::BadRequest("ID cannot be negative".into()));
+    }
     let events = state.join_repo.get_events_for_packet(id).await?;
 
     let wrapped: Vec<Response<Event>> = events
@@ -86,7 +92,11 @@ pub async fn add_event_to_packet(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i32>,
     Json(payload): Json<AddEventToPacket>,
-) -> Result<impl IntoResponse, JoinPeRepoError> {
+) -> Result<impl IntoResponse, ApiError> {
+    if id < 0 {
+        return Err(ApiError::BadRequest("ID cannot be negative".into()));
+    }
+
     let relation = state.join_repo.add_event_to_packet(id, payload).await?;
     Ok((StatusCode::CREATED, Json(relation)))
 }
@@ -109,7 +119,10 @@ pub async fn add_packet_to_event(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i32>,
     Json(payload): Json<AddPacketToEvent>,
-) -> Result<impl IntoResponse, JoinPeRepoError> {
+) -> Result<impl IntoResponse, ApiError> {
+    if id < 0 {
+        return Err(ApiError::BadRequest("ID cannot be negative".into()));
+    }
     let relation = state.join_repo.add_packet_to_event(id, payload).await?;
     Ok((StatusCode::CREATED, Json(relation)))
 }

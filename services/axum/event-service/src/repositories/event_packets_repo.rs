@@ -53,7 +53,7 @@ impl EventPacketRepo {
         let packets = query
             .fetch_all(&self.pool)
             .await
-            .map_err(|e| EventPacketRepoError::InternalError(e))?;
+            .map_err(map_sqlx_packet_error)?;
 
         Ok(packets)
     }
@@ -149,11 +149,7 @@ impl EventPacketRepo {
         .fetch_one(&self.pool)
         .await;
 
-        match result {
-            Ok(packet) => Ok(packet),
-            Err(Error::RowNotFound) => Err(EventPacketRepoError::NotFound),
-            Err(e) => Err(EventPacketRepoError::InternalError(e)),
-        }
+        result.map_err(map_sqlx_packet_error)
     }
 
     pub async fn delete_event_packet(&self, packet_id: i32) -> Result<(), EventPacketRepoError> {

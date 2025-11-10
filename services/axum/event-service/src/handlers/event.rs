@@ -1,7 +1,7 @@
 use crate::AppState;
 use crate::handlers::ticket;
 use crate::models::event::{CreateEvent, Event, EventQuery, UpdateEvent};
-use crate::shared::error::EventRepoError;
+use crate::shared::error::ApiError;
 use crate::shared::links::{Response, build_filtered_event, build_simple_event};
 use axum::response::IntoResponse;
 use axum::{
@@ -11,6 +11,7 @@ use axum::{
     routing::get,
 };
 use std::sync::Arc;
+use validator::Validate;
 
 #[utoipa::path(
     get,
@@ -28,7 +29,9 @@ use std::sync::Arc;
 pub async fn list_events(
     State(state): State<Arc<AppState>>,
     Query(params): Query<EventQuery>,
-) -> Result<impl IntoResponse, EventRepoError> {
+) -> Result<impl IntoResponse, ApiError> {
+    params.validate()?;
+
     let events: Vec<Event> = state.event_repo.list_events(params.clone()).await?;
 
     let has_filters = params.locatie.is_some() || params.nume.is_some();
@@ -60,7 +63,10 @@ pub async fn list_events(
 pub async fn get_event(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i32>,
-) -> Result<impl IntoResponse, EventRepoError> {
+) -> Result<impl IntoResponse, ApiError> {
+    if id < 0 {
+        return Err(ApiError::BadRequest("ID cannot be negative".into()));
+    }
     let event = state.event_repo.get_event(id).await?;
 
     let event_response = build_simple_event(event, &state.base_url);
@@ -85,7 +91,12 @@ pub async fn update_event(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i32>,
     Json(payload): Json<UpdateEvent>,
-) -> Result<impl IntoResponse, EventRepoError> {
+) -> Result<impl IntoResponse, ApiError> {
+    if id < 0 {
+        return Err(ApiError::BadRequest("ID cannot be negative".into()));
+    }
+    payload.validate()?;
+
     let event = state.event_repo.update_event(id, payload).await?;
 
     let event_response = build_simple_event(event, &state.base_url);
@@ -105,7 +116,9 @@ pub async fn update_event(
 pub async fn create_event(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<CreateEvent>,
-) -> Result<impl IntoResponse, EventRepoError> {
+) -> Result<impl IntoResponse, ApiError> {
+    payload.validate()?;
+
     let event = state.event_repo.create_event(payload).await?;
 
     let event_response = build_simple_event(event, &state.base_url);
@@ -128,7 +141,10 @@ pub async fn create_event(
 pub async fn delete_event(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i32>,
-) -> Result<impl IntoResponse, EventRepoError> {
+) -> Result<impl IntoResponse, ApiError> {
+    if id < 0 {
+        return Err(ApiError::BadRequest("ID cannot be negative".into()));
+    }
     state.event_repo.delete_event(id).await?;
 
     Ok(StatusCode::NO_CONTENT)
@@ -136,8 +152,11 @@ pub async fn delete_event(
 
 pub fn event_manager_router() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/events", get(list_events))
-        .route("/events/{id}", get(get_event))
+        .route("/events", get(list_events).post(create_event))
+        .route(
+            "/events/{id}",
+            get(get_event).put(update_event).delete(delete_event),
+        )
         .route(
             "/events/{id}/tickets",
             get(ticket::list_tickets_for_event).post(ticket::create_ticket_for_event),
