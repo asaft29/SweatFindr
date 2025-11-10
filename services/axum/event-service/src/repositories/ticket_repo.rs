@@ -75,12 +75,11 @@ impl TicketRepo {
         let result = sqlx::query_as::<_, Ticket>(
             r#"
         INSERT INTO BILETE (cod, pachetid, evenimentid)
-        VALUES ($1, $2, $3)
+        VALUES ($1, NULL, $2)
         RETURNING cod, pachetid, evenimentid
         "#,
         )
         .bind(payload.cod)
-        .bind(payload.id_pachet)
         .bind(event_id)
         .fetch_one(&self.pool)
         .await;
@@ -122,9 +121,9 @@ impl TicketRepo {
         let result = sqlx::query_as::<_, Ticket>(
             r#"
             UPDATE BILETE
-            SET 
-                pachetid = COALESCE($1, pachetid),
-                evenimentid = COALESCE($2, evenimentid)
+            SET
+                pachetid = $1,
+                evenimentid = $2
             WHERE COD = $3
             RETURNING COD, pachetid, evenimentid
             "#,
@@ -147,15 +146,17 @@ impl TicketRepo {
         let result = sqlx::query_as::<_, Ticket>(
             r#"
             UPDATE BILETE
-            SET 
-                pachetid = COALESCE($1, pachetid)
-            WHERE evenimentid = $2 AND cod = $3
+            SET
+                pachetid = $1,
+                evenimentid = NULL
+            WHERE
+                cod = $2 and evenimentid = $3
             RETURNING cod, pachetid, evenimentid
             "#,
         )
         .bind(payload.id_pachet)
-        .bind(event_id)
         .bind(cod)
+        .bind(event_id)
         .fetch_one(&self.pool)
         .await;
 
@@ -241,13 +242,12 @@ impl TicketRepo {
         let result = sqlx::query_as::<_, Ticket>(
             r#"
             INSERT INTO BILETE (cod, pachetid, evenimentid)
-            VALUES ($1, $2, $3)
+            VALUES ($1, $2, NULL)
             RETURNING cod, pachetid, evenimentid
             "#,
         )
         .bind(payload.cod)
         .bind(packet_id)
-        .bind(payload.id_event)
         .fetch_one(&self.pool)
         .await;
 
@@ -263,15 +263,17 @@ impl TicketRepo {
         let result = sqlx::query_as::<_, Ticket>(
             r#"
             UPDATE BILETE
-            SET 
-                evenimentid = COALESCE($1, evenimentid)
-            WHERE pachetid = $2 AND cod = $3
+            SET
+                pachetid = NULL,
+                evenimentid = $1
+            WHERE
+                cod = $2 AND pachetid = $3
             RETURNING cod, pachetid, evenimentid
             "#,
         )
         .bind(payload.id_event)
-        .bind(packet_id)
         .bind(cod)
+        .bind(packet_id)
         .fetch_one(&self.pool)
         .await;
 

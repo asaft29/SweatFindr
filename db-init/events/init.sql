@@ -1,44 +1,63 @@
 DROP TABLE IF EXISTS UTILIZATORI CASCADE;
+
 DROP TABLE IF EXISTS EVENIMENTE CASCADE;
+
 DROP TABLE IF EXISTS PACHETE CASCADE;
+
 DROP TABLE IF EXISTS JOIN_PE CASCADE;
+
 DROP TABLE IF EXISTS BILETE CASCADE;
 
 CREATE EXTENSION IF NOT EXISTS unaccent;
 
-CREATE TABLE UTILIZATORI (
-    ID          SERIAL          PRIMARY KEY,
-    email       VARCHAR(255)    UNIQUE NOT NULL,
-    parola      VARCHAR(255)    NOT NULL,
-    rol         VARCHAR(50)     NOT NULL CHECK (rol IN ('admin', 'owner-event', 'client'))
-);
+CREATE TABLE
+    UTILIZATORI (
+        ID SERIAL PRIMARY KEY,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        parola VARCHAR(255) NOT NULL,
+        rol VARCHAR(50) NOT NULL CHECK (rol IN ('admin', 'owner-event', 'client'))
+    );
 
-CREATE TABLE EVENIMENTE (
-    ID          SERIAL          PRIMARY KEY,
-    ID_OWNER    INTEGER         NOT NULL REFERENCES UTILIZATORI(ID),
-    nume        VARCHAR(255)    UNIQUE NOT NULL,
-    locatie     VARCHAR(255)    NULL,
-    descriere   TEXT            NULL,
-    numarLocuri INTEGER         NULL
-);
+CREATE TABLE
+    EVENIMENTE (
+        ID SERIAL PRIMARY KEY,
+        ID_OWNER INTEGER NOT NULL REFERENCES UTILIZATORI (ID),
+        nume VARCHAR(255) UNIQUE NOT NULL,
+        locatie VARCHAR(255) NULL,
+        descriere TEXT NULL,
+        numarLocuri INTEGER NULL
+    );
 
-CREATE TABLE PACHETE (
-    ID          SERIAL          PRIMARY KEY,
-    ID_OWNER    INTEGER         NOT NULL REFERENCES UTILIZATORI(ID),
-    nume        VARCHAR(255)    UNIQUE NOT NULL,
-    locatie     VARCHAR(255)    NULL,
-    descriere   TEXT            NULL
-);
+CREATE TABLE
+    PACHETE (
+        ID SERIAL PRIMARY KEY,
+        ID_OWNER INTEGER NOT NULL REFERENCES UTILIZATORI (ID),
+        nume VARCHAR(255) UNIQUE NOT NULL,
+        locatie VARCHAR(255) NULL,
+        descriere TEXT NULL,
+        numarLocuri INTEGER NULL
+    );
 
-CREATE TABLE JOIN_PE (
-    PachetID        INTEGER     REFERENCES PACHETE(ID) ON DELETE CASCADE,
-    EvenimentID     INTEGER     REFERENCES EVENIMENTE(ID) ON DELETE CASCADE,
-    numarLocuri     INTEGER     NULL,
-    PRIMARY KEY (PachetID, EvenimentID)
-);
+CREATE TABLE
+    JOIN_PE (
+        PachetID INTEGER REFERENCES PACHETE (ID) ON DELETE CASCADE,
+        EvenimentID INTEGER REFERENCES EVENIMENTE (ID) ON DELETE CASCADE,
+        PRIMARY KEY (PachetID, EvenimentID)
+    );
 
-CREATE TABLE BILETE (
-    COD             VARCHAR(50)     PRIMARY KEY,
-    PachetID        INTEGER         REFERENCES PACHETE(ID) ON DELETE SET NULL,
-    EvenimentID     INTEGER         REFERENCES EVENIMENTE(ID) ON DELETE SET NULL
-);
+CREATE TABLE
+    BILETE (
+        COD VARCHAR(50) PRIMARY KEY,
+        PachetID INTEGER REFERENCES PACHETE (ID) ON DELETE SET NULL,
+        EvenimentID INTEGER REFERENCES EVENIMENTE (ID) ON DELETE SET NULL,
+        CONSTRAINT chk_bilet_exclusiv CHECK (
+            (
+                PachetID IS NOT NULL
+                AND EvenimentID IS NULL
+            )
+            OR (
+                PachetID IS NULL
+                AND EvenimentID IS NOT NULL
+            )
+        )
+    );

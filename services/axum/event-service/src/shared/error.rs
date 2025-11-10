@@ -3,6 +3,16 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use serde_json::json;
 use sqlx::Error;
+use validator::ValidationErrors;
+
+#[derive(Debug)]
+pub enum ApiError {
+    Validation(ValidationErrors),
+    Event(EventRepoError),
+    Packet(EventPacketRepoError),
+    Ticket(TicketRepoError),
+    Join(JoinPeRepoError),
+}
 
 #[derive(Debug)]
 pub enum EventRepoError {
@@ -25,6 +35,7 @@ pub enum TicketRepoError {
     NotFound,
     DuplicateEntry,
     InvalidReference,
+    ConstraintViolation,
     InternalError(Error),
 }
 
@@ -33,6 +44,33 @@ pub enum JoinPeRepoError {
     DuplicateEntry,
     InvalidReference,
     InternalError(Error),
+}
+
+impl IntoResponse for ApiError {
+    fn into_response(self) -> Response {
+        match self {
+            ApiError::Validation(errors) => {
+                let mut all_messages = Vec::new();
+                for error_list in errors.field_errors().values() {
+                    for error in error_list.into_iter() {
+                        if let Some(msg) = error.message.as_ref() {
+                            all_messages.push(msg.to_string());
+                        }
+                    }
+                }
+                let error_json = json!({
+                    "error": "Validation failed",
+                    "details": all_messages
+                });
+
+                (StatusCode::UNPROCESSABLE_ENTITY, Json(error_json)).into_response()
+            }
+            ApiError::Event(error) => error.into_response(),
+            ApiError::Packet(error) => error.into_response(),
+            ApiError::Ticket(error) => error.into_response(),
+            ApiError::Join(error) => error.into_response(),
+        }
+    }
 }
 
 impl IntoResponse for EventRepoError {
@@ -100,7 +138,10 @@ impl IntoResponse for TicketRepoError {
                 StatusCode::BAD_REQUEST,
                 json!({ "error": "Invalid packet or event ID provided." }),
             ),
-
+            TicketRepoError::ConstraintViolation => (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                json!({ "error": "A ticket must belong to EITHER a packet OR an event, not both or neither." }),
+            ),
             TicketRepoError::InternalError(_) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 json!({ "error": "An internal server error occurred." }),
@@ -168,6 +209,7 @@ pub fn map_sqlx_ticket_error(err: Error) -> TicketRepoError {
             match code.as_ref() {
                 "23503" => return TicketRepoError::InvalidReference,
                 "23505" => return TicketRepoError::DuplicateEntry,
+                "23514" => return TicketRepoError::ConstraintViolation,
                 _ => {}
             }
         }

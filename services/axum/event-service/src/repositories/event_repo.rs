@@ -97,11 +97,16 @@ impl EventRepo {
     ) -> Result<Event, EventRepoError> {
         let result = sqlx::query_as::<_, Event>(
             r#"
-            UPDATE EVENIMENTE
-            SET id_owner = COALESCE($1, id_owner), nume = $2, locatie = $3, descriere = $4, numarlocuri = $5
-            WHERE ID = $6
-            RETURNING ID, ID_OWNER, nume, locatie, descriere, numarlocuri
-            "#,
+        UPDATE EVENIMENTE
+        SET
+            id_owner = COALESCE($1, id_owner),
+            nume = COALESCE($2, nume),
+            locatie = COALESCE($3, locatie),
+            descriere = COALESCE($4, descriere),
+            numarlocuri = COALESCE($5, numarlocuri)
+        WHERE ID = $6
+        RETURNING ID, ID_OWNER, nume, locatie, descriere, numarlocuri
+        "#,
         )
         .bind(payload.id_owner)
         .bind(&payload.nume)

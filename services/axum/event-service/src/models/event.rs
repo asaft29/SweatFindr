@@ -15,6 +15,7 @@ pub struct Event {
 }
 
 #[derive(Debug, Deserialize, Serialize, FromRow, ToSchema)]
+#[serde(deny_unknown_fields)]
 pub struct CreateEvent {
     pub id_owner: i32,
     pub nume: String,
@@ -26,6 +27,7 @@ pub struct CreateEvent {
 }
 
 #[derive(Debug, Deserialize, Serialize, FromRow, ToSchema)]
+#[serde(deny_unknown_fields)]
 pub struct UpdateEvent {
     pub id_owner: Option<i32>,
     pub nume: String,
@@ -37,6 +39,7 @@ pub struct UpdateEvent {
 }
 
 #[derive(Deserialize, Clone, ToSchema)]
+#[serde(deny_unknown_fields)]
 pub struct EventQuery {
     #[serde(rename = "location")]
     pub locatie: Option<String>,

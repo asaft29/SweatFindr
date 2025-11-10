@@ -21,8 +21,9 @@ impl EventPacketRepo {
         &self,
         params: EventPacketQuery,
     ) -> Result<Vec<EventPackets>, EventPacketRepoError> {
-        let mut query_builder: QueryBuilder<Postgres> =
-            QueryBuilder::new("SELECT ID, ID_OWNER, nume, locatie, descriere FROM PACHETE");
+        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+            "SELECT ID, ID_OWNER, nume, locatie, descriere, numarlocuri FROM PACHETE",
+        );
 
         let mut has_condition = false;
 
@@ -42,8 +43,7 @@ impl EventPacketRepo {
                 query_builder.push(" WHERE ");
             }
 
-            query_builder
-                .push("(SELECT SUM(numarlocuri) FROM JOIN_PE WHERE pachetid = PACHETE.ID) >= ");
+            query_builder.push(" PACHETE.numarlocuri >= ");
             query_builder.push_bind(min_tickets);
         }
 
@@ -84,7 +84,7 @@ impl EventPacketRepo {
     ) -> Result<EventPackets, EventPacketRepoError> {
         let result = sqlx::query_as::<_, EventPackets>(
             r#"
-            SELECT id, id_owner, nume, locatie, descriere
+            SELECT id, id_owner, nume, locatie, descriere, numarlocuri
             FROM PACHETE
             WHERE id = $1
             "#,
@@ -106,15 +106,16 @@ impl EventPacketRepo {
     ) -> Result<EventPackets, EventPacketRepoError> {
         let result = sqlx::query_as::<_, EventPackets>(
             r#"
-            INSERT INTO PACHETE (id_owner, nume, locatie, descriere)
-            VALUES ($1, $2, $3, $4)
-            RETURNING id, id_owner, nume, locatie, descriere
+            INSERT INTO PACHETE (id_owner, nume, locatie, descriere, numarlocuri)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING id, id_owner, nume, locatie, descriere, numarlocuri
             "#,
         )
         .bind(payload.id_owner)
         .bind(&payload.nume)
         .bind(&payload.locatie)
         .bind(&payload.descriere)
+        .bind(payload.numarlocuri)
         .fetch_one(&self.pool)
         .await;
 
@@ -129,15 +130,21 @@ impl EventPacketRepo {
         let result = sqlx::query_as::<_, EventPackets>(
             r#"
             UPDATE PACHETE
-            SET id_owner = COALESCE($1, id_owner), nume = $2, locatie = $3, descriere = $4
-            WHERE id = $5
-            RETURNING id, id_owner, nume, locatie, descriere
+            SET
+                id_owner = COALESCE($1, id_owner),
+                nume = COALESCE($2, nume),
+                locatie = COALESCE($3, locatie),
+                descriere = COALESCE($4, descriere),
+                numarlocuri = COALESCE($5, numarlocuri)
+            WHERE id = $6
+            RETURNING id, id_owner, nume, locatie, descriere, numarlocuri
             "#,
         )
         .bind(payload.id_owner)
         .bind(&payload.nume)
         .bind(&payload.locatie)
         .bind(&payload.descriere)
+        .bind(payload.numarlocuri)
         .bind(packet_id)
         .fetch_one(&self.pool)
         .await;

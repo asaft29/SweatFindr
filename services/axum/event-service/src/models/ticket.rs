@@ -16,6 +16,7 @@ pub struct Ticket {
 }
 
 #[derive(Debug, Deserialize, FromRow, ToSchema)]
+#[serde(deny_unknown_fields)]
 pub struct CreateTicket {
     pub cod: String,
 
@@ -29,6 +30,7 @@ pub struct CreateTicket {
 }
 
 #[derive(Debug, Deserialize, FromRow, ToSchema)]
+#[serde(deny_unknown_fields)]
 pub struct UpdateTicket {
     #[sqlx(rename = "pachetid")]
     #[serde(rename = "pachetid")]

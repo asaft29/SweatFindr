@@ -9,25 +9,31 @@ pub struct EventPackets {
     pub nume: String,
     pub locatie: Option<String>,
     pub descriere: Option<String>,
+    pub numarlocuri: Option<i32>,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
+#[serde(deny_unknown_fields)]
 pub struct CreateEventPacket {
     pub id_owner: i32,
     pub nume: String,
     pub locatie: Option<String>,
     pub descriere: Option<String>,
+    pub numarlocuri: Option<i32>,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
+#[serde(deny_unknown_fields)]
 pub struct UpdateEventPacket {
     pub id_owner: Option<i32>,
     pub nume: String,
     pub locatie: Option<String>,
     pub descriere: Option<String>,
+    pub numarlocuri: Option<i32>,
 }
 
 #[derive(Debug, Deserialize, Clone, ToSchema)]
+#[serde(deny_unknown_fields)]
 pub struct EventPacketQuery {
     #[serde(rename = "type")]
     pub descriere: Option<String>,

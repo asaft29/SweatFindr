@@ -38,7 +38,7 @@ impl JoinPeRepo {
     ) -> Result<Vec<EventPackets>, JoinPeRepoError> {
         sqlx::query_as::<_, EventPackets>(
             r#"
-            SELECT p.id, p.id_owner, p.nume, p.locatie, p.descriere
+            SELECT p.id, p.id_owner, p.nume, p.locatie, p.descriere, p.numarlocuri
             FROM PACHETE p
             JOIN JOIN_PE j ON p.id = j.pachetid
             WHERE j.evenimentid = $1
@@ -57,14 +57,13 @@ impl JoinPeRepo {
     ) -> Result<EventPacketRelation, JoinPeRepoError> {
         sqlx::query_as::<_, EventPacketRelation>(
             r#"
-            INSERT INTO JOIN_PE (pachetid, evenimentid, numarlocuri)
-            VALUES ($1, $2, $3)
-            RETURNING pachetid, evenimentid, numarlocuri
+            INSERT INTO JOIN_PE (pachetid, evenimentid)
+            VALUES ($1, $2)
+            RETURNING pachetid, evenimentid
             "#,
         )
         .bind(payload.id_pachet)
         .bind(eveniment_id)
-        .bind(payload.locuri)
         .fetch_one(&self.pool)
         .await
         .map_err(map_sqlx_join_pe_error)
@@ -77,14 +76,13 @@ impl JoinPeRepo {
     ) -> Result<EventPacketRelation, JoinPeRepoError> {
         sqlx::query_as::<_, EventPacketRelation>(
             r#"
-            INSERT INTO JOIN_PE (pachetid, evenimentid, numarlocuri)
-            VALUES ($1, $2, $3)
-            RETURNING pachetid, evenimentid, numarlocuri
+            INSERT INTO JOIN_PE (pachetid, evenimentid)
+            VALUES ($1, $2)
+            RETURNING pachetid, evenimentid
             "#,
         )
         .bind(pachet_id)
         .bind(payload.id_event)
-        .bind(payload.locuri)
         .fetch_one(&self.pool)
         .await
         .map_err(map_sqlx_join_pe_error)
