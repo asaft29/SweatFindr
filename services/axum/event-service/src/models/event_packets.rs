@@ -63,6 +63,7 @@ pub struct UpdateEventPacket {
 pub struct EventPacketQuery {
     #[serde(rename = "type")]
     #[validate(length(
+        min = 3,
         max = 50,
         message = "Description filter must be less than 50 characters"
     ))]
@@ -71,11 +72,13 @@ pub struct EventPacketQuery {
     #[serde(rename = "available_tickets")]
     pub bilete: Option<i32>,
     #[serde(flatten)]
+    #[validate(nested)]
     pub paginare: PaginationParams,
 }
 
 #[serde_as]
 #[derive(Debug, Deserialize, Clone, ToSchema, Validate)]
+#[serde(deny_unknown_fields)]
 pub struct PaginationParams {
     #[validate(range(min = 1, message = "Page must be at least 1"))]
     #[serde_as(as = "Option<DisplayFromStr>")]
@@ -84,7 +87,7 @@ pub struct PaginationParams {
     #[validate(range(
         min = 1,
         max = 100,
-        message = "items_per_page must be between 1 and 100"
+        message = "Items per page must be between 1 and 100"
     ))]
     pub items_per_page: Option<i64>,
 }

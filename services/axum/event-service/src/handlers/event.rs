@@ -3,6 +3,7 @@ use crate::handlers::ticket;
 use crate::models::event::{CreateEvent, Event, EventQuery, UpdateEvent};
 use crate::shared::error::ApiError;
 use crate::shared::links::{Response, build_filtered_event, build_simple_event};
+use axum::extract::rejection::JsonRejection;
 use axum::response::IntoResponse;
 use axum::{
     Json, Router,
@@ -90,11 +91,13 @@ pub async fn get_event(
 pub async fn update_event(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i32>,
-    Json(payload): Json<UpdateEvent>,
+    payload: Result<Json<UpdateEvent>, JsonRejection>,
 ) -> Result<impl IntoResponse, ApiError> {
     if id < 0 {
         return Err(ApiError::BadRequest("ID cannot be negative".into()));
     }
+    let Json(payload) = payload?;
+
     payload.validate()?;
 
     let event = state.event_repo.update_event(id, payload).await?;
@@ -115,8 +118,10 @@ pub async fn update_event(
 )]
 pub async fn create_event(
     State(state): State<Arc<AppState>>,
-    Json(payload): Json<CreateEvent>,
+    payload: Result<Json<CreateEvent>, JsonRejection>,
 ) -> Result<impl IntoResponse, ApiError> {
+    let Json(payload) = payload?;
+
     payload.validate()?;
 
     let event = state.event_repo.create_event(payload).await?;

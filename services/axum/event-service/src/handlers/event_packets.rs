@@ -6,6 +6,7 @@ use crate::models::event_packets::{
 use crate::shared::error::ApiError;
 use crate::shared::links::{Response, build_filtered_event_packets, build_simple_event_packet};
 use axum::extract::Query;
+use axum::extract::rejection::JsonRejection;
 use axum::response::IntoResponse;
 use axum::{
     Json, Router,
@@ -97,11 +98,13 @@ pub async fn get_event_packet(
 pub async fn update_event_packet(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i32>,
-    Json(payload): Json<UpdateEventPacket>,
+    payload: Result<Json<UpdateEventPacket>, JsonRejection>,
 ) -> Result<impl IntoResponse, ApiError> {
     if id < 0 {
         return Err(ApiError::BadRequest("ID cannot be negative".into()));
     }
+    let Json(payload) = payload?;
+
     payload.validate()?;
 
     let event_packet = state
@@ -126,8 +129,10 @@ pub async fn update_event_packet(
 )]
 pub async fn create_event_packet(
     State(state): State<Arc<AppState>>,
-    Json(payload): Json<CreateEventPacket>,
+    payload: Result<Json<CreateEventPacket>, JsonRejection>,
 ) -> Result<impl IntoResponse, ApiError> {
+    let Json(payload) = payload?;
+
     payload.validate()?;
 
     let event_packet = state.event_packet_repo.create_event_packet(payload).await?;

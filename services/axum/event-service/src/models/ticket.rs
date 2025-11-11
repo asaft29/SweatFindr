@@ -18,8 +18,8 @@ pub struct Ticket {
 }
 
 #[derive(Debug, Deserialize, FromRow, ToSchema, Validate)]
-#[serde(deny_unknown_fields)]
 #[validate(schema(function = "validate_create_ticket"))]
+#[serde(deny_unknown_fields)]
 pub struct CreateTicket {
     #[validate(length(
         min = 3,
@@ -38,8 +38,8 @@ pub struct CreateTicket {
 }
 
 #[derive(Debug, Deserialize, FromRow, ToSchema, Validate)]
-#[serde(deny_unknown_fields)]
 #[validate(schema(function = "validate_update_ticket"))]
+#[serde(deny_unknown_fields)]
 pub struct UpdateTicket {
     #[sqlx(rename = "pachetid")]
     #[serde(rename = "pachetid")]

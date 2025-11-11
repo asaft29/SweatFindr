@@ -4,7 +4,7 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use serde::Serialize;
 use sqlx::Error;
-use validator::ValidationErrors;
+use validator::{ValidationErrors, ValidationErrorsKind};
 
 #[derive(Debug)]
 pub enum ApiError {
@@ -97,18 +97,40 @@ impl From<JoinPeRepoError> for ApiError {
     }
 }
 
+// this is mainly for EventPacketQuery (I have a nested struct inside it)
+// pretty much I try to get the errors from PaginationParams
+// so I have a cleaner response when validating errors
+fn flatten_validation_errors(errors: &ValidationErrors) -> Vec<String> {
+    let mut messages = Vec::new();
+
+    for (_, kind) in errors.errors() {
+        match kind {
+            ValidationErrorsKind::Struct(nested_errors) => {
+                messages.extend(flatten_validation_errors(nested_errors));
+            }
+            ValidationErrorsKind::List(list_errors) => {
+                for (_, nested_errors) in list_errors {
+                    messages.extend(flatten_validation_errors(nested_errors));
+                }
+            }
+            ValidationErrorsKind::Field(field_errors) => {
+                for error in field_errors {
+                    if let Some(message) = &error.message {
+                        messages.push(message.to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    messages
+}
+
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         let (status, body) = match self {
             ApiError::Validation(errors) => {
-                let mut all_messages = Vec::new();
-                for error_list in errors.field_errors().values() {
-                    for error in *error_list {
-                        if let Some(msg) = error.message.as_ref() {
-                            all_messages.push(msg.to_string());
-                        }
-                    }
-                }
+                let all_messages = flatten_validation_errors(&errors);
                 (
                     StatusCode::UNPROCESSABLE_ENTITY,
                     ApiErrorResponse {
@@ -130,7 +152,7 @@ impl IntoResponse for ApiError {
                 let (status, title, detail) = match rejection {
                     JsonRejection::JsonDataError(err) => {
                         let msg = err.to_string();
-                        let final_msg = if msg.starts_with("unknown field") {
+                        let final_msg = if msg.contains("unknown field") {
                             msg.split('`')
                                 .nth(1)
                                 .map(|field_name| format!("Unknown field `{}`", field_name))

@@ -3,8 +3,8 @@ use crate::models::ticket::{CreateTicket, Ticket, UpdateTicket};
 use crate::shared::error::ApiError;
 use crate::shared::links;
 use crate::shared::links::{Response, build_ticket_over_event, build_ticket_over_packet};
+use axum::extract::rejection::JsonRejection;
 use axum::response::IntoResponse;
-
 use axum::{
     Json, Router,
     extract::{Path, State},
@@ -77,8 +77,10 @@ pub async fn list_tickets(
 pub async fn update_ticket(
     State(state): State<Arc<AppState>>,
     Path(cod): Path<String>,
-    Json(payload): Json<UpdateTicket>,
+    payload: Result<Json<UpdateTicket>, JsonRejection>,
 ) -> Result<impl IntoResponse, ApiError> {
+    let Json(payload) = payload?;
+
     payload.validate()?;
 
     let ticket = state.ticket_repo.update_ticket(&cod, payload).await?;
@@ -100,8 +102,10 @@ pub async fn update_ticket(
 )]
 pub async fn create_ticket(
     State(state): State<Arc<AppState>>,
-    Json(payload): Json<CreateTicket>,
+    payload: Result<Json<CreateTicket>, JsonRejection>,
 ) -> Result<impl IntoResponse, ApiError> {
+    let Json(payload) = payload?;
+
     payload.validate()?;
 
     let ticket = state.ticket_repo.create_ticket(payload).await?;
@@ -210,11 +214,13 @@ pub async fn list_tickets_for_event(
 pub async fn update_ticket_for_event(
     State(state): State<Arc<AppState>>,
     Path((event_id, ticket_cod)): Path<(i32, String)>,
-    Json(payload): Json<UpdateTicket>,
+    payload: Result<Json<UpdateTicket>, JsonRejection>,
 ) -> Result<impl IntoResponse, ApiError> {
     if event_id < 0 {
         return Err(ApiError::BadRequest("ID cannot be negative".into()));
     }
+    let Json(payload) = payload?;
+
     payload.validate()?;
 
     let ticket = state
@@ -243,11 +249,14 @@ pub async fn update_ticket_for_event(
 pub async fn create_ticket_for_event(
     State(state): State<Arc<AppState>>,
     Path(event_id): Path<i32>,
-    Json(payload): Json<CreateTicket>,
+    payload: Result<Json<CreateTicket>, JsonRejection>,
 ) -> Result<impl IntoResponse, ApiError> {
     if event_id < 0 {
         return Err(ApiError::BadRequest("ID cannot be negative".into()));
     }
+
+    let Json(payload) = payload?;
+
     payload.validate()?;
 
     let ticket = state
@@ -364,11 +373,13 @@ pub async fn get_ticket_for_packet(
 pub async fn create_ticket_for_packet(
     State(state): State<Arc<AppState>>,
     Path(packet_id): Path<i32>,
-    Json(payload): Json<CreateTicket>,
+    payload: Result<Json<CreateTicket>, JsonRejection>,
 ) -> Result<impl IntoResponse, ApiError> {
     if packet_id < 0 {
         return Err(ApiError::BadRequest("ID cannot be negative".into()));
     }
+    let Json(payload) = payload?;
+
     payload.validate()?;
 
     let ticket = state
@@ -399,11 +410,13 @@ pub async fn create_ticket_for_packet(
 pub async fn update_ticket_for_packet(
     State(state): State<Arc<AppState>>,
     Path((packet_id, ticket_cod)): Path<(i32, String)>,
-    Json(payload): Json<UpdateTicket>,
+    payload: Result<Json<UpdateTicket>, JsonRejection>,
 ) -> Result<impl IntoResponse, ApiError> {
     if packet_id < 0 {
         return Err(ApiError::BadRequest("ID cannot be negative".into()));
     }
+    let Json(payload) = payload?;
+
     payload.validate()?;
 
     let ticket = state
