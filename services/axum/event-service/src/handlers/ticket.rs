@@ -236,10 +236,6 @@ pub async fn update_ticket_for_event(
 #[utoipa::path(
     post,
     path = "/api/event-manager/events/{event_id}/tickets",
-    request_body = CreateTicket,
-    params(
-        ("event_id" = i32, Path, description = "Event ID")
-    ),
     responses(
         (status = 201, description = "Ticket created for event", body = Response<Ticket>),
         (status = 500, description = "Internal server error")
@@ -249,15 +245,10 @@ pub async fn update_ticket_for_event(
 pub async fn create_ticket_for_event(
     State(state): State<Arc<AppState>>,
     Path(event_id): Path<i32>,
-    payload: Result<Json<CreateTicket>, JsonRejection>,
 ) -> Result<impl IntoResponse, ApiError> {
     if event_id < 0 {
         return Err(ApiError::BadRequest("ID cannot be negative".into()));
     }
-
-    let Json(payload) = payload?;
-
-    payload.validate()?;
 
     let ticket = state.ticket_repo.create_ticket_for_event(event_id).await?;
 
@@ -357,10 +348,6 @@ pub async fn get_ticket_for_packet(
 #[utoipa::path(
     post,
     path = "/api/event-manager/event-packets/{packet_id}/tickets",
-    request_body = CreateTicket,
-    params(
-        ("packet_id" = i32, Path, description = "Packet ID")
-    ),
     responses(
         (status = 201, description = "Ticket created for packet", body = Response<Ticket>),
         (status = 500, description = "Internal server error")
@@ -370,14 +357,10 @@ pub async fn get_ticket_for_packet(
 pub async fn create_ticket_for_packet(
     State(state): State<Arc<AppState>>,
     Path(packet_id): Path<i32>,
-    payload: Result<Json<CreateTicket>, JsonRejection>,
 ) -> Result<impl IntoResponse, ApiError> {
     if packet_id < 0 {
         return Err(ApiError::BadRequest("ID cannot be negative".into()));
     }
-    let Json(payload) = payload?;
-
-    payload.validate()?;
 
     let ticket = state
         .ticket_repo
