@@ -21,13 +21,6 @@ pub struct Ticket {
 #[validate(schema(function = "validate_create_ticket"))]
 #[serde(deny_unknown_fields)]
 pub struct CreateTicket {
-    #[validate(length(
-        min = 3,
-        max = 50,
-        message = "Code must be between 3 and 50 characters"
-    ))]
-    pub cod: String,
-
     #[sqlx(rename = "pachetid")]
     #[serde(rename = "pachetid")]
     pub id_pachet: Option<i32>,

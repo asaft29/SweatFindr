@@ -2,6 +2,7 @@ use crate::models::ticket::{CreateTicket, Ticket, UpdateTicket};
 use crate::shared::error::{TicketRepoError, map_sqlx_ticket_error};
 use anyhow::Result;
 use sqlx::PgPool;
+use uuid::Uuid;
 
 pub struct TicketRepo {
     pool: PgPool,
@@ -51,6 +52,8 @@ impl TicketRepo {
     }
 
     pub async fn create_ticket(&self, payload: CreateTicket) -> Result<Ticket, TicketRepoError> {
+        let new_code = Uuid::now_v7().to_string();
+
         let result = sqlx::query_as::<_, Ticket>(
             r#"
             INSERT INTO BILETE (cod, pachetid, evenimentid)
@@ -58,7 +61,7 @@ impl TicketRepo {
             RETURNING cod, pachetid, evenimentid
             "#,
         )
-        .bind(payload.cod)
+        .bind(new_code)
         .bind(payload.id_pachet)
         .bind(payload.id_event)
         .fetch_one(&self.pool)
@@ -67,11 +70,9 @@ impl TicketRepo {
         result.map_err(map_sqlx_ticket_error)
     }
 
-    pub async fn create_ticket_for_event(
-        &self,
-        event_id: i32,
-        payload: CreateTicket,
-    ) -> Result<Ticket, TicketRepoError> {
+    pub async fn create_ticket_for_event(&self, event_id: i32) -> Result<Ticket, TicketRepoError> {
+        let new_code = Uuid::now_v7().to_string();
+
         let result = sqlx::query_as::<_, Ticket>(
             r#"
         INSERT INTO BILETE (cod, pachetid, evenimentid)
@@ -79,7 +80,7 @@ impl TicketRepo {
         RETURNING cod, pachetid, evenimentid
         "#,
         )
-        .bind(payload.cod)
+        .bind(new_code)
         .bind(event_id)
         .fetch_one(&self.pool)
         .await;
@@ -237,8 +238,9 @@ impl TicketRepo {
     pub async fn create_ticket_for_packet(
         &self,
         packet_id: i32,
-        payload: CreateTicket,
     ) -> Result<Ticket, TicketRepoError> {
+        let new_code = Uuid::now_v7().to_string();
+
         let result = sqlx::query_as::<_, Ticket>(
             r#"
             INSERT INTO BILETE (cod, pachetid, evenimentid)
@@ -246,7 +248,7 @@ impl TicketRepo {
             RETURNING cod, pachetid, evenimentid
             "#,
         )
-        .bind(payload.cod)
+        .bind(new_code)
         .bind(packet_id)
         .fetch_one(&self.pool)
         .await;

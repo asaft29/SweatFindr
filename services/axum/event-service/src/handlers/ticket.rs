@@ -259,10 +259,7 @@ pub async fn create_ticket_for_event(
 
     payload.validate()?;
 
-    let ticket = state
-        .ticket_repo
-        .create_ticket_for_event(event_id, payload)
-        .await?;
+    let ticket = state.ticket_repo.create_ticket_for_event(event_id).await?;
 
     let ticket_response = build_ticket_over_event(ticket, event_id, &state.base_url);
 
@@ -384,7 +381,7 @@ pub async fn create_ticket_for_packet(
 
     let ticket = state
         .ticket_repo
-        .create_ticket_for_packet(packet_id, payload)
+        .create_ticket_for_packet(packet_id)
         .await?;
 
     let ticket_response = build_ticket_over_packet(ticket, packet_id, &state.base_url);
