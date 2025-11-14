@@ -52,12 +52,15 @@ pub enum TicketRepoError {
 pub enum JoinPeRepoError {
     DuplicateEntry,
     InvalidReference,
+    InvalidPacket,
+    InvalidEvent,
+    NotFound,
     InternalError(Error),
 }
 
 impl From<String> for ApiError {
     fn from(value: String) -> Self {
-        ApiError::BadRequest(value.into())
+        ApiError::BadRequest(value)
     }
 }
 
@@ -103,13 +106,13 @@ impl From<JoinPeRepoError> for ApiError {
 fn flatten_validation_errors(errors: &ValidationErrors) -> Vec<String> {
     let mut messages = Vec::new();
 
-    for (_, kind) in errors.errors() {
+    for kind in errors.errors().values() {
         match kind {
             ValidationErrorsKind::Struct(nested_errors) => {
                 messages.extend(flatten_validation_errors(nested_errors));
             }
             ValidationErrorsKind::List(list_errors) => {
-                for (_, nested_errors) in list_errors {
+                for nested_errors in list_errors.values() {
                     messages.extend(flatten_validation_errors(nested_errors));
                 }
             }
@@ -305,6 +308,27 @@ impl IntoResponse for ApiError {
                         details: vec!["Invalid packet or event ID provided.".to_string()],
                     },
                 ),
+                JoinPeRepoError::InvalidPacket => (
+                    StatusCode::NOT_FOUND,
+                    ApiErrorResponse {
+                        error: "Invalid Packet ID".to_string(),
+                        details: vec!["The specified packet does not exist.".to_string()],
+                    },
+                ),
+                JoinPeRepoError::InvalidEvent => (
+                    StatusCode::NOT_FOUND,
+                    ApiErrorResponse {
+                        error: "Invalid Event ID".to_string(),
+                        details: vec!["The specified event does not exist.".to_string()],
+                    },
+                ),
+                JoinPeRepoError::NotFound => (
+                    StatusCode::NOT_FOUND,
+                    ApiErrorResponse {
+                        error: "Resource Not Found".to_string(),
+                        details: vec!["The event-packet relationship was not found.".to_string()],
+                    },
+                ),
                 JoinPeRepoError::InternalError(_) => (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     ApiErrorResponse {
@@ -378,7 +402,7 @@ pub fn map_sqlx_join_pe_error(err: Error) -> JoinPeRepoError {
         }
     }
     match err {
-        Error::RowNotFound => JoinPeRepoError::InvalidReference,
+        Error::RowNotFound => JoinPeRepoError::NotFound,
         e => JoinPeRepoError::InternalError(e),
     }
 }

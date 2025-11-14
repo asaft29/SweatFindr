@@ -1,7 +1,6 @@
 use crate::AppState;
 use crate::models::event::Event;
 use crate::models::event_packets::EventPackets;
-use crate::models::join_pe::{AddEventToPacket, AddPacketToEvent};
 use crate::shared::error::ApiError;
 use crate::shared::links::{Response, build_event_over_packet, build_packet_over_event};
 use axum::Router;
@@ -10,7 +9,7 @@ use axum::{
     Json,
     extract::{Path, State},
     http::StatusCode,
-    routing::get,
+    routing::{delete, get},
 };
 use std::sync::Arc;
 
@@ -76,10 +75,10 @@ pub async fn list_events_for_packet(
 
 #[utoipa::path(
     post,
-    path = "/api/event-manager/event-packets/{id}/events",
-    request_body = AddEventToPacket,
+    path = "/api/event-manager/event-packets/{packet_id}/events/{event_id}",
     params(
-        ("id" = i32, Path, description = "ID of the event packet")
+        ("packet_id" = i32, Path, description = "ID of the event packet"),
+        ("event_id" = i32, Path, description = "ID of the event to add to the packet")
     ),
     responses(
         (status = 201, description = "Event successfully linked to event packet"),
@@ -90,51 +89,60 @@ pub async fn list_events_for_packet(
 )]
 pub async fn add_event_to_packet(
     State(state): State<Arc<AppState>>,
-    Path(id): Path<i32>,
-    Json(payload): Json<AddEventToPacket>,
+    Path((packet_id, event_id)): Path<(i32, i32)>,
 ) -> Result<impl IntoResponse, ApiError> {
-    if id < 0 {
-        return Err(ApiError::BadRequest("ID cannot be negative".into()));
+    if packet_id < 0 {
+        return Err(ApiError::BadRequest("Packet ID cannot be negative".into()));
+    }
+    if event_id < 0 {
+        return Err(ApiError::BadRequest("Event ID cannot be negative".into()));
     }
 
-    let relation = state.join_repo.add_event_to_packet(id, payload).await?;
-    Ok((StatusCode::CREATED, Json(relation)))
+    let _ = state
+        .join_repo
+        .add_event_to_packet(packet_id, event_id)
+        .await?;
+    Ok(StatusCode::CREATED)
 }
 
 #[utoipa::path(
-    post,
-    path = "/api/event-manager/events/{id}/event-packets",
-    request_body = AddPacketToEvent,
+    delete,
+    path = "/api/event-manager/event-packets/{packet_id}/events/{event_id}",
     params(
-        ("id" = i32, Path, description = "ID of the event")
+        ("packet_id" = i32, Path, description = "ID of the event packet"),
+        ("event_id" = i32, Path, description = "ID of the event to remove from the packet")
     ),
     responses(
-        (status = 201, description = "Event packet successfully linked to event"),
-        (status = 404, description = "Event or packet not found"),
+        (status = 204, description = "Event successfully removed from packet, packet capacity updated"),
+        (status = 404, description = "Relationship not found"),
         (status = 500, description = "Internal server error")
     ),
     tag = "JoinPE"
 )]
-pub async fn add_packet_to_event(
+pub async fn remove_event_from_packet(
     State(state): State<Arc<AppState>>,
-    Path(id): Path<i32>,
-    Json(payload): Json<AddPacketToEvent>,
+    Path((packet_id, event_id)): Path<(i32, i32)>,
 ) -> Result<impl IntoResponse, ApiError> {
-    if id < 0 {
-        return Err(ApiError::BadRequest("ID cannot be negative".into()));
+    if packet_id < 0 {
+        return Err(ApiError::BadRequest("Packet ID cannot be negative".into()));
     }
-    let relation = state.join_repo.add_packet_to_event(id, payload).await?;
-    Ok((StatusCode::CREATED, Json(relation)))
+    if event_id < 0 {
+        return Err(ApiError::BadRequest("Event ID cannot be negative".into()));
+    }
+
+    state
+        .join_repo
+        .remove_event_from_packet(packet_id, event_id)
+        .await?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 pub fn join_pe_manager_router() -> Router<Arc<AppState>> {
     Router::new()
+        .route("/events/{id}/event-packets", get(list_packets_for_event))
+        .route("/event-packets/{id}/events", get(list_events_for_packet))
         .route(
-            "/events/{id}/event-packets",
-            get(list_packets_for_event).post(add_packet_to_event),
-        )
-        .route(
-            "/event-packets/{id}/events",
-            get(list_events_for_packet).post(add_event_to_packet),
+            "/event-packets/{packet_id}/events/{event_id}",
+            delete(remove_event_from_packet).post(add_event_to_packet),
         )
 }

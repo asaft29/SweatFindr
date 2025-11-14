@@ -65,7 +65,7 @@ pub struct EventPacketQuery {
     #[validate(length(
         min = 3,
         max = 50,
-        message = "Description filter must be less than 50 characters"
+        message = "Description filter must be between 3 and 50 characters"
     ))]
     pub descriere: Option<String>,
     #[validate(range(min = 1, message = "Available tickets must be at least 1"))]

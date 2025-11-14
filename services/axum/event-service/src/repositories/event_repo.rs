@@ -48,7 +48,7 @@ impl EventRepo {
         let events = query
             .fetch_all(&self.pool)
             .await
-            .map_err(|e| EventRepoError::InternalError(e))?;
+            .map_err(map_sqlx_event_error)?;
         Ok(events)
     }
 

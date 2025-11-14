@@ -150,6 +150,12 @@ pub async fn delete_event(
     if id < 0 {
         return Err(ApiError::BadRequest("ID cannot be negative".into()));
     }
+
+    state
+        .join_repo
+        .update_packets_before_event_deletion(id)
+        .await?;
+
     state.event_repo.delete_event(id).await?;
 
     Ok(StatusCode::NO_CONTENT)

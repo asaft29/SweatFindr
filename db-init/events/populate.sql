@@ -1,52 +1,7 @@
 TRUNCATE TABLE BILETE,
 JOIN_PE,
 PACHETE,
-EVENIMENTE,
-UTILIZATORI RESTART IDENTITY CASCADE;
-
-INSERT INTO
-    UTILIZATORI (email, parola, rol)
-VALUES
-    (
-        'admin@eventmaster.ro',
-        '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5NU7BvQ8bHqP6',
-        'admin'
-    ),
-    (
-        'ion.popescu@events.ro',
-        '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5NU7BvQ8bHqP6',
-        'owner-event'
-    ),
-    (
-        'maria.ionescu@culture.ro',
-        '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5NU7BvQ8bHqP6',
-        'owner-event'
-    ),
-    (
-        'andrei.gheorghe@promotions.ro',
-        '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5NU7BvQ8bHqP6',
-        'owner-event'
-    ),
-    (
-        'elena.stan@artevents.ro',
-        '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5NU7BvQ8bHqP6',
-        'owner-event'
-    ),
-    (
-        'client1@gmail.com',
-        '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5NU7BvQ8bHqP6',
-        'client'
-    ),
-    (
-        'client2@yahoo.com',
-        '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5NU7BvQ8bHqP6',
-        'client'
-    ),
-    (
-        'ana.popescu@outlook.com',
-        '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5NU7BvQ8bHqP6',
-        'client'
-    );
+EVENIMENTE RESTART IDENTITY CASCADE;
 
 INSERT INTO
     EVENIMENTE (ID_OWNER, nume, locatie, descriere, numarLocuri)
@@ -186,91 +141,91 @@ VALUES
         'Pachet Weekend Rock Cluj',
         'Cluj-Napoca',
         'Include Concert Vama Veche + Electric Castle cu acces VIP și transport inclus.',
-        800
+        5000
     ),
     (
         2,
         'Abonament Muzical Complet',
         'Multiple',
         'Acces la toate concertele din Cluj și București pentru 2025.',
-        400
+        2500
     ),
     (
         3,
         'Festival Pass Untold Premium',
         'Cluj-Napoca',
         'Abonament 4 zile Untold cu camping și early entry.',
-        5000
+        80000
     ),
     (
         3,
         'Abonament Teatru 7 Zile',
         'Iași',
         'Abonament pentru toate cele 7 zile de festival cu acces la toate reprezentațiile.',
-        300
+        1000
     ),
     (
         3,
         'Pachet Cultură Sibiu',
         'Sibiu',
         'Spectacol Shakespeare + vizită muzeală ghidată.',
-        150
+        450
     ),
     (
         4,
         'Art Lover Pass',
         'București',
         'Acces la Noaptea Albă + Bienala de Arhitectură + cataloguri digitale.',
-        400
+        2000
     ),
     (
         4,
         'Pachet București de Sărbătoare',
         'București',
         'Include Târg de Crăciun, Concert Simfonic și voucher 20% discount la produse.',
-        600
+        2500
     ),
     (
         4,
         'Experiență Medievală Completă',
         'Sighișoara',
         'Pachet 2 zile cu cazare, intrare festival și masă medievală.',
-        3000
+        15000
     ),
     (
         5,
         'Weekend Brașov Primăvară',
         'Brașov',
         'Târg de Paște + Escaladă spectatori cu cazare 2 nopți.',
-        200
+        800
     ),
     (
         4,
         'Gourmet Experience',
         'Multiple',
         'Street Food Festival + Festival Vinului cu degustări premium.',
-        1500
+        5000
     ),
     (
         5,
         'Pachet Relaxare Alba Iulia',
         'Alba Iulia',
         'Festival Vinului cu tur ghidat și cazare spa.',
-        1000
+        5000
     ),
     (
         2,
         'Tech Enthusiast Bundle',
         'Cluj & Iași',
         'Tech Summit + Innovation Fest cu acces workshop-uri.',
-        500
+        1500
     ),
     (
         4,
         'Future Innovation Pass',
         'Iași',
         'Innovation Fest cu demonstrații VR exclusive.',
-        600
+        3000
     );
 
 INSERT INTO

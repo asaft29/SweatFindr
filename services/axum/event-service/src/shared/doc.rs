@@ -37,15 +37,15 @@ use utoipa::OpenApi;
 
         // Join PE
         add_event_to_packet,
-        add_packet_to_event,
+        remove_event_from_packet,
         list_events_for_packet,
         list_packets_for_event
     ),
     components(schemas(Event, EventPackets, Ticket)),
     tags(
         (name = "events", description = "Event management endpoints"),
-        (name = "event_packets", description = "Event packet management"),
-        (name = "tickets", description = "Ticket management"),
+        (name = "event_packets", description = "Event packet management endpoints"),
+        (name = "tickets", description = "Ticket management endpoints"),
         (name = "joins", description = "Link events with packets")
     )
 )]
