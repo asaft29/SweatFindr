@@ -1,0 +1,7 @@
+include:
+  - services/axum/event-service/docker-compose.yml
+  - services/axum/client-service/docker-compose.yml
+
+networks:
+  shared-network:
+    driver: bridge

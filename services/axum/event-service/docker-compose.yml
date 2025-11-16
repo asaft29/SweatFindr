@@ -17,6 +17,7 @@ services:
         condition: service_healthy
     networks:
       - event-network
+      - shared-network
     restart: unless-stopped
 
   event-db:
@@ -27,7 +28,7 @@ services:
       - POSTGRES_PASSWORD=eventpass
       - POSTGRES_DB=eventsdb
     volumes:
-      - ../../../.data/event-db:/var/lib/postgresql/data
+      - event_db_data:/var/lib/postgresql/data
       - ../../../db-init/events/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
       - ../../../db-init/events/populate.sql:/docker-entrypoint-initdb.d/02-populate.sql:ro
     ports:
@@ -44,3 +45,6 @@ services:
 networks:
   event-network:
     driver: bridge
+
+volumes:
+  event_db_data:

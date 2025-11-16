@@ -1,0 +1,50 @@
+services:
+  client-service:
+    build:
+      context: ../../../
+      dockerfile: services/axum/client-service/Dockerfile
+    image: client-service:latest
+    container_name: client-service
+    ports:
+      - "8002:8080"
+    environment:
+      - MONGODB_URI=mongodb://clientuser:clientpass@client-db:27017/clientsdb?authSource=clientsdb
+      - EVENT_SERVICE_URL=http://event-service:8080
+      - RUST_LOG=info,client_service=info
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8080
+    depends_on:
+      client-db:
+        condition: service_healthy
+    networks:
+      - client-network
+      - shared-network
+    restart: unless-stopped
+
+  client-db:
+    image: mongo:7.0
+    container_name: client-db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=adminpass
+      - MONGO_INITDB_DATABASE=clientsdb
+    volumes:
+      - client_db_data:/data/db
+      - ../../../db-init/client/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    ports:
+      - "27018:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "-u", "admin", "-p", "adminpass", "--authenticationDatabase", "admin", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - client-network
+    restart: unless-stopped
+
+networks:
+  client-network:
+    driver: bridge
+
+volumes:
+  client_db_data:
