@@ -73,13 +73,19 @@ impl<T> Response<T> {
 }
 
 pub fn client_links(base_url: &str, client_id: &str) -> Links {
-    LinksBuilder::new(format!("{}/api/client-manager/clients/{}", base_url, client_id))
-        .parent(format!("{}/api/client-manager/clients", base_url))
-        .add_other(
-            "tickets",
-            format!("{}/api/client-manager/clients/{}/tickets", base_url, client_id),
-        )
-        .build()
+    LinksBuilder::new(format!(
+        "{}/api/client-manager/clients/{}",
+        base_url, client_id
+    ))
+    .parent(format!("{}/api/client-manager/clients", base_url))
+    .add_other(
+        "tickets",
+        format!(
+            "{}/api/client-manager/clients/{}/tickets",
+            base_url, client_id
+        ),
+    )
+    .build()
 }
 
 pub fn client_tickets_links(base_url: &str, client_id: &str) -> Links {
@@ -87,7 +93,10 @@ pub fn client_tickets_links(base_url: &str, client_id: &str) -> Links {
         "{}/api/client-manager/clients/{}/tickets",
         base_url, client_id
     ))
-    .parent(format!("{}/api/client-manager/clients/{}", base_url, client_id))
+    .parent(format!(
+        "{}/api/client-manager/clients/{}",
+        base_url, client_id
+    ))
     .build()
 }
 

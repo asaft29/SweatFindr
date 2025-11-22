@@ -3,9 +3,7 @@ use bson::{Document, doc};
 use futures::stream::TryStreamExt;
 use mongodb::{Collection, Database};
 
-use crate::models::client::{
-    AddTicket, Client, ClientQuery, CreateClient, TicketRef, UpdateClient,
-};
+use crate::models::client::{Client, ClientQuery, CreateClient, TicketRef, UpdateClient};
 use crate::shared::error::ClientRepoError;
 
 pub struct ClientRepo {
@@ -178,21 +176,15 @@ impl ClientRepo {
         Ok(client.lista_bilete)
     }
 
-    pub async fn add_ticket_to_client(
+    pub async fn add_ticket_ref_to_client(
         &self,
         id: &str,
-        ticket: AddTicket,
+        ticket_ref: TicketRef,
     ) -> Result<Client, ClientRepoError> {
         let object_id = ObjectId::parse_str(id)
             .map_err(|_| ClientRepoError::InvalidObjectId(format!("Invalid ID: {}", id)))?;
 
         self.get_client(id).await?;
-
-        let ticket_ref = TicketRef {
-            cod: ticket.cod,
-            nume_eveniment: ticket.nume_eveniment,
-            locatie: ticket.locatie,
-        };
 
         self.collection
             .update_one(

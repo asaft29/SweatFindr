@@ -42,6 +42,8 @@ pub struct TicketRef {
     pub nume_eveniment: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub locatie: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub descriere: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Validate, ToSchema)]
@@ -107,11 +109,43 @@ pub struct ClientQuery {
 
 #[derive(Debug, Deserialize, Validate, ToSchema)]
 #[serde(deny_unknown_fields)]
+#[validate(schema(function = "validate_add_ticket"))]
 pub struct AddTicket {
-    #[validate(length(min = 1, message = "Ticket code cannot be empty"))]
-    pub cod: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub nume_eveniment: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub locatie: Option<String>,
+    /// Event ID to purchase ticket for (mutually exclusive with id_pachet)
+    #[serde(rename = "evenimentid")]
+    pub id_event: Option<i32>,
+    /// Packet ID to purchase ticket for (mutually exclusive with id_event)
+    #[serde(rename = "pachetid")]
+    pub id_pachet: Option<i32>,
+}
+
+fn validate_add_ticket(ticket: &AddTicket) -> Result<(), validator::ValidationError> {
+    match (ticket.id_event, ticket.id_pachet) {
+        (Some(_), Some(_)) => {
+            let mut err = validator::ValidationError::new("exclusive_ids");
+            err.message = Some("A ticket can be for EITHER an event OR a packet, not both.".into());
+            Err(err)
+        }
+        (None, None) => {
+            let mut err = validator::ValidationError::new("exclusive_ids");
+            err.message = Some("Must specify either evenimentid or pachetid.".into());
+            Err(err)
+        }
+        (Some(event_id), None) => {
+            if event_id < 0 {
+                let mut err = validator::ValidationError::new("negative_id");
+                err.message = Some("Event ID cannot be negative".into());
+                return Err(err);
+            }
+            Ok(())
+        }
+        (None, Some(packet_id)) => {
+            if packet_id < 0 {
+                let mut err = validator::ValidationError::new("negative_id");
+                err.message = Some("Packet ID cannot be negative".into());
+                return Err(err);
+            }
+            Ok(())
+        }
+    }
 }

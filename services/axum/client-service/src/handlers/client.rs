@@ -13,7 +13,7 @@ use crate::models::client::{
 };
 use crate::services::event_service;
 use crate::shared::error::ApiError;
-use crate::shared::links::{client_links, ticket_ref_links, Response};
+use crate::shared::links::{Response, client_links, ticket_ref_links};
 
 pub fn client_manager_router() -> Router<Arc<AppState>> {
     Router::new()
@@ -233,9 +233,10 @@ pub async fn get_client_tickets(
     ),
     request_body = AddTicket,
     responses(
-        (status = 201, description = "Ticket added to client with auto-populated event/packet details from event service", body = Client),
-        (status = 400, description = "Ticket code not found in event service"),
-        (status = 404, description = "Client not found"),
+        (status = 201, description = "Ticket created and added to client. Event/packet details auto-populated from event service. Seat count decremented.", body = Client),
+        (status = 400, description = "Invalid event/packet ID"),
+        (status = 404, description = "Client not found or event/packet not found"),
+        (status = 409, description = "No seats available"),
         (status = 422, description = "Validation error"),
         (status = 500, description = "External service error")
     ),
@@ -249,39 +250,72 @@ pub async fn add_ticket_to_client(
     let Json(payload) = payload?;
     payload.validate()?;
 
-    // Fetch ticket details from event service (validates ticket and gets event/packet info)
-    let ticket_details = event_service::get_ticket_details(&state.event_service_url, &payload.cod)
-        .await
-        .map_err(|e| match e {
-            event_service::EventServiceError::TicketNotFound(msg) => ApiError::BadRequest(msg),
-            event_service::EventServiceError::HttpError(msg) => ApiError::ExternalServiceError(msg),
-            event_service::EventServiceError::DeserializationError(msg) => {
-                ApiError::ExternalServiceError(msg)
-            }
-        })?;
+    let ticket_details = if let Some(event_id) = payload.id_event {
+        event_service::create_ticket_for_event(&state.event_service_url, event_id)
+            .await
+            .map_err(|e| match e {
+                event_service::EventServiceError::InvalidReference(msg) => ApiError::NotFound(msg),
+                event_service::EventServiceError::NoSeatsAvailable(msg) => ApiError::Conflict(msg),
+                event_service::EventServiceError::HttpError(msg) => {
+                    ApiError::ExternalServiceError(msg)
+                }
+                event_service::EventServiceError::DeserializationError(msg) => {
+                    ApiError::ExternalServiceError(msg)
+                }
+                event_service::EventServiceError::TicketNotFound(msg) => {
+                    ApiError::ExternalServiceError(msg)
+                }
+            })?
+    } else if let Some(packet_id) = payload.id_pachet {
+        event_service::create_ticket_for_packet(&state.event_service_url, packet_id)
+            .await
+            .map_err(|e| match e {
+                event_service::EventServiceError::InvalidReference(msg) => ApiError::NotFound(msg),
+                event_service::EventServiceError::NoSeatsAvailable(msg) => ApiError::Conflict(msg),
+                event_service::EventServiceError::HttpError(msg) => {
+                    ApiError::ExternalServiceError(msg)
+                }
+                event_service::EventServiceError::DeserializationError(msg) => {
+                    ApiError::ExternalServiceError(msg)
+                }
+                event_service::EventServiceError::TicketNotFound(msg) => {
+                    ApiError::ExternalServiceError(msg)
+                }
+            })?
+    } else {
+        return Err(ApiError::BadRequest(
+            "Must specify either evenimentid or pachetid".to_string(),
+        ));
+    };
 
-    // Populate ticket with event/packet information from event service
-    let enriched_ticket = AddTicket {
-        cod: payload.cod,
+    let ticket_ref = TicketRef {
+        cod: ticket_details.ticket.cod,
         nume_eveniment: if let Some(ref event) = ticket_details.event {
             Some(event.nume.clone())
         } else if let Some(ref packet) = ticket_details.packet {
             Some(packet.nume.clone())
         } else {
-            payload.nume_eveniment
+            None
         },
         locatie: if let Some(ref event) = ticket_details.event {
             Some(event.locatie.clone())
         } else if let Some(ref packet) = ticket_details.packet {
             Some(packet.locatie.clone())
         } else {
-            payload.locatie
+            None
+        },
+        descriere: if let Some(ref event) = ticket_details.event {
+            Some(event.descriere.clone())
+        } else if let Some(ref packet) = ticket_details.packet {
+            Some(packet.descriere.clone())
+        } else {
+            None
         },
     };
 
     let client = state
         .client_repo
-        .add_ticket_to_client(&id, enriched_ticket)
+        .add_ticket_ref_to_client(&id, ticket_ref)
         .await?;
 
     let client_id = client.id.to_hex();
@@ -298,8 +332,8 @@ pub async fn add_ticket_to_client(
         ("cod" = String, Path, description = "Ticket code")
     ),
     responses(
-        (status = 200, description = "Ticket removed from client", body = Client),
-        (status = 404, description = "Client not found")
+        (status = 200, description = "Ticket removed from client and deleted from event-service. Seat count incremented.", body = Client),
+        (status = 404, description = "Client not found or ticket not found")
     ),
     tag = "clients"
 )]
@@ -307,6 +341,20 @@ pub async fn remove_ticket_from_client(
     State(state): State<Arc<AppState>>,
     Path((id, cod)): Path<(String, String)>,
 ) -> Result<Json<Response<Client>>, ApiError> {
+    event_service::delete_ticket(&state.event_service_url, &cod)
+        .await
+        .map_err(|e| match e {
+            event_service::EventServiceError::TicketNotFound(msg) => ApiError::NotFound(msg),
+            event_service::EventServiceError::HttpError(msg) => ApiError::ExternalServiceError(msg),
+            event_service::EventServiceError::DeserializationError(msg) => {
+                ApiError::ExternalServiceError(msg)
+            }
+            event_service::EventServiceError::NoSeatsAvailable(msg) => {
+                ApiError::ExternalServiceError(msg)
+            }
+            event_service::EventServiceError::InvalidReference(msg) => ApiError::NotFound(msg),
+        })?;
+
     let client = state
         .client_repo
         .remove_ticket_from_client(&id, &cod)

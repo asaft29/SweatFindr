@@ -7,25 +7,8 @@ pub enum EventServiceError {
     TicketNotFound(String),
     HttpError(String),
     DeserializationError(String),
-}
-
-impl std::fmt::Display for EventServiceError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::TicketNotFound(msg) => write!(f, "{}", msg),
-            Self::HttpError(msg) => write!(f, "{}", msg),
-            Self::DeserializationError(msg) => write!(f, "{}", msg),
-        }
-    }
-}
-
-impl std::error::Error for EventServiceError {}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-struct TicketInfoRaw {
-    cod: String,
-    pachetid: Option<i32>,
-    evenimentid: Option<i32>,
+    NoSeatsAvailable(String),
+    InvalidReference(String),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
@@ -33,26 +16,6 @@ pub struct TicketInfo {
     pub cod: String,
     pub pachetid: Option<i32>,
     pub evenimentid: Option<i32>,
-}
-
-impl From<TicketInfoRaw> for TicketInfo {
-    fn from(raw: TicketInfoRaw) -> Self {
-        Self {
-            cod: raw.cod,
-            pachetid: raw.pachetid,
-            evenimentid: raw.evenimentid,
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-struct EventInfoRaw {
-    id: i32,
-    id_owner: i32,
-    nume: String,
-    locatie: String,
-    descriere: String,
-    numarlocuri: i32,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
@@ -65,29 +28,6 @@ pub struct EventInfo {
     pub numarlocuri: i32,
 }
 
-impl From<EventInfoRaw> for EventInfo {
-    fn from(raw: EventInfoRaw) -> Self {
-        Self {
-            id: raw.id,
-            id_owner: raw.id_owner,
-            nume: raw.nume,
-            locatie: raw.locatie,
-            descriere: raw.descriere,
-            numarlocuri: raw.numarlocuri,
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-struct PacketInfoRaw {
-    id: i32,
-    id_owner: i32,
-    nume: String,
-    locatie: String,
-    descriere: String,
-    numarlocuri: i32,
-}
-
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct PacketInfo {
     pub id: i32,
@@ -96,19 +36,6 @@ pub struct PacketInfo {
     pub locatie: String,
     pub descriere: String,
     pub numarlocuri: i32,
-}
-
-impl From<PacketInfoRaw> for PacketInfo {
-    fn from(raw: PacketInfoRaw) -> Self {
-        Self {
-            id: raw.id,
-            id_owner: raw.id_owner,
-            nume: raw.nume,
-            locatie: raw.locatie,
-            descriere: raw.descriere,
-            numarlocuri: raw.numarlocuri,
-        }
-    }
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -179,27 +106,32 @@ pub async fn get_ticket_details(
         )));
     }
 
-    let ticket_raw: TicketInfoRaw = response.json().await.map_err(|e| {
+    let ticket_info: TicketInfo = response.json().await.map_err(|e| {
         EventServiceError::DeserializationError(format!("Failed to parse ticket response: {}", e))
     })?;
-    let ticket_info: TicketInfo = ticket_raw.into();
 
-    info!("Ticket info: event_id={:?}, packet_id={:?}", ticket_info.evenimentid, ticket_info.pachetid);
+    info!(
+        "Ticket info: event_id={:?}, packet_id={:?}",
+        ticket_info.evenimentid, ticket_info.pachetid
+    );
 
     let mut event_info = None;
     let mut packet_info = None;
 
     if let Some(event_id) = ticket_info.evenimentid {
-        let event_url = format!("{}/api/event-manager/events/{}", event_service_url, event_id);
+        let event_url = format!(
+            "{}/api/event-manager/events/{}",
+            event_service_url, event_id
+        );
         info!("Fetching event details from: {}", event_url);
 
         match reqwest::get(&event_url).await {
             Ok(response) => {
                 if response.status().is_success() {
-                    match response.json::<EventInfoRaw>().await {
-                        Ok(event_raw) => {
-                            info!("Successfully fetched event: {}", event_raw.nume);
-                            event_info = Some(event_raw.into());
+                    match response.json::<EventInfo>().await {
+                        Ok(event) => {
+                            info!("Successfully fetched event: {}", event.nume);
+                            event_info = Some(event);
                         }
                         Err(e) => {
                             info!("Failed to parse event response: {}", e);
@@ -225,10 +157,10 @@ pub async fn get_ticket_details(
         match reqwest::get(&packet_url).await {
             Ok(response) => {
                 if response.status().is_success() {
-                    match response.json::<PacketInfoRaw>().await {
-                        Ok(packet_raw) => {
-                            info!("Successfully fetched packet: {}", packet_raw.nume);
-                            packet_info = Some(packet_raw.into());
+                    match response.json::<PacketInfo>().await {
+                        Ok(packet) => {
+                            info!("Successfully fetched packet: {}", packet.nume);
+                            packet_info = Some(packet);
                         }
                         Err(e) => {
                             info!("Failed to parse packet response: {}", e);
@@ -249,4 +181,247 @@ pub async fn get_ticket_details(
         event: event_info,
         packet: packet_info,
     })
+}
+
+/// Create a new ticket for an event by calling the event-service
+/// This will automatically decrement the seat count
+pub async fn create_ticket_for_event(
+    event_service_url: &str,
+    event_id: i32,
+) -> Result<TicketDetails, EventServiceError> {
+    use tracing::info;
+
+    let create_url = format!(
+        "{}/api/event-manager/events/{}/tickets",
+        event_service_url, event_id
+    );
+
+    info!("Creating ticket for event {} at: {}", event_id, create_url);
+
+    let response = reqwest::Client::new()
+        .post(&create_url)
+        .send()
+        .await
+        .map_err(|e| {
+            EventServiceError::HttpError(format!("Failed to connect to event-service: {}", e))
+        })?;
+
+    let status = response.status();
+
+    if status.as_u16() == 404 {
+        return Err(EventServiceError::InvalidReference(format!(
+            "Event with ID {} does not exist in event-service",
+            event_id
+        )));
+    }
+
+    if status.as_u16() == 400 {
+        return Err(EventServiceError::InvalidReference(format!(
+            "Invalid event ID: {}",
+            event_id
+        )));
+    }
+
+    if status.as_u16() == 409 {
+        return Err(EventServiceError::NoSeatsAvailable(format!(
+            "No seats available for event {}",
+            event_id
+        )));
+    }
+
+    if !status.is_success() {
+        return Err(EventServiceError::HttpError(format!(
+            "Event-service returned status: {}",
+            status
+        )));
+    }
+
+    // Parse the response to get ticket details
+    // The response has ticket fields flattened alongside _links
+    #[derive(Deserialize)]
+    struct ResponseWrapper {
+        #[serde(flatten)]
+        ticket: TicketInfo,
+    }
+
+    let wrapper: ResponseWrapper = response.json().await.map_err(|e| {
+        EventServiceError::DeserializationError(format!("Failed to parse ticket response: {}", e))
+    })?;
+
+    let ticket_info: TicketInfo = wrapper.ticket;
+
+    let event_url = format!(
+        "{}/api/event-manager/events/{}",
+        event_service_url, event_id
+    );
+    info!("Fetching event details from: {}", event_url);
+
+    let mut event_info = None;
+    match reqwest::get(&event_url).await {
+        Ok(response) => {
+            if response.status().is_success() {
+                match response.json::<EventInfo>().await {
+                    Ok(event) => {
+                        info!("Successfully fetched event: {}", event.nume);
+                        event_info = Some(event);
+                    }
+                    Err(e) => {
+                        info!("Failed to parse event response: {}", e);
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            info!("Failed to fetch event: {}", e);
+        }
+    }
+
+    Ok(TicketDetails {
+        ticket: ticket_info,
+        event: event_info,
+        packet: None,
+    })
+}
+
+/// Create a new ticket for a packet by calling the event-service
+/// This will automatically decrement the seat count
+pub async fn create_ticket_for_packet(
+    event_service_url: &str,
+    packet_id: i32,
+) -> Result<TicketDetails, EventServiceError> {
+    use tracing::info;
+
+    let create_url = format!(
+        "{}/api/event-manager/event-packets/{}/tickets",
+        event_service_url, packet_id
+    );
+
+    info!(
+        "Creating ticket for packet {} at: {}",
+        packet_id, create_url
+    );
+
+    let response = reqwest::Client::new()
+        .post(&create_url)
+        .send()
+        .await
+        .map_err(|e| {
+            EventServiceError::HttpError(format!("Failed to connect to event-service: {}", e))
+        })?;
+
+    let status = response.status();
+
+    if status.as_u16() == 404 {
+        return Err(EventServiceError::InvalidReference(format!(
+            "Packet with ID {} does not exist in event-service",
+            packet_id
+        )));
+    }
+
+    if status.as_u16() == 400 {
+        return Err(EventServiceError::InvalidReference(format!(
+            "Invalid packet ID: {}",
+            packet_id
+        )));
+    }
+
+    if status.as_u16() == 409 {
+        return Err(EventServiceError::NoSeatsAvailable(format!(
+            "No seats available for packet {}",
+            packet_id
+        )));
+    }
+
+    if !status.is_success() {
+        return Err(EventServiceError::HttpError(format!(
+            "Event-service returned status: {}",
+            status
+        )));
+    }
+
+    // Parse the response to get ticket details
+    // The response has ticket fields flattened alongside _links
+    #[derive(Deserialize)]
+    struct ResponseWrapper {
+        #[serde(flatten)]
+        ticket: TicketInfo,
+    }
+
+    let wrapper: ResponseWrapper = response.json().await.map_err(|e| {
+        EventServiceError::DeserializationError(format!("Failed to parse ticket response: {}", e))
+    })?;
+
+    let ticket_info: TicketInfo = wrapper.ticket;
+
+    let packet_url = format!(
+        "{}/api/event-manager/event-packets/{}",
+        event_service_url, packet_id
+    );
+    info!("Fetching packet details from: {}", packet_url);
+
+    let mut packet_info = None;
+    match reqwest::get(&packet_url).await {
+        Ok(response) => {
+            if response.status().is_success() {
+                match response.json::<PacketInfo>().await {
+                    Ok(packet) => {
+                        info!("Successfully fetched packet: {}", packet.nume);
+                        packet_info = Some(packet);
+                    }
+                    Err(e) => {
+                        info!("Failed to parse packet response: {}", e);
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            info!("Failed to fetch packet: {}", e);
+        }
+    }
+
+    Ok(TicketDetails {
+        ticket: ticket_info,
+        event: None,
+        packet: packet_info,
+    })
+}
+
+pub async fn delete_ticket(
+    event_service_url: &str,
+    ticket_cod: &str,
+) -> Result<(), EventServiceError> {
+    use tracing::info;
+
+    let delete_url = format!(
+        "{}/api/event-manager/tickets/{}",
+        event_service_url, ticket_cod
+    );
+
+    info!("Deleting ticket {} from event-service", ticket_cod);
+
+    let response = reqwest::Client::new()
+        .delete(&delete_url)
+        .send()
+        .await
+        .map_err(|e| {
+            EventServiceError::HttpError(format!("Failed to connect to event-service: {}", e))
+        })?;
+
+    let status = response.status();
+
+    if status.as_u16() == 404 {
+        return Err(EventServiceError::TicketNotFound(format!(
+            "Ticket with code '{}' does not exist in event-service",
+            ticket_cod
+        )));
+    }
+
+    if !status.is_success() {
+        return Err(EventServiceError::HttpError(format!(
+            "Event-service returned status: {}",
+            status
+        )));
+    }
+
+    Ok(())
 }

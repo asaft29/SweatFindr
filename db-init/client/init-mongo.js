@@ -32,18 +32,7 @@ if (db.clients.countDocuments() === 0) {
         instagram: "https://instagram.com/ion.popescu",
         public: true,
       },
-      lista_bilete: [
-        {
-          cod: "TCK-2024-001",
-          nume_eveniment: "Tech Conference 2024",
-          locatie: "Iasi, Romania",
-        },
-        {
-          cod: "TCK-2024-002",
-          nume_eveniment: "Web Summit",
-          locatie: "Lisbon, Portugal",
-        },
-      ],
+      lista_bilete: [],
     },
     {
       email: "maria.ionescu@example.com",
@@ -55,13 +44,7 @@ if (db.clients.countDocuments() === 0) {
         twitter: "https://twitter.com/maria_ionescu",
         public: true,
       },
-      lista_bilete: [
-        {
-          cod: "TCK-2024-003",
-          nume_eveniment: "DevOps Days",
-          locatie: "Bucharest, Romania",
-        },
-      ],
+      lista_bilete: [],
     },
     {
       email: "andrei.stanescu@example.com",
@@ -84,23 +67,7 @@ if (db.clients.countDocuments() === 0) {
         instagram: "https://instagram.com/elena.georgescu",
         public: true,
       },
-      lista_bilete: [
-        {
-          cod: "EVT-VAMA-2025-001",
-          nume_eveniment: "Concert Vama Veche",
-          locatie: "Cluj-Napoca, BT Arena",
-        },
-        {
-          cod: "EVT-ELECTRIC-2025-001",
-          nume_eveniment: "Festival Electric Castle 2025",
-          locatie: "Cluj, Domeniul Banffy",
-        },
-        {
-          cod: "PKT-ROCK-WEEKEND-001",
-          nume_eveniment: "Pachet Weekend Rock Cluj",
-          locatie: "Cluj-Napoca",
-        },
-      ],
+      lista_bilete: [],
     },
     {
       email: "vlad.popa@example.com",
@@ -112,13 +79,7 @@ if (db.clients.countDocuments() === 0) {
         linkedin: "https://linkedin.com/in/vlad-popa",
         public: true,
       },
-      lista_bilete: [
-        {
-          cod: "EVT-UNTOLD-VIP-001",
-          nume_eveniment: "Untold Festival 2025",
-          locatie: "Cluj-Napoca, Cluj Arena",
-        },
-      ],
+      lista_bilete: [],
     },
     {
       email: "diana.marin@example.com",
@@ -129,18 +90,7 @@ if (db.clients.countDocuments() === 0) {
         instagram: "https://instagram.com/diana.marin.private",
         public: false,
       },
-      lista_bilete: [
-        {
-          cod: "EVT-TEATRU-IASI-001",
-          nume_eveniment: "Festivalul de Teatru",
-          locatie: "Iași, Teatrul Național",
-        },
-        {
-          cod: "PKT-TEATRU-7ZILE-001",
-          nume_eveniment: "Abonament Teatru 7 Zile",
-          locatie: "Iași",
-        },
-      ],
+      lista_bilete: [],
     },
     {
       email: "cosmin.dumitrescu@example.com",
@@ -153,18 +103,7 @@ if (db.clients.countDocuments() === 0) {
         linkedin: "https://linkedin.com/in/cosmin-dumitrescu",
         public: true,
       },
-      lista_bilete: [
-        {
-          cod: "EVT-TECHSUMMIT-CLJ-001",
-          nume_eveniment: "Tech Summit România 2025",
-          locatie: "Cluj-Napoca, Grand Hotel Italia",
-        },
-        {
-          cod: "PKT-TECH-BUNDLE-001",
-          nume_eveniment: "Tech Enthusiast Bundle",
-          locatie: "Cluj & Iași",
-        },
-      ],
+      lista_bilete: [],
     },
     {
       email: "alexandra.radu@example.com",
@@ -176,18 +115,7 @@ if (db.clients.countDocuments() === 0) {
         facebook: "https://facebook.com/alexandra.radu",
         public: true,
       },
-      lista_bilete: [
-        {
-          cod: "EVT-CRACIUN-BUC-001",
-          nume_eveniment: "Târg de Crăciun 2025",
-          locatie: "București, Piața Constituției",
-        },
-        {
-          cod: "PKT-SAARBATOARE-BUC-001",
-          nume_eveniment: "Pachet București de Sărbătoare",
-          locatie: "București",
-        },
-      ],
+      lista_bilete: [],
     },
     {
       email: "gabriel.constantinescu@example.com",
@@ -197,13 +125,7 @@ if (db.clients.countDocuments() === 0) {
       social_media: {
         public: false,
       },
-      lista_bilete: [
-        {
-          cod: "EVT-MARATON-BUC-001",
-          nume_eveniment: "Maraton București 2025",
-          locatie: "București, Piața Constituției",
-        },
-      ],
+      lista_bilete: [],
     },
     {
       email: "mihaela.stoica@example.com",
@@ -216,23 +138,7 @@ if (db.clients.countDocuments() === 0) {
         instagram: "https://instagram.com/mihaela_stoica",
         public: true,
       },
-      lista_bilete: [
-        {
-          cod: "EVT-MEDIEVAL-SGH-001",
-          nume_eveniment: "Festivalul Medieval Sighișoara",
-          locatie: "Sighișoara, Cetate",
-        },
-        {
-          cod: "EVT-STREETFOOD-TM-001",
-          nume_eveniment: "Street Food Festival",
-          locatie: "Timișoara, Piața Victoriei",
-        },
-        {
-          cod: "PKT-GOURMET-EXP-001",
-          nume_eveniment: "Gourmet Experience",
-          locatie: "Multiple",
-        },
-      ],
+      lista_bilete: [],
     },
   ]);
   print("Inserted 10 sample clients with various ticket configurations");

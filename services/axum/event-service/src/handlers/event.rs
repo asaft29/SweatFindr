@@ -14,6 +14,25 @@ use axum::{
 use std::sync::Arc;
 use validator::Validate;
 
+pub fn event_manager_router() -> Router<Arc<AppState>> {
+    Router::new()
+        .route("/events", get(list_events).post(create_event))
+        .route(
+            "/events/{id}",
+            get(get_event).put(update_event).delete(delete_event),
+        )
+        .route(
+            "/events/{id}/tickets",
+            get(ticket::list_tickets_for_event).post(ticket::create_ticket_for_event),
+        )
+        .route(
+            "/events/{id}/tickets/{cod}",
+            get(ticket::get_ticket_for_event)
+                .put(ticket::update_ticket_for_event)
+                .delete(ticket::delete_ticket_for_event),
+        )
+}
+
 #[utoipa::path(
     get,
     path = "/api/event-manager/events",
@@ -159,23 +178,4 @@ pub async fn delete_event(
     state.event_repo.delete_event(id).await?;
 
     Ok(StatusCode::NO_CONTENT)
-}
-
-pub fn event_manager_router() -> Router<Arc<AppState>> {
-    Router::new()
-        .route("/events", get(list_events).post(create_event))
-        .route(
-            "/events/{id}",
-            get(get_event).put(update_event).delete(delete_event),
-        )
-        .route(
-            "/events/{id}/tickets",
-            get(ticket::list_tickets_for_event).post(ticket::create_ticket_for_event),
-        )
-        .route(
-            "/events/{id}/tickets/{cod}",
-            get(ticket::get_ticket_for_event)
-                .put(ticket::update_ticket_for_event)
-                .delete(ticket::delete_ticket_for_event),
-        )
 }

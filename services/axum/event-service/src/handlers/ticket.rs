@@ -14,6 +14,15 @@ use axum::{
 use std::sync::Arc;
 use validator::Validate;
 
+pub fn ticket_manager_router() -> Router<Arc<AppState>> {
+    Router::new()
+        .route("/tickets", post(create_ticket).get(list_tickets))
+        .route(
+            "/tickets/{cod}",
+            get(get_ticket).put(update_ticket).delete(delete_ticket),
+        )
+}
+
 #[utoipa::path(
     get,
     path = "/api/event-manager/tickets/{cod}",
@@ -435,13 +444,4 @@ pub async fn delete_ticket_for_packet(
         .delete_ticket_for_packet(packet_id, &ticket_cod)
         .await?;
     Ok(StatusCode::NO_CONTENT)
-}
-
-pub fn ticket_manager_router() -> Router<Arc<AppState>> {
-    Router::new()
-        .route("/tickets", post(create_ticket).get(list_tickets))
-        .route(
-            "/tickets/{cod}",
-            get(get_ticket).put(update_ticket).delete(delete_ticket),
-        )
 }

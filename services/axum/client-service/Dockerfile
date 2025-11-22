@@ -9,13 +9,16 @@ COPY services/axum/Cargo.lock ./Cargo.lock
 COPY services/axum/client-service/Cargo.toml ./client-service/Cargo.toml
 COPY services/axum/event-service/Cargo.toml ./event-service/Cargo.toml
 COPY services/axum/auth-service/Cargo.toml ./auth-service/Cargo.toml
+COPY services/axum/core/Cargo.toml ./core/Cargo.toml
 
 RUN mkdir -p client-service/src && \
     echo "fn main() {}" > client-service/src/main.rs && \
     mkdir -p event-service/src && \
     echo "fn main() {}" > event-service/src/main.rs && \
     mkdir -p auth-service/src && \
-    echo "fn main() {}" > auth-service/src/main.rs
+    echo "fn main() {}" > auth-service/src/main.rs && \
+    mkdir -p core/src && \
+    echo "" > core/src/lib.rs
 
 
 RUN cargo build --release --manifest-path client-service/Cargo.toml

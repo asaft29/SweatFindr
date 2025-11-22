@@ -10,11 +10,14 @@ use event_service::{
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
 use tower_http::trace::TraceLayer;
-use tracing::{Level, info};
+use tracing::info;
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt()
-        .with_max_level(Level::INFO)
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
+        )
         .compact()
         .init();
 

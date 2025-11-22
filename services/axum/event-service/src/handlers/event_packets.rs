@@ -17,6 +17,30 @@ use axum::{
 use std::sync::Arc;
 use validator::Validate;
 
+pub fn event_packet_manager_router() -> Router<Arc<AppState>> {
+    Router::new()
+        .route(
+            "/event-packets",
+            post(create_event_packet).get(list_event_packets),
+        )
+        .route(
+            "/event-packets/{id}",
+            get(get_event_packet)
+                .put(update_event_packet)
+                .delete(delete_event_packet),
+        )
+        .route(
+            "/event-packets/{id}/tickets",
+            get(ticket::list_tickets_for_packet).post(ticket::create_ticket_for_packet),
+        )
+        .route(
+            "/event-packets/{id}/tickets/{ticket_cod}",
+            get(ticket::get_ticket_for_packet)
+                .put(ticket::update_ticket_for_packet)
+                .delete(ticket::delete_ticket_for_packet),
+        )
+}
+
 #[utoipa::path(
     get,
     path = "/api/event-manager/event-packets",
@@ -80,7 +104,6 @@ pub async fn get_event_packet(
     let event_packet = state.event_packet_repo.get_event_packet(id).await?;
 
     let packet_response = build_simple_event_packet(event_packet, &state.base_url);
-
     Ok(Json(packet_response))
 }
 
@@ -161,28 +184,4 @@ pub async fn delete_event_packet(
     }
     state.event_packet_repo.delete_event_packet(id).await?;
     Ok(StatusCode::NO_CONTENT)
-}
-
-pub fn event_packet_manager_router() -> Router<Arc<AppState>> {
-    Router::new()
-        .route(
-            "/event-packets",
-            post(create_event_packet).get(list_event_packets),
-        )
-        .route(
-            "/event-packets/{id}",
-            get(get_event_packet)
-                .put(update_event_packet)
-                .delete(delete_event_packet),
-        )
-        .route(
-            "/event-packets/{id}/tickets",
-            get(ticket::list_tickets_for_packet).post(ticket::create_ticket_for_packet),
-        )
-        .route(
-            "/event-packets/{id}/tickets/{ticket_cod}",
-            get(ticket::get_ticket_for_packet)
-                .put(ticket::update_ticket_for_packet)
-                .delete(ticket::delete_ticket_for_packet),
-        )
 }

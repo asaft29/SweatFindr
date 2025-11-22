@@ -13,6 +13,16 @@ use axum::{
 };
 use std::sync::Arc;
 
+pub fn join_pe_manager_router() -> Router<Arc<AppState>> {
+    Router::new()
+        .route("/events/{id}/event-packets", get(list_packets_for_event))
+        .route("/event-packets/{id}/events", get(list_events_for_packet))
+        .route(
+            "/event-packets/{packet_id}/events/{event_id}",
+            delete(remove_event_from_packet).post(add_event_to_packet),
+        )
+}
+
 #[utoipa::path(
     get,
     path = "/api/event-manager/events/{id}/event-packets",
@@ -135,14 +145,4 @@ pub async fn remove_event_from_packet(
         .remove_event_from_packet(packet_id, event_id)
         .await?;
     Ok(StatusCode::NO_CONTENT)
-}
-
-pub fn join_pe_manager_router() -> Router<Arc<AppState>> {
-    Router::new()
-        .route("/events/{id}/event-packets", get(list_packets_for_event))
-        .route("/event-packets/{id}/events", get(list_events_for_packet))
-        .route(
-            "/event-packets/{packet_id}/events/{event_id}",
-            delete(remove_event_from_packet).post(add_event_to_packet),
-        )
 }

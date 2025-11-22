@@ -1,7 +1,7 @@
+use axum::Json;
 use axum::extract::rejection::JsonRejection;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::Json;
 use serde_json::json;
 use validator::ValidationErrors;
 
@@ -12,6 +12,8 @@ pub enum ApiError {
     BadRequest(String),
     Json(JsonRejection),
     ExternalServiceError(String),
+    NotFound(String),
+    Conflict(String),
 }
 
 #[derive(Debug)]
@@ -34,9 +36,11 @@ impl IntoResponse for ApiError {
                 )
             }
             ApiError::Client(e) => match e {
-                ClientRepoError::NotFound(msg) => {
-                    (StatusCode::NOT_FOUND, "Client Not Found".to_string(), Some(vec![msg]))
-                }
+                ClientRepoError::NotFound(msg) => (
+                    StatusCode::NOT_FOUND,
+                    "Client Not Found".to_string(),
+                    Some(vec![msg]),
+                ),
                 ClientRepoError::DuplicateEmail(msg) => (
                     StatusCode::CONFLICT,
                     "Duplicate Email".to_string(),
@@ -53,12 +57,26 @@ impl IntoResponse for ApiError {
                     Some(vec![msg]),
                 ),
             },
-            ApiError::BadRequest(msg) => {
-                (StatusCode::BAD_REQUEST, "Bad Request".to_string(), Some(vec![msg]))
-            }
-            ApiError::ExternalServiceError(msg) => {
-                (StatusCode::BAD_GATEWAY, "External Service Error".to_string(), Some(vec![msg]))
-            }
+            ApiError::BadRequest(msg) => (
+                StatusCode::BAD_REQUEST,
+                "Bad Request".to_string(),
+                Some(vec![msg]),
+            ),
+            ApiError::NotFound(msg) => (
+                StatusCode::NOT_FOUND,
+                "Not Found".to_string(),
+                Some(vec![msg]),
+            ),
+            ApiError::Conflict(msg) => (
+                StatusCode::CONFLICT,
+                "Conflict".to_string(),
+                Some(vec![msg]),
+            ),
+            ApiError::ExternalServiceError(msg) => (
+                StatusCode::BAD_GATEWAY,
+                "External Service Error".to_string(),
+                Some(vec![msg]),
+            ),
             ApiError::Json(rejection) => {
                 let (status, title, detail) = match rejection {
                     JsonRejection::JsonDataError(err) => {

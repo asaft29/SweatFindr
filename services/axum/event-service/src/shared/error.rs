@@ -45,6 +45,7 @@ pub enum TicketRepoError {
     DuplicateEntry,
     InvalidReference,
     ConstraintViolation,
+    NoSeatsAvailable,
     InternalError(Error),
 }
 
@@ -282,6 +283,13 @@ impl IntoResponse for ApiError {
                             "A ticket must belong to EITHER a packet OR an event, not both or neither."
                                 .to_string(),
                         ],
+                    },
+                ),
+                TicketRepoError::NoSeatsAvailable => (
+                    StatusCode::CONFLICT,
+                    ApiErrorResponse {
+                        error: "No Seats Available".to_string(),
+                        details: vec!["No seats available for this event or packet.".to_string()],
                     },
                 ),
                 TicketRepoError::InternalError(_) => (
