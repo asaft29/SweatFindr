@@ -12,8 +12,8 @@ use crate::models::client::{
     AddTicket, Client, ClientQuery, CreateClient, TicketRef, UpdateClient,
 };
 use crate::services::event_service;
-use crate::shared::error::ApiError;
-use crate::shared::links::{Response, client_links, ticket_ref_links};
+use crate::utils::error::ClientApiError;
+use crate::utils::links::{Response, client_links, ticket_ref_links};
 
 pub fn client_manager_router() -> Router<Arc<AppState>> {
     Router::new()
@@ -52,7 +52,7 @@ pub fn client_manager_router() -> Router<Arc<AppState>> {
 pub async fn list_clients(
     State(state): State<Arc<AppState>>,
     Query(query): Query<ClientQuery>,
-) -> Result<Json<Vec<Response<Client>>>, ApiError> {
+) -> Result<Json<Vec<Response<Client>>>, ClientApiError> {
     let clients = state.client_repo.list_clients(query).await?;
 
     let responses: Vec<Response<Client>> = clients
@@ -83,7 +83,7 @@ pub async fn list_clients(
 pub async fn get_client(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
-) -> Result<Json<Response<Client>>, ApiError> {
+) -> Result<Json<Response<Client>>, ClientApiError> {
     let client = state.client_repo.get_client(&id).await?;
     let client_id = client.id.to_hex();
     let links = client_links(&state.base_url, &client_id);
@@ -105,7 +105,7 @@ pub async fn get_client(
 pub async fn create_client(
     State(state): State<Arc<AppState>>,
     payload: Result<Json<CreateClient>, JsonRejection>,
-) -> Result<(StatusCode, Json<Response<Client>>), ApiError> {
+) -> Result<(StatusCode, Json<Response<Client>>), ClientApiError> {
     let Json(payload) = payload?;
     payload.validate()?;
 
@@ -135,7 +135,7 @@ pub async fn update_client(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
     payload: Result<Json<UpdateClient>, JsonRejection>,
-) -> Result<Json<Response<Client>>, ApiError> {
+) -> Result<Json<Response<Client>>, ClientApiError> {
     let Json(payload) = payload?;
     payload.validate()?;
 
@@ -165,7 +165,7 @@ pub async fn patch_client(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
     payload: Result<Json<UpdateClient>, JsonRejection>,
-) -> Result<Json<Response<Client>>, ApiError> {
+) -> Result<Json<Response<Client>>, ClientApiError> {
     let Json(payload) = payload?;
     payload.validate()?;
 
@@ -191,7 +191,7 @@ pub async fn patch_client(
 pub async fn delete_client(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
-) -> Result<StatusCode, ApiError> {
+) -> Result<StatusCode, ClientApiError> {
     state.client_repo.delete_client(&id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
@@ -211,7 +211,7 @@ pub async fn delete_client(
 pub async fn get_client_tickets(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
-) -> Result<Json<Vec<Response<TicketRef>>>, ApiError> {
+) -> Result<Json<Vec<Response<TicketRef>>>, ClientApiError> {
     let tickets = state.client_repo.get_client_tickets(&id).await?;
 
     let responses: Vec<Response<TicketRef>> = tickets
@@ -246,7 +246,7 @@ pub async fn add_ticket_to_client(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
     payload: Result<Json<AddTicket>, JsonRejection>,
-) -> Result<(StatusCode, Json<Response<Client>>), ApiError> {
+) -> Result<(StatusCode, Json<Response<Client>>), ClientApiError> {
     let Json(payload) = payload?;
     payload.validate()?;
 
@@ -254,36 +254,44 @@ pub async fn add_ticket_to_client(
         event_service::create_ticket_for_event(&state.event_service_url, event_id)
             .await
             .map_err(|e| match e {
-                event_service::EventServiceError::InvalidReference(msg) => ApiError::NotFound(msg),
-                event_service::EventServiceError::NoSeatsAvailable(msg) => ApiError::Conflict(msg),
+                event_service::EventServiceError::InvalidReference(msg) => {
+                    ClientApiError::NotFound(msg)
+                }
+                event_service::EventServiceError::NoSeatsAvailable(msg) => {
+                    ClientApiError::Conflict(msg)
+                }
                 event_service::EventServiceError::HttpError(msg) => {
-                    ApiError::ExternalServiceError(msg)
+                    ClientApiError::ExternalServiceError(msg)
                 }
                 event_service::EventServiceError::DeserializationError(msg) => {
-                    ApiError::ExternalServiceError(msg)
+                    ClientApiError::ExternalServiceError(msg)
                 }
-                event_service::EventServiceError::TicketNotFound(msg) => {
-                    ApiError::ExternalServiceError(msg)
+                event_service::EventServiceError::NotFound(msg) => {
+                    ClientApiError::ExternalServiceError(msg)
                 }
             })?
     } else if let Some(packet_id) = payload.id_pachet {
         event_service::create_ticket_for_packet(&state.event_service_url, packet_id)
             .await
             .map_err(|e| match e {
-                event_service::EventServiceError::InvalidReference(msg) => ApiError::NotFound(msg),
-                event_service::EventServiceError::NoSeatsAvailable(msg) => ApiError::Conflict(msg),
+                event_service::EventServiceError::InvalidReference(msg) => {
+                    ClientApiError::NotFound(msg)
+                }
+                event_service::EventServiceError::NoSeatsAvailable(msg) => {
+                    ClientApiError::Conflict(msg)
+                }
                 event_service::EventServiceError::HttpError(msg) => {
-                    ApiError::ExternalServiceError(msg)
+                    ClientApiError::ExternalServiceError(msg)
                 }
                 event_service::EventServiceError::DeserializationError(msg) => {
-                    ApiError::ExternalServiceError(msg)
+                    ClientApiError::ExternalServiceError(msg)
                 }
-                event_service::EventServiceError::TicketNotFound(msg) => {
-                    ApiError::ExternalServiceError(msg)
+                event_service::EventServiceError::NotFound(msg) => {
+                    ClientApiError::ExternalServiceError(msg)
                 }
             })?
     } else {
-        return Err(ApiError::BadRequest(
+        return Err(ClientApiError::BadRequest(
             "Must specify either evenimentid or pachetid".to_string(),
         ));
     };
@@ -340,19 +348,23 @@ pub async fn add_ticket_to_client(
 pub async fn remove_ticket_from_client(
     State(state): State<Arc<AppState>>,
     Path((id, cod)): Path<(String, String)>,
-) -> Result<Json<Response<Client>>, ApiError> {
+) -> Result<Json<Response<Client>>, ClientApiError> {
     event_service::delete_ticket(&state.event_service_url, &cod)
         .await
         .map_err(|e| match e {
-            event_service::EventServiceError::TicketNotFound(msg) => ApiError::NotFound(msg),
-            event_service::EventServiceError::HttpError(msg) => ApiError::ExternalServiceError(msg),
+            event_service::EventServiceError::NotFound(msg) => ClientApiError::NotFound(msg),
+            event_service::EventServiceError::HttpError(msg) => {
+                ClientApiError::ExternalServiceError(msg)
+            }
             event_service::EventServiceError::DeserializationError(msg) => {
-                ApiError::ExternalServiceError(msg)
+                ClientApiError::ExternalServiceError(msg)
             }
             event_service::EventServiceError::NoSeatsAvailable(msg) => {
-                ApiError::ExternalServiceError(msg)
+                ClientApiError::ExternalServiceError(msg)
             }
-            event_service::EventServiceError::InvalidReference(msg) => ApiError::NotFound(msg),
+            event_service::EventServiceError::InvalidReference(msg) => {
+                ClientApiError::NotFound(msg)
+            }
         })?;
 
     let client = state

@@ -3,8 +3,8 @@ use crate::handlers::ticket;
 use crate::models::event_packets::{
     CreateEventPacket, EventPacketQuery, EventPackets, UpdateEventPacket,
 };
-use crate::shared::error::ApiError;
-use crate::shared::links::{Response, build_filtered_event_packets, build_simple_event_packet};
+use crate::utils::error::ApiError;
+use crate::utils::links::{Response, build_filtered_event_packets, build_simple_event_packet};
 use axum::extract::Query;
 use axum::extract::rejection::JsonRejection;
 use axum::response::IntoResponse;

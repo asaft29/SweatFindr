@@ -1,8 +1,8 @@
 use crate::AppState;
 use crate::models::event::Event;
 use crate::models::event_packets::EventPackets;
-use crate::shared::error::ApiError;
-use crate::shared::links::{Response, build_event_over_packet, build_packet_over_event};
+use crate::utils::error::ApiError;
+use crate::utils::links::{Response, build_event_over_packet, build_packet_over_event};
 use axum::Router;
 use axum::response::IntoResponse;
 use axum::{

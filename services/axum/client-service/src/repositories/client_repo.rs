@@ -4,7 +4,7 @@ use futures::stream::TryStreamExt;
 use mongodb::{Collection, Database};
 
 use crate::models::client::{Client, ClientQuery, CreateClient, TicketRef, UpdateClient};
-use crate::shared::error::ClientRepoError;
+use crate::utils::error::ClientRepoError;
 
 pub struct ClientRepo {
     collection: Collection<Client>,

@@ -8,7 +8,7 @@ use crate::handlers::event::event_manager_router;
 use crate::handlers::event_packets::event_packet_manager_router;
 use crate::handlers::join_pe::join_pe_manager_router;
 use crate::handlers::ticket::ticket_manager_router;
-use crate::shared::doc::ApiDoc;
+use crate::utils::doc::ApiDoc;
 use axum::Router;
 use std::sync::Arc;
 use utoipa::OpenApi;

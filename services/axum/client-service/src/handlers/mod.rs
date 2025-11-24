@@ -6,8 +6,8 @@ use axum::Router;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
-use crate::shared::doc::ApiDoc;
 use crate::AppState;
+use crate::utils::doc::ApiDoc;
 
 pub fn api_router() -> Router<Arc<AppState>> {
     Router::new().merge(client::client_manager_router())

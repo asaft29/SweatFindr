@@ -1,8 +1,8 @@
 use crate::AppState;
 use crate::handlers::ticket;
 use crate::models::event::{CreateEvent, Event, EventQuery, UpdateEvent};
-use crate::shared::error::ApiError;
-use crate::shared::links::{Response, build_filtered_event, build_simple_event};
+use crate::utils::error::ApiError;
+use crate::utils::links::{Response, build_filtered_event, build_simple_event};
 use axum::extract::rejection::JsonRejection;
 use axum::response::IntoResponse;
 use axum::{

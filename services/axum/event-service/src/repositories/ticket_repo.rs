@@ -1,5 +1,5 @@
 use crate::models::ticket::{CreateTicket, Ticket, UpdateTicket};
-use crate::shared::error::{TicketRepoError, map_sqlx_ticket_error};
+use crate::utils::error::{TicketRepoError, map_sqlx_ticket_error};
 use anyhow::Result;
 use sqlx::PgPool;
 use uuid::Uuid;

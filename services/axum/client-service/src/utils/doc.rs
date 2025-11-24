@@ -1,6 +1,8 @@
 use crate::handlers::client::*;
-use crate::models::client::{Client, CreateClient, UpdateClient, AddTicket, TicketRef, SocialMedia};
-use crate::services::event_service::{TicketDetails, TicketInfo, EventInfo, PacketInfo};
+use crate::models::client::{
+    AddTicket, Client, CreateClient, SocialMedia, TicketRef, UpdateClient,
+};
+use crate::services::event_service::{EventInfo, PacketInfo, TicketDetails, TicketInfo};
 use utoipa::OpenApi;
 
 #[derive(OpenApi)]

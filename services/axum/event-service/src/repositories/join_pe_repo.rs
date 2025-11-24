@@ -1,7 +1,7 @@
 use crate::models::event::Event;
 use crate::models::event_packets::EventPackets;
 use crate::models::join_pe::EventPacketRelation;
-use crate::shared::error::{JoinPeRepoError, map_sqlx_join_pe_error};
+use crate::utils::error::{JoinPeRepoError, map_sqlx_join_pe_error};
 use anyhow::Result;
 use rayon::prelude::*;
 use sqlx::PgPool;
