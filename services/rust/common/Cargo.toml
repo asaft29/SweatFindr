@@ -1,0 +1,11 @@
+[package]
+name = "common"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+utoipa = { version = "5.3.1", features = ["axum_extras"] }
+axum = "0.8.1"
+validator = "0.20.0"

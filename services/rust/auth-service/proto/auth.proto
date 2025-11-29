@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package auth;
+
+service AuthService {
+  rpc Authenticate(AuthRequest) returns (AuthResponse);
+  rpc ValidateToken(ValidateRequest) returns (ValidateResponse);
+  rpc DestroyToken(DestroyRequest) returns (DestroyResponse);
+  rpc RegisterUser(RegisterRequest) returns (RegisterResponse);
+}
+
+message AuthRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message AuthResponse {
+  bool success = 1;
+  string token_value = 2;
+  string message = 3;
+}
+
+message ValidateRequest { string token_value = 1; }
+
+message ValidateResponse {
+  bool success = 1;
+  bool valid = 2;
+  int32 user_id = 3;
+  string role = 4;
+  string message = 5;
+}
+
+message DestroyRequest { string token_value = 1; }
+
+message DestroyResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message RegisterRequest {
+  string email = 1;
+  string password = 2;
+  string role = 3;
+}
+
+message RegisterResponse {
+  bool success = 1;
+  int32 user_id = 2;
+  string token_value = 3;
+  string message = 4;
+}

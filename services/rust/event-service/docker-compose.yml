@@ -1,0 +1,50 @@
+services:
+  event-service:
+    build:
+      context: ../../../
+      dockerfile: services/rust/event-service/Dockerfile
+    image: event-service:latest
+    container_name: event-service
+    ports:
+      - "8001:8080"
+    environment:
+      - DATABASE_URL=postgres://${EVENT_DB_USER}:${EVENT_DB_PASS}@event-db:5432/eventsdb
+      - RUST_LOG=info,event_service=info
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8080
+    depends_on:
+      event-db:
+        condition: service_healthy
+    networks:
+      - event-network
+      - shared-network
+    restart: unless-stopped
+
+  event-db:
+    image: postgres:16-alpine
+    container_name: event-db
+    environment:
+      - POSTGRES_USER=${EVENT_DB_USER}
+      - POSTGRES_PASSWORD=${EVENT_DB_PASS}
+      - POSTGRES_DB=eventsdb
+    volumes:
+      - event_db_data:/var/lib/postgresql/data
+      - ../../../db-init/events/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ../../../db-init/events/populate.sql:/docker-entrypoint-initdb.d/02-populate.sql:ro
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U eventuser -d eventsdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - event-network
+    restart: unless-stopped
+
+networks:
+  event-network:
+    driver: bridge
+
+volumes:
+  event_db_data:

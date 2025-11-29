@@ -1,0 +1,30 @@
+[package]
+name = "client-service"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0"
+axum = "0.8"
+bson = { version = "2.13", features = ["serde_with"] }
+common = { path = "../common" }
+futures = "0.3"
+mongodb = "3.1"
+prost = "0.13"
+reqwest = { version = "0.12", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_with = "3.15"
+tokio = { version = "1.48", features = ["full"] }
+tonic = "0.12"
+tower = "0.5"
+tower-http = { version = "0.6", features = ["catch-panic", "trace"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+utoipa = { version = "5.4", features = ["axum_extras"] }
+utoipa-swagger-ui = { version = "9.0", features = ["axum", "reqwest"] }
+uuid = { version = "1.18.1", features = ["serde", "v7"] }
+validator = { version = "0.20.0", features = ["derive"] }
+
+[build-dependencies]
+tonic-build = "0.12"
