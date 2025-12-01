@@ -11,7 +11,7 @@ use crate::AppState;
 use crate::middleware::{Authorization, UserClaims};
 use crate::models::client::{AddTicket, Client, ClientQuery, TicketRef, UpdateClient};
 use crate::services::event_service;
-use crate::utils::error::{ClientApiError, map_event_service_error};
+use crate::utils::error::{ClientApiError, map_event_service_error, map_authorization_error};
 use crate::utils::links::{Response, client_links, ticket_ref_links};
 
 pub mod auth {
@@ -80,9 +80,7 @@ pub async fn list_clients(
     Extension(claims): Extension<UserClaims>,
     Query(query): Query<ClientQuery>,
 ) -> Result<Json<Vec<Response<Client>>>, ClientApiError> {
-    // Only admins can list all clients
-    Authorization::can_list_all(&claims)
-        .map_err(|e| ClientApiError::Unauthorized(e.to_string()))?;
+    Authorization::can_list_all(&claims).map_err(map_authorization_error)?;
 
     let clients = state.client_repo.list_clients(query).await?;
 
@@ -123,10 +121,9 @@ pub async fn get_client(
 ) -> Result<Json<Response<Client>>, ClientApiError> {
     let client = state.client_repo.get_client(&id).await?;
 
-    // Authorization: Admin can access any client, clients can only access their own profile
     let user_email = get_user_email(&state, user_claims.user_id).await;
     Authorization::can_access_resource(&user_claims, &client, user_email.as_deref())
-        .map_err(|e| ClientApiError::Forbidden(e.to_string()))?;
+        .map_err(map_authorization_error)?;
 
     let client_id = client.id.to_hex();
     let links = client_links(&state.base_url, &client_id);
@@ -163,7 +160,7 @@ pub async fn update_client(
 
     let user_email = get_user_email(&state, user_claims.user_id).await;
     Authorization::can_modify_resource(&user_claims, &existing_client, user_email.as_deref())
-        .map_err(|e| ClientApiError::Forbidden(e.to_string()))?;
+        .map_err(map_authorization_error)?;
 
     let Json(payload) = payload?;
     payload.validate()?;
@@ -204,7 +201,7 @@ pub async fn patch_client(
 
     let user_email = get_user_email(&state, user_claims.user_id).await;
     Authorization::can_modify_resource(&user_claims, &existing_client, user_email.as_deref())
-        .map_err(|e| ClientApiError::Forbidden(e.to_string()))?;
+        .map_err(map_authorization_error)?;
 
     let Json(payload) = payload?;
     payload.validate()?;
@@ -239,7 +236,7 @@ pub async fn delete_client(
     Path(id): Path<String>,
 ) -> Result<StatusCode, ClientApiError> {
     Authorization::can_delete_resource(&user_claims)
-        .map_err(|e| ClientApiError::Forbidden(e.to_string()))?;
+        .map_err(map_authorization_error)?;
 
     state.client_repo.delete_client(&id).await?;
     Ok(StatusCode::NO_CONTENT)
@@ -269,7 +266,7 @@ pub async fn get_client_tickets(
     let client = state.client_repo.get_client(&id).await?;
     let user_email = get_user_email(&state, user_claims.user_id).await;
     Authorization::can_access_resource(&user_claims, &client, user_email.as_deref())
-        .map_err(|e| ClientApiError::Forbidden(e.to_string()))?;
+        .map_err(map_authorization_error)?;
 
     let tickets = state.client_repo.get_client_tickets(&id).await?;
 
@@ -314,7 +311,7 @@ pub async fn add_ticket_to_client(
     let client = state.client_repo.get_client(&id).await?;
     let user_email = get_user_email(&state, user_claims.user_id).await;
     Authorization::can_modify_resource(&user_claims, &client, user_email.as_deref())
-        .map_err(|e| ClientApiError::Forbidden(e.to_string()))?;
+        .map_err(map_authorization_error)?;
 
     let Json(payload) = payload?;
     payload.validate()?;
@@ -392,7 +389,7 @@ pub async fn remove_ticket_from_client(
     let client = state.client_repo.get_client(&id).await?;
     let user_email = get_user_email(&state, user_claims.user_id).await;
     Authorization::can_modify_resource(&user_claims, &client, user_email.as_deref())
-        .map_err(|e| ClientApiError::Forbidden(e.to_string()))?;
+        .map_err(map_authorization_error)?;
 
     event_service::delete_ticket(&state.event_service_url, &cod)
         .await

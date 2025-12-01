@@ -153,3 +153,14 @@ pub fn map_event_service_error(error: EventServiceError) -> ClientApiError {
         EventServiceError::NotFound(msg) => ClientApiError::NotFound(msg),
     }
 }
+
+pub fn map_authorization_error(error: common::authorization::AuthorizationError) -> ClientApiError {
+    match error {
+        common::authorization::AuthorizationError::Forbidden(msg) => {
+            ClientApiError::Forbidden(msg)
+        }
+        common::authorization::AuthorizationError::Unauthorized(msg) => {
+            ClientApiError::Unauthorized(msg)
+        }
+    }
+}
