@@ -14,12 +14,26 @@ use crate::services::event_service;
 use crate::utils::error::{ClientApiError, map_event_service_error};
 use crate::utils::links::{Response, client_links, ticket_ref_links};
 
-/// Helper to get user email from claims
-/// TODO: Implement proper email resolution via auth service gRPC call
-async fn get_user_email(_state: &AppState, _user_id: i32) -> Option<String> {
-    // For now, return None - full implementation requires gRPC call to auth service
-    // In production: call auth service's GetUserEmail RPC with user_id
-    None
+pub mod auth {
+    tonic::include_proto!("auth");
+}
+
+use auth::auth_service_client::AuthServiceClient;
+
+async fn get_user_email(state: &AppState, user_id: i32) -> Option<String> {
+    let mut auth_client = AuthServiceClient::connect(state.auth_service_url.clone())
+        .await
+        .ok()?;
+
+    let request = auth::GetUserEmailRequest { user_id };
+
+    let response = auth_client.get_user_email(request).await.ok()?.into_inner();
+
+    if response.success {
+        Some(response.email)
+    } else {
+        None
+    }
 }
 
 pub fn client_manager_router() -> Router<Arc<AppState>> {
@@ -306,12 +320,12 @@ pub async fn add_ticket_to_client(
     payload.validate()?;
 
     let ticket_details = match (payload.id_event, payload.id_pachet) {
-        (Some(event_id), None) => {
+        (Some(event_id), _) => {
             event_service::create_ticket_for_event(&state.event_service_url, event_id)
                 .await
                 .map_err(map_event_service_error)?
         }
-        (None, Some(packet_id)) => {
+        (_, Some(packet_id)) => {
             event_service::create_ticket_for_packet(&state.event_service_url, packet_id)
                 .await
                 .map_err(map_event_service_error)?

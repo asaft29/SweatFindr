@@ -7,6 +7,8 @@ service AuthService {
   rpc ValidateToken(ValidateRequest) returns (ValidateResponse);
   rpc DestroyToken(DestroyRequest) returns (DestroyResponse);
   rpc RegisterUser(RegisterRequest) returns (RegisterResponse);
+  rpc GetUserEmail(GetUserEmailRequest) returns (GetUserEmailResponse);
+  rpc UpdateRole(UpdateRoleRequest) returns (UpdateRoleResponse);
 }
 
 message AuthRequest {
@@ -48,4 +50,24 @@ message RegisterResponse {
   int32 user_id = 2;
   string token_value = 3;
   string message = 4;
+}
+
+message GetUserEmailRequest {
+  int32 user_id = 1;
+}
+
+message GetUserEmailResponse {
+  bool success = 1;
+  string email = 2;
+  string message = 3;
+}
+
+message UpdateRoleRequest {
+  int32 user_id = 1;
+  string role = 2;
+}
+
+message UpdateRoleResponse {
+  bool success = 1;
+  string message = 2;
 }

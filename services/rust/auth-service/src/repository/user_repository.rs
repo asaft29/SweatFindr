@@ -74,4 +74,17 @@ impl UserRepository {
             Err(e) => Err(format!("Failed to create user: {}", e)),
         }
     }
+
+    pub async fn update_role(&self, user_id: i32, role: &UserRole) -> Result<bool, String> {
+        let query = "UPDATE UTILIZATORI SET rol = $1 WHERE id = $2";
+        let role_str = role.to_string();
+
+        match self.client.execute(query, &[&role_str, &user_id]).await {
+            Ok(rows_affected) => match rows_affected {
+                0 => Ok(false),
+                _ => Ok(true),
+            },
+            Err(e) => Err(format!("Failed to update user role: {}", e)),
+        }
+    }
 }

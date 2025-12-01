@@ -9,6 +9,7 @@ use utoipa::{Modify, OpenApi};
 #[openapi(
     paths(
         register,
+        login,
         list_clients,
         get_client,
         update_client,
@@ -17,6 +18,7 @@ use utoipa::{Modify, OpenApi};
         get_client_tickets,
         add_ticket_to_client,
         remove_ticket_from_client,
+        update_user_role,
     ),
     components(schemas(
         Client,
@@ -30,10 +32,14 @@ use utoipa::{Modify, OpenApi};
         PacketInfo,
         RegisterRequest,
         RegisterResponse,
+        LoginRequest,
+        LoginResponse,
+        UpdateRoleRequest,
+        UpdateRoleResponse,
     )),
     modifiers(&SecurityAddon),
     tags(
-        (name = "auth", description = "Authentication endpoints"),
+        (name = "auth", description = "Authentication and authorization endpoints"),
         (name = "clients", description = "Client management endpoints"),
     )
 )]

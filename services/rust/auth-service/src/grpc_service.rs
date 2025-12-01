@@ -1,7 +1,6 @@
-use tonic::{Request, Response, Status};
-
 use crate::repository::UserRepository;
 use crate::services::{JwtService, TokenBlacklist};
+use tonic::{Request, Response, Status};
 
 pub mod auth {
     tonic::include_proto!("auth");
@@ -9,7 +8,8 @@ pub mod auth {
 
 use auth::auth_service_server::AuthService;
 use auth::{
-    AuthRequest, AuthResponse, DestroyRequest, DestroyResponse, RegisterRequest, RegisterResponse,
+    AuthRequest, AuthResponse, DestroyRequest, DestroyResponse, GetUserEmailRequest,
+    GetUserEmailResponse, RegisterRequest, RegisterResponse, UpdateRoleRequest, UpdateRoleResponse,
     ValidateRequest, ValidateResponse,
 };
 
@@ -58,6 +58,8 @@ impl AuthService for AuthServiceImpl {
             }
         }
 
+        self.blacklist.clear_user_invalidation(user.id).await;
+
         let token = match self
             .jwt_service
             .generate_token(user.id, &user.rol.to_string())
@@ -103,6 +105,16 @@ impl AuthService for AuthServiceImpl {
                         user_id: 0,
                         role: String::new(),
                         message: "Token has expired".to_string(),
+                    }));
+                }
+
+                if self.blacklist.is_user_invalidated(claims.sub).await {
+                    return Ok(Response::new(ValidateResponse {
+                        success: true,
+                        valid: false,
+                        user_id: 0,
+                        role: String::new(),
+                        message: "User session invalidated. Please login again.".to_string(),
                     }));
                 }
 
@@ -168,7 +180,7 @@ impl AuthService for AuthServiceImpl {
             Ok(Some(_)) => {
                 return Err(Status::already_exists("Email already registered"));
             }
-            Ok(None) => {}
+            Ok(_) => {}
             Err(e) => {
                 return Err(Status::internal(format!("Database error: {}", e)));
             }
@@ -217,5 +229,71 @@ impl AuthService for AuthServiceImpl {
             token_value: token,
             message: "User registered successfully".to_string(),
         }))
+    }
+
+    async fn get_user_email(
+        &self,
+        request: Request<GetUserEmailRequest>,
+    ) -> Result<Response<GetUserEmailResponse>, Status> {
+        let user_id = request.into_inner().user_id;
+        match self.user_repo.find_by_id(user_id).await {
+            Ok(Some(user)) => Ok(Response::new(GetUserEmailResponse {
+                success: true,
+                email: user.email,
+                message: "Email found".to_string(),
+            })),
+            Ok(_) => Err(Status::not_found(format!(
+                "User with id {} not found",
+                user_id
+            ))),
+            Err(e) => Err(Status::internal(format!("Database error: {}", e))),
+        }
+    }
+
+    async fn update_role(
+        &self,
+        request: Request<UpdateRoleRequest>,
+    ) -> Result<Response<UpdateRoleResponse>, Status> {
+        let req = request.into_inner();
+        let user_id = req.user_id;
+        let role_str = req.role.to_lowercase();
+        use crate::models::UserRole;
+        use std::str::FromStr;
+
+        let role = match UserRole::from_str(&role_str) {
+            Ok(role) => role,
+            Err(_) => {
+                return Err(Status::invalid_argument(format!(
+                    "Invalid role '{}'. Must be one of: admin, client, owner-event",
+                    req.role
+                )));
+            }
+        };
+
+        match self.user_repo.find_by_id(user_id).await {
+            Ok(Some(_)) => match self.user_repo.update_role(user_id, &role).await {
+                Ok(true) => {
+                    self.blacklist.invalidate_user(user_id).await;
+
+                    Ok(Response::new(UpdateRoleResponse {
+                            success: true,
+                            message: format!(
+                                "User {} role updated to {} successfully. All existing sessions invalidated.",
+                                user_id, role_str
+                            ),
+                        }))
+                }
+                Ok(false) => Err(Status::not_found(format!(
+                    "User with id {} not found",
+                    user_id
+                ))),
+                Err(e) => Err(Status::internal(format!("Database error: {}", e))),
+            },
+            Ok(_) => Err(Status::not_found(format!(
+                "User with id {} not found",
+                user_id
+            ))),
+            Err(e) => Err(Status::internal(format!("Database error: {}", e))),
+        }
     }
 }

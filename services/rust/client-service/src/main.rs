@@ -45,6 +45,13 @@ async fn main() -> Result<()> {
         .route("/api", get(check_state))
         .nest("/api/auth", handlers::auth_router())
         .nest(
+            "/api/auth",
+            handlers::auth_protected_router().layer(middleware::from_fn_with_state(
+                app_state.clone(),
+                auth_middleware,
+            )),
+        )
+        .nest(
             "/api/client-manager",
             handlers::api_router().layer(middleware::from_fn_with_state(
                 app_state.clone(),

@@ -37,7 +37,8 @@ services:
       - POSTGRES_DB=${POSTGRES_DB}
     volumes:
       - auth_db_data:/var/lib/postgresql/data
-      - ../../../db-init/auth/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ../../../db-init/auth/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ../../../db-init/auth/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
     ports:
       - "6000:5432"
     healthcheck:
