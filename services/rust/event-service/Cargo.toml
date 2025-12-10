@@ -7,6 +7,7 @@ edition = "2024"
 anyhow = "1.0"
 axum = "0.8"
 common = { path = "../common" }
+prost = "0.13"
 rayon = "1.11.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -19,6 +20,7 @@ sqlx = { version = "0.8", features = [
   "tls-native-tls",
 ] }
 tokio = { version = "1.48", features = ["full"] }
+tonic = "0.12"
 tower = "0.5"
 tower-http = { version = "0.6", features = ["catch-panic", "trace"] }
 tracing = "0.1"
@@ -27,3 +29,6 @@ utoipa = { version = "5.4", features = ["axum_extras"] }
 utoipa-swagger-ui = { version = "9.0", features = ["axum", "reqwest"] }
 uuid = { version = "1.18.1", features = ["serde", "v7"] }
 validator = { version = "0.20.0", features = ["derive"] }
+
+[build-dependencies]
+tonic-build = "0.12"

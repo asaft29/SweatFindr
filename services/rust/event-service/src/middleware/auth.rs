@@ -8,8 +8,8 @@ use axum::{
 use serde_json::json;
 use std::sync::Arc;
 
-use super::UserClaims;
 use crate::AppState;
+use super::UserClaims;
 
 pub mod middleware {
     tonic::include_proto!("auth");
@@ -93,19 +93,4 @@ pub async fn auth_middleware(
     request.extensions_mut().insert(claims);
 
     Ok(next.run(request).await)
-}
-
-pub async fn require_role(
-    user_claims: &UserClaims,
-    allowed_roles: &[&str],
-) -> Result<(), (StatusCode, Json<serde_json::Value>)> {
-    if !allowed_roles.contains(&user_claims.role.as_str()) {
-        return Err((
-            StatusCode::FORBIDDEN,
-            Json(json!({
-                "error": format!("Insufficient permissions. Required role: one of {:?}", allowed_roles)
-            })),
-        ));
-    }
-    Ok(())
 }

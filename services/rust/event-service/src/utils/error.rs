@@ -16,6 +16,8 @@ pub enum ApiError {
     Packet(EventPacketRepoError),
     Ticket(TicketRepoError),
     Join(JoinPeRepoError),
+    Unauthorized(String),
+    Forbidden(String),
 }
 
 #[derive(Debug)]
@@ -23,6 +25,7 @@ pub enum EventRepoError {
     NotFound,
     InvalidReference,
     DuplicateEntry,
+    ConstraintViolation(String),
     InternalError(Error),
 }
 
@@ -144,6 +147,13 @@ impl IntoResponse for ApiError {
                     ApiErrorResponse {
                         error: "Duplicate Entry".to_string(),
                         details: vec!["An event with this name already exists.".to_string()],
+                    },
+                ),
+                EventRepoError::ConstraintViolation(msg) => (
+                    StatusCode::CONFLICT,
+                    ApiErrorResponse {
+                        error: "Constraint Violation".to_string(),
+                        details: vec![msg],
                     },
                 ),
                 EventRepoError::InternalError(_) => (
@@ -279,6 +289,22 @@ impl IntoResponse for ApiError {
                     },
                 ),
             },
+
+            ApiError::Unauthorized(msg) => (
+                StatusCode::UNAUTHORIZED,
+                ApiErrorResponse {
+                    error: "Unauthorized".to_string(),
+                    details: vec![msg],
+                },
+            ),
+
+            ApiError::Forbidden(msg) => (
+                StatusCode::FORBIDDEN,
+                ApiErrorResponse {
+                    error: "Forbidden".to_string(),
+                    details: vec![msg],
+                },
+            ),
         };
 
         (status, Json(body)).into_response()
@@ -346,5 +372,12 @@ pub fn map_sqlx_join_pe_error(err: Error) -> JoinPeRepoError {
     match err {
         Error::RowNotFound => JoinPeRepoError::NotFound,
         e => JoinPeRepoError::InternalError(e),
+    }
+}
+
+pub fn map_authorization_error(error: common::authorization::AuthorizationError) -> ApiError {
+    match error {
+        common::authorization::AuthorizationError::Forbidden(msg) => ApiError::Forbidden(msg),
+        common::authorization::AuthorizationError::Unauthorized(msg) => ApiError::Unauthorized(msg),
     }
 }

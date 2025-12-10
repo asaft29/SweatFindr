@@ -1,12 +1,13 @@
 use crate::AppState;
 use crate::handlers::ticket;
-use crate::models::event::{CreateEvent, Event, EventQuery, UpdateEvent};
-use crate::utils::error::ApiError;
+use crate::middleware::{Authorization, UserClaims};
+use crate::models::event::{CreateEvent, Event, EventQuery, PatchEvent, UpdateEvent};
+use crate::utils::error::{ApiError, map_authorization_error};
 use crate::utils::links::{Response, build_filtered_event, build_simple_event};
 use axum::extract::rejection::JsonRejection;
 use axum::response::IntoResponse;
 use axum::{
-    Json, Router,
+    Extension, Json, Router,
     extract::{Path, Query, State},
     http::StatusCode,
     routing::get,
@@ -19,7 +20,10 @@ pub fn event_manager_router() -> Router<Arc<AppState>> {
         .route("/events", get(list_events).post(create_event))
         .route(
             "/events/{id}",
-            get(get_event).put(update_event).delete(delete_event),
+            get(get_event)
+                .put(update_event)
+                .delete(delete_event)
+                .patch(patch_event),
         )
         .route(
             "/events/{id}/tickets",
@@ -27,9 +31,7 @@ pub fn event_manager_router() -> Router<Arc<AppState>> {
         )
         .route(
             "/events/{id}/tickets/{cod}",
-            get(ticket::get_ticket_for_event)
-                .put(ticket::update_ticket_for_event)
-                .delete(ticket::delete_ticket_for_event),
+            get(ticket::get_ticket_for_event).delete(ticket::delete_ticket_for_event),
         )
 }
 
@@ -42,9 +44,13 @@ pub fn event_manager_router() -> Router<Arc<AppState>> {
     ),
     responses(
         (status = 200, description = "List events (optionally filtered by location or name)", body = [Response<Event>]),
+        (status = 401, description = "Missing or invalid authentication token"),
         (status = 500, description = "Internal server error")
     ),
-    tag = "Events"
+    tag = "Events",
+    security(
+        ("bearer_auth" = [])
+    )
 )]
 pub async fn list_events(
     State(state): State<Arc<AppState>>,
@@ -76,9 +82,13 @@ pub async fn list_events(
     ),
     responses(
         (status = 200, description = "Return an event by ID", body = Response<Event>),
+        (status = 401, description = "Missing or invalid authentication token"),
         (status = 404, description = "Event not found")
     ),
-    tag = "Events"
+    tag = "Events",
+    security(
+        ("bearer_auth" = [])
+    )
 )]
 pub async fn get_event(
     State(state): State<Arc<AppState>>,
@@ -103,24 +113,74 @@ pub async fn get_event(
     request_body = UpdateEvent,
     responses(
         (status = 200, description = "Updated event", body = Response<Event>),
+        (status = 401, description = "Missing or invalid authentication token"),
+        (status = 403, description = "Forbidden - Only event owner or admin can update"),
         (status = 404, description = "Event not found")
     ),
-    tag = "Events"
+    tag = "Events",
+    security(
+        ("bearer_auth" = [])
+    )
 )]
 pub async fn update_event(
     State(state): State<Arc<AppState>>,
+    Extension(user_claims): Extension<UserClaims>,
     Path(id): Path<i32>,
     payload: Result<Json<UpdateEvent>, JsonRejection>,
 ) -> Result<impl IntoResponse, ApiError> {
     if id < 0 {
         return Err(ApiError::BadRequest("ID cannot be negative".into()));
     }
-    let Json(payload) = payload?;
 
+    let existing_event = state.event_repo.get_event(id).await?;
+    Authorization::can_modify_resource(&user_claims, &existing_event, None)
+        .map_err(map_authorization_error)?;
+
+    let Json(payload) = payload?;
     payload.validate()?;
 
     let event = state.event_repo.update_event(id, payload).await?;
+    let event_response = build_simple_event(event, &state.base_url);
 
+    Ok(Json(event_response))
+}
+
+#[utoipa::path(
+    patch,
+    path = "/api/event-manager/events/{id}",
+    params(
+        ("id" = i32, Path, description = "ID of the event to update")
+    ),
+    request_body = PatchEvent,
+    responses(
+        (status = 200, description = "Event partially updated", body = Response<Event>),
+        (status = 401, description = "Missing or invalid authentication token"),
+        (status = 403, description = "Forbidden - Only event owner or admin can update"),
+        (status = 404, description = "Event not found")
+    ),
+    tag = "Events",
+    security(
+        ("bearer_auth" = [])
+    )
+)]
+pub async fn patch_event(
+    State(state): State<Arc<AppState>>,
+    Extension(user_claims): Extension<UserClaims>,
+    Path(id): Path<i32>,
+    payload: Result<Json<PatchEvent>, JsonRejection>,
+) -> Result<impl IntoResponse, ApiError> {
+    if id < 0 {
+        return Err(ApiError::BadRequest("ID cannot be negative".into()));
+    }
+
+    let existing_event = state.event_repo.get_event(id).await?;
+    Authorization::can_modify_resource(&user_claims, &existing_event, None)
+        .map_err(map_authorization_error)?;
+
+    let Json(payload) = payload?;
+    payload.validate()?;
+
+    let event = state.event_repo.patch_event(id, payload).await?;
     let event_response = build_simple_event(event, &state.base_url);
 
     Ok(Json(event_response))
@@ -131,19 +191,29 @@ pub async fn update_event(
     path = "/api/event-manager/events",
     request_body = CreateEvent,
     responses(
-        (status = 201, description = "Event created successfully", body = Response<Event>)
+        (status = 201, description = "Event created successfully", body = Response<Event>),
+        (status = 401, description = "Missing or invalid authentication token"),
+        (status = 403, description = "Forbidden - Requires owner-event role or admin")
     ),
-    tag = "Events"
+    tag = "Events",
+    security(
+        ("bearer_auth" = [])
+    )
 )]
 pub async fn create_event(
     State(state): State<Arc<AppState>>,
+    Extension(user_claims): Extension<UserClaims>,
     payload: Result<Json<CreateEvent>, JsonRejection>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let Json(payload) = payload?;
+    Authorization::require_owner_event_or_admin(&user_claims).map_err(map_authorization_error)?;
 
+    let Json(payload) = payload?;
     payload.validate()?;
 
-    let event = state.event_repo.create_event(payload).await?;
+    let event = state
+        .event_repo
+        .create_event(user_claims.user_id, payload)
+        .await?;
 
     let event_response = build_simple_event(event, &state.base_url);
 
@@ -158,14 +228,23 @@ pub async fn create_event(
     ),
     responses(
         (status = 204, description = "Event deleted successfully"),
+        (status = 401, description = "Missing or invalid authentication token"),
+        (status = 403, description = "Forbidden - Only event owner or admin can delete"),
         (status = 404, description = "Event not found")
     ),
-    tag = "Events"
+    tag = "Events",
+    security(
+        ("bearer_auth" = [])
+    )
 )]
 pub async fn delete_event(
     State(state): State<Arc<AppState>>,
+    Extension(user_claims): Extension<UserClaims>,
     Path(id): Path<i32>,
 ) -> Result<impl IntoResponse, ApiError> {
+    let existing_event = state.event_repo.get_event(id).await?;
+    Authorization::can_modify_resource(&user_claims, &existing_event, None)
+        .map_err(map_authorization_error)?;
     if id < 0 {
         return Err(ApiError::BadRequest("ID cannot be negative".into()));
     }

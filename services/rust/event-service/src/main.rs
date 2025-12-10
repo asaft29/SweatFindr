@@ -30,17 +30,30 @@ async fn main() -> Result<()> {
 
     info!("{:<12} - Database connection pool created.", "DB");
 
+    let auth_service_url = std::env::var("AUTH_SERVICE_URL")
+        .unwrap_or_else(|_| "http://auth-service:50051".to_string());
+
     let app_state = Arc::new(AppState {
         event_repo: Arc::new(EventRepo::new(pool.clone())),
         event_packet_repo: Arc::new(EventPacketRepo::new(pool.clone())),
         ticket_repo: Arc::new(TicketRepo::new(pool.clone())),
         join_repo: Arc::new(JoinPeRepo::new(pool.clone())),
         base_url: "http://localhost:8001/api/event-manager".to_string(),
+        auth_service_url,
     });
+
+    use axum::middleware;
+    use event_service::middleware::auth::auth_middleware;
 
     let app = Router::new()
         .route("/api", get(check_state))
-        .nest("/api/event-manager", handlers::api_router())
+        .nest(
+            "/api/event-manager",
+            handlers::api_router().layer(middleware::from_fn_with_state(
+                app_state.clone(),
+                auth_middleware,
+            )),
+        )
         .merge(handlers::swagger_router())
         .layer(TraceLayer::new_for_http())
         .with_state(app_state);

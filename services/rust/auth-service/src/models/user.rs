@@ -17,6 +17,7 @@ pub enum UserRole {
     Admin,
     OwnerEvent,
     Client,
+    ClientsService,
 }
 
 impl Display for User {
@@ -31,6 +32,7 @@ impl Display for UserRole {
             UserRole::Admin => "admin",
             UserRole::OwnerEvent => "owner-event",
             UserRole::Client => "client",
+            UserRole::ClientsService => "clients-service",
         };
         write!(f, "{}", role_str)
     }
@@ -43,6 +45,7 @@ impl FromStr for UserRole {
             "admin" => Ok(UserRole::Admin),
             "owner-event" => Ok(UserRole::OwnerEvent),
             "client" => Ok(UserRole::Client),
+            "clients-service" => Ok(UserRole::ClientsService),
             other => Err(anyhow!("Invalid role : {}", other)),
         }
     }

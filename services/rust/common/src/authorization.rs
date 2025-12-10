@@ -54,6 +54,7 @@ pub enum Role {
     Admin,
     Client,
     OwnerEvent,
+    ClientsService,
 }
 
 impl Role {
@@ -62,6 +63,7 @@ impl Role {
             "admin" => Some(Role::Admin),
             "client" => Some(Role::Client),
             "owner-event" => Some(Role::OwnerEvent),
+            "clients-service" => Some(Role::ClientsService),
             _ => None,
         }
     }
@@ -71,6 +73,7 @@ impl Role {
             Role::Admin => "admin",
             Role::Client => "client",
             Role::OwnerEvent => "owner-event",
+            Role::ClientsService => "clients-service",
         }
     }
 }
@@ -94,6 +97,10 @@ impl UserClaims {
 
     pub fn is_owner_event(&self) -> bool {
         self.has_role(Role::OwnerEvent)
+    }
+
+    pub fn is_clients_service(&self) -> bool {
+        self.has_role(Role::ClientsService)
     }
 }
 

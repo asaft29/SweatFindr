@@ -1,67 +1,32 @@
+use super::client::EventManagerClient;
 use super::event_service_client;
 use super::packet_service;
-use super::types::{ExternalServiceError, HateoasRequest, TicketDetails, TicketInfo};
-use reqwest;
+use super::types::{
+    BindTicketRequest, ExternalServiceError, HateoasRequest, TicketDetails, TicketInfo,
+};
 use tracing::info;
+use uuid::Uuid;
 
 pub async fn validate_ticket(
-    event_service_url: &str,
+    client: &EventManagerClient,
     ticket_cod: &str,
 ) -> Result<(), ExternalServiceError> {
-    let ticket_url = format!(
-        "{}/api/event-manager/tickets/{}",
-        event_service_url, ticket_cod
-    );
-
-    let response = reqwest::get(&ticket_url).await.map_err(|e| {
-        ExternalServiceError::HttpError(format!("Failed to connect to event-service: {}", e))
-    })?;
-
-    if response.status().as_u16() == 404 {
-        return Err(ExternalServiceError::NotFound(format!(
-            "Ticket with code '{}' does not exist in event-service",
-            ticket_cod
-        )));
-    }
-
-    if !response.status().is_success() {
-        return Err(ExternalServiceError::HttpError(format!(
-            "Event-service returned status: {}",
-            response.status()
-        )));
-    }
-
+    let path = format!("/api/event-manager/tickets/{}", ticket_cod);
+    let response = client.get(&path).await?;
+    client.check_status(&response, "Ticket", ticket_cod)?;
     Ok(())
 }
 
 pub async fn get_ticket_details(
-    event_service_url: &str,
+    client: &EventManagerClient,
     ticket_cod: &str,
 ) -> Result<TicketDetails, ExternalServiceError> {
-    let ticket_url = format!(
-        "{}/api/event-manager/tickets/{}",
-        event_service_url, ticket_cod
-    );
+    let path = format!("/api/event-manager/tickets/{}", ticket_cod);
 
-    info!("Fetching ticket details from: {}", ticket_url);
+    info!("Fetching ticket details from: {}", path);
 
-    let response = reqwest::get(&ticket_url).await.map_err(|e| {
-        ExternalServiceError::HttpError(format!("Failed to connect to event-service: {}", e))
-    })?;
-
-    if response.status().as_u16() == 404 {
-        return Err(ExternalServiceError::NotFound(format!(
-            "Ticket with code '{}' does not exist in event-service",
-            ticket_cod
-        )));
-    }
-
-    if !response.status().is_success() {
-        return Err(ExternalServiceError::HttpError(format!(
-            "Event-service returned status: {}",
-            response.status()
-        )));
-    }
+    let response = client.get(&path).await?;
+    client.check_status(&response, "Ticket", ticket_cod)?;
 
     let ticket_info: TicketInfo = response.json().await.map_err(|e| {
         ExternalServiceError::DeserializationError(format!(
@@ -79,15 +44,11 @@ pub async fn get_ticket_details(
     let mut packet_info = None;
 
     if let Some(event_id) = ticket_info.evenimentid {
-        event_info = event_service_client::get_event(event_service_url, event_id)
-            .await
-            .ok();
+        event_info = event_service_client::get_event(client, event_id).await.ok();
     }
 
     if let Some(packet_id) = ticket_info.pachetid {
-        packet_info = packet_service::get_packet(event_service_url, packet_id)
-            .await
-            .ok();
+        packet_info = packet_service::get_packet(client, packet_id).await.ok();
     }
 
     Ok(TicketDetails {
@@ -98,53 +59,26 @@ pub async fn get_ticket_details(
 }
 
 pub async fn create_ticket_for_event(
-    event_service_url: &str,
+    client: &EventManagerClient,
     event_id: i32,
+    service_token: &str,
 ) -> Result<TicketDetails, ExternalServiceError> {
-    let create_url = format!(
-        "{}/api/event-manager/events/{}/tickets",
-        event_service_url, event_id
+    let ticket_code = Uuid::now_v7().to_string();
+
+    let path = format!("/api/event-manager/tickets/{}", ticket_code);
+
+    info!(
+        "Creating ticket {} for event {} (using service token)",
+        ticket_code, event_id
     );
 
-    info!("Creating ticket for event {} at: {}", event_id, create_url);
+    let payload = BindTicketRequest {
+        id_event: Some(event_id),
+        id_pachet: None,
+    };
 
-    let response = reqwest::Client::new()
-        .post(&create_url)
-        .send()
-        .await
-        .map_err(|e| {
-            ExternalServiceError::HttpError(format!("Failed to connect to event-service: {}", e))
-        })?;
-
-    let status = response.status();
-
-    if status.as_u16() == 404 {
-        return Err(ExternalServiceError::InvalidReference(format!(
-            "Event with ID {} does not exist in event-service",
-            event_id
-        )));
-    }
-
-    if status.as_u16() == 400 {
-        return Err(ExternalServiceError::InvalidReference(format!(
-            "Invalid event ID: {}",
-            event_id
-        )));
-    }
-
-    if status.as_u16() == 409 {
-        return Err(ExternalServiceError::NoSeatsAvailable(format!(
-            "No seats available for event {}",
-            event_id
-        )));
-    }
-
-    if !status.is_success() {
-        return Err(ExternalServiceError::HttpError(format!(
-            "Event-service returned status: {}",
-            status
-        )));
-    }
+    let response = client.put_with_auth(&path, &payload, service_token).await?;
+    client.check_status(&response, "Ticket", &ticket_code)?;
 
     let response_data: HateoasRequest<TicketInfo> = response.json().await.map_err(|e| {
         ExternalServiceError::DeserializationError(format!(
@@ -152,9 +86,8 @@ pub async fn create_ticket_for_event(
             e
         ))
     })?;
-    let event_info = event_service_client::get_event(event_service_url, event_id)
-        .await
-        .ok();
+
+    let event_info = event_service_client::get_event(client, event_id).await.ok();
 
     Ok(TicketDetails {
         ticket: response_data.data,
@@ -164,56 +97,26 @@ pub async fn create_ticket_for_event(
 }
 
 pub async fn create_ticket_for_packet(
-    event_service_url: &str,
+    client: &EventManagerClient,
     packet_id: i32,
+    service_token: &str,
 ) -> Result<TicketDetails, ExternalServiceError> {
-    let create_url = format!(
-        "{}/api/event-manager/event-packets/{}/tickets",
-        event_service_url, packet_id
-    );
+    let ticket_code = Uuid::now_v7().to_string();
+
+    let path = format!("/api/event-manager/tickets/{}", ticket_code);
 
     info!(
-        "Creating ticket for packet {} at: {}",
-        packet_id, create_url
+        "Creating ticket {} for packet {} (using service token)",
+        ticket_code, packet_id
     );
 
-    let response = reqwest::Client::new()
-        .post(&create_url)
-        .send()
-        .await
-        .map_err(|e| {
-            ExternalServiceError::HttpError(format!("Failed to connect to event-service: {}", e))
-        })?;
+    let payload = BindTicketRequest {
+        id_event: None,
+        id_pachet: Some(packet_id),
+    };
 
-    let status = response.status();
-
-    if status.as_u16() == 404 {
-        return Err(ExternalServiceError::InvalidReference(format!(
-            "Packet with ID {} does not exist in event-service",
-            packet_id
-        )));
-    }
-
-    if status.as_u16() == 400 {
-        return Err(ExternalServiceError::InvalidReference(format!(
-            "Invalid packet ID: {}",
-            packet_id
-        )));
-    }
-
-    if status.as_u16() == 409 {
-        return Err(ExternalServiceError::NoSeatsAvailable(format!(
-            "No seats available for packet {}",
-            packet_id
-        )));
-    }
-
-    if !status.is_success() {
-        return Err(ExternalServiceError::HttpError(format!(
-            "Event-service returned status: {}",
-            status
-        )));
-    }
+    let response = client.put_with_auth(&path, &payload, service_token).await?;
+    client.check_status(&response, "Ticket", &ticket_code)?;
 
     let response_data: HateoasRequest<TicketInfo> = response.json().await.map_err(|e| {
         ExternalServiceError::DeserializationError(format!(
@@ -222,9 +125,7 @@ pub async fn create_ticket_for_packet(
         ))
     })?;
 
-    let packet_info = packet_service::get_packet(event_service_url, packet_id)
-        .await
-        .ok();
+    let packet_info = packet_service::get_packet(client, packet_id).await.ok();
 
     Ok(TicketDetails {
         ticket: response_data.data,
@@ -234,39 +135,19 @@ pub async fn create_ticket_for_packet(
 }
 
 pub async fn delete_ticket(
-    event_service_url: &str,
+    client: &EventManagerClient,
     ticket_cod: &str,
+    service_token: &str,
 ) -> Result<(), ExternalServiceError> {
-    let delete_url = format!(
-        "{}/api/event-manager/tickets/{}",
-        event_service_url, ticket_cod
+    let path = format!("/api/event-manager/tickets/{}", ticket_cod);
+
+    info!(
+        "Deleting ticket {} from event-service (using service token)",
+        ticket_cod
     );
 
-    info!("Deleting ticket {} from event-service", ticket_cod);
-
-    let response = reqwest::Client::new()
-        .delete(&delete_url)
-        .send()
-        .await
-        .map_err(|e| {
-            ExternalServiceError::HttpError(format!("Failed to connect to event-service: {}", e))
-        })?;
-
-    let status = response.status();
-
-    if status.as_u16() == 404 {
-        return Err(ExternalServiceError::NotFound(format!(
-            "Ticket with code '{}' does not exist in event-service",
-            ticket_cod
-        )));
-    }
-
-    if !status.is_success() {
-        return Err(ExternalServiceError::HttpError(format!(
-            "Event-service returned status: {}",
-            status
-        )));
-    }
+    let response = client.delete_with_auth(&path, service_token).await?;
+    client.check_status(&response, "Ticket", ticket_cod)?;
 
     Ok(())
 }

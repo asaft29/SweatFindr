@@ -1,4 +1,4 @@
-use crate::models::ticket::{CreateTicket, Ticket, UpdateTicket};
+use crate::models::ticket::{Ticket, UpdateTicket};
 use crate::utils::error::{TicketRepoError, map_sqlx_ticket_error};
 use anyhow::Result;
 use sqlx::PgPool;
@@ -51,24 +51,6 @@ impl TicketRepo {
         result.map_err(map_sqlx_ticket_error)
     }
 
-    pub async fn create_ticket(&self, payload: CreateTicket) -> Result<Ticket, TicketRepoError> {
-        let new_code = Uuid::now_v7().to_string();
-
-        let result = sqlx::query_as::<_, Ticket>(
-            r#"
-            INSERT INTO BILETE (cod, pachetid, evenimentid)
-            VALUES ($1, $2, $3)
-            RETURNING cod, pachetid, evenimentid
-            "#,
-        )
-        .bind(new_code)
-        .bind(payload.id_pachet)
-        .bind(payload.id_event)
-        .fetch_one(&self.pool)
-        .await;
-
-        result.map_err(map_sqlx_ticket_error)
-    }
 
     pub async fn create_ticket_for_event(&self, event_id: i32) -> Result<Ticket, TicketRepoError> {
         let new_code = Uuid::now_v7().to_string();
@@ -164,32 +146,6 @@ impl TicketRepo {
         .bind(payload.id_pachet)
         .bind(payload.id_event)
         .bind(cod)
-        .fetch_one(&self.pool)
-        .await;
-
-        result.map_err(map_sqlx_ticket_error)
-    }
-
-    pub async fn update_ticket_for_event(
-        &self,
-        event_id: i32,
-        cod: &str,
-        payload: UpdateTicket,
-    ) -> Result<Ticket, TicketRepoError> {
-        let result = sqlx::query_as::<_, Ticket>(
-            r#"
-            UPDATE BILETE
-            SET
-                pachetid = $1,
-                evenimentid = NULL
-            WHERE
-                cod = $2 and evenimentid = $3
-            RETURNING cod, pachetid, evenimentid
-            "#,
-        )
-        .bind(payload.id_pachet)
-        .bind(cod)
-        .bind(event_id)
         .fetch_one(&self.pool)
         .await;
 
@@ -398,32 +354,6 @@ impl TicketRepo {
         Ok(ticket)
     }
 
-    pub async fn update_ticket_for_packet(
-        &self,
-        packet_id: i32,
-        cod: &str,
-        payload: UpdateTicket,
-    ) -> Result<Ticket, TicketRepoError> {
-        let result = sqlx::query_as::<_, Ticket>(
-            r#"
-            UPDATE BILETE
-            SET
-                pachetid = NULL,
-                evenimentid = $1
-            WHERE
-                cod = $2 AND pachetid = $3
-            RETURNING cod, pachetid, evenimentid
-            "#,
-        )
-        .bind(payload.id_event)
-        .bind(cod)
-        .bind(packet_id)
-        .fetch_one(&self.pool)
-        .await;
-
-        result.map_err(map_sqlx_ticket_error)
-    }
-
     pub async fn delete_ticket_for_packet(
         &self,
         packet_id: i32,
@@ -441,5 +371,129 @@ impl TicketRepo {
         } else {
             Ok(())
         }
+    }
+
+    pub async fn create_ticket_with_code_for_event(
+        &self,
+        cod: String,
+        event_id: i32,
+    ) -> Result<Ticket, TicketRepoError> {
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .map_err(TicketRepoError::InternalError)?;
+
+        let seats: Option<i32> =
+            sqlx::query_scalar("SELECT numarlocuri FROM EVENIMENTE WHERE id = $1")
+                .bind(event_id)
+                .fetch_optional(&mut *tx)
+                .await
+                .map_err(TicketRepoError::InternalError)?;
+
+        match seats {
+            None => {
+                return Err(TicketRepoError::InvalidReference);
+            }
+            Some(count) if count <= 0 => {
+                return Err(TicketRepoError::NoSeatsAvailable);
+            }
+            Some(_) => {}
+        }
+
+        sqlx::query("UPDATE EVENIMENTE SET numarlocuri = numarlocuri - 1 WHERE id = $1")
+            .bind(event_id)
+            .execute(&mut *tx)
+            .await
+            .map_err(TicketRepoError::InternalError)?;
+
+        let ticket = sqlx::query_as::<_, Ticket>(
+            r#"
+            INSERT INTO BILETE (cod, pachetid, evenimentid)
+            VALUES ($1, NULL, $2)
+            RETURNING cod, pachetid, evenimentid
+            "#,
+        )
+        .bind(&cod)
+        .bind(event_id)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(map_sqlx_ticket_error)?;
+
+        tx.commit().await.map_err(TicketRepoError::InternalError)?;
+
+        Ok(ticket)
+    }
+
+    pub async fn create_ticket_with_code_for_packet(
+        &self,
+        cod: String,
+        packet_id: i32,
+    ) -> Result<Ticket, TicketRepoError> {
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .map_err(TicketRepoError::InternalError)?;
+
+        let events: Vec<(i32, Option<i32>)> = sqlx::query_as(
+            r#"
+            SELECT e.id, e.numarlocuri
+            FROM EVENIMENTE e
+            JOIN JOIN_PE j ON e.id = j.evenimentid
+            WHERE j.pachetid = $1
+            "#,
+        )
+        .bind(packet_id)
+        .fetch_all(&mut *tx)
+        .await
+        .map_err(TicketRepoError::InternalError)?;
+
+        if events.is_empty() {
+            return Err(TicketRepoError::InvalidReference);
+        }
+
+        let min_seats = events
+            .iter()
+            .filter_map(|(_, seats)| *seats)
+            .min()
+            .unwrap_or(0);
+
+        if min_seats <= 0 {
+            return Err(TicketRepoError::NoSeatsAvailable);
+        }
+
+        for (event_id, _) in &events {
+            sqlx::query("UPDATE EVENIMENTE SET numarlocuri = numarlocuri - 1 WHERE id = $1")
+                .bind(event_id)
+                .execute(&mut *tx)
+                .await
+                .map_err(TicketRepoError::InternalError)?;
+        }
+
+        let new_min = min_seats - 1;
+        sqlx::query("UPDATE PACHETE SET numarlocuri = $1 WHERE id = $2")
+            .bind(new_min)
+            .bind(packet_id)
+            .execute(&mut *tx)
+            .await
+            .map_err(TicketRepoError::InternalError)?;
+
+        let ticket = sqlx::query_as::<_, Ticket>(
+            r#"
+            INSERT INTO BILETE (cod, pachetid, evenimentid)
+            VALUES ($1, $2, NULL)
+            RETURNING cod, pachetid, evenimentid
+            "#,
+        )
+        .bind(&cod)
+        .bind(packet_id)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(map_sqlx_ticket_error)?;
+
+        tx.commit().await.map_err(TicketRepoError::InternalError)?;
+
+        Ok(ticket)
     }
 }

@@ -184,7 +184,21 @@ impl ClientRepo {
         let object_id = ObjectId::parse_str(id)
             .map_err(|_| ClientRepoError::InvalidObjectId(format!("Invalid ID: {}", id)))?;
 
-        self.get_client(id).await?;
+        let client = self.get_client(id).await?;
+
+        // Idempotency check: prevent duplicate tickets
+        if client
+            .lista_bilete
+            .iter()
+            .any(|t| t.cod == ticket_ref.cod)
+        {
+            tracing::warn!(
+                "Ticket {} already exists in client {}. Skipping duplicate.",
+                ticket_ref.cod,
+                id
+            );
+            return Ok(client);
+        }
 
         self.collection
             .update_one(

@@ -18,19 +18,6 @@ pub struct Ticket {
 }
 
 #[derive(Debug, Deserialize, FromRow, ToSchema, Validate)]
-#[validate(schema(function = "validate_create_ticket"))]
-#[serde(deny_unknown_fields)]
-pub struct CreateTicket {
-    #[sqlx(rename = "pachetid")]
-    #[serde(rename = "pachetid")]
-    pub id_pachet: Option<i32>,
-
-    #[sqlx(rename = "evenimentid")]
-    #[serde(rename = "evenimentid")]
-    pub id_event: Option<i32>,
-}
-
-#[derive(Debug, Deserialize, FromRow, ToSchema, Validate)]
 #[validate(schema(function = "validate_update_ticket"))]
 #[serde(deny_unknown_fields)]
 pub struct UpdateTicket {
@@ -60,10 +47,6 @@ fn validate_exclusive_ids(ticket: &impl ExclusiveTicketIds) -> Result<(), Valida
     }
 }
 
-fn validate_create_ticket(ticket: &CreateTicket) -> Result<(), ValidationError> {
-    validate_exclusive_ids(ticket)
-}
-
 fn validate_update_ticket(ticket: &UpdateTicket) -> Result<(), ValidationError> {
     validate_exclusive_ids(ticket)
 }
@@ -72,14 +55,7 @@ trait ExclusiveTicketIds {
     fn get_pachet_id(&self) -> Option<i32>;
     fn get_event_id(&self) -> Option<i32>;
 }
-impl ExclusiveTicketIds for CreateTicket {
-    fn get_pachet_id(&self) -> Option<i32> {
-        self.id_pachet
-    }
-    fn get_event_id(&self) -> Option<i32> {
-        self.id_event
-    }
-}
+
 impl ExclusiveTicketIds for UpdateTicket {
     fn get_pachet_id(&self) -> Option<i32> {
         self.id_pachet

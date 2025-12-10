@@ -5,5 +5,12 @@ CREATE TABLE
         ID SERIAL PRIMARY KEY,
         email VARCHAR(255) UNIQUE NOT NULL,
         parola VARCHAR(255) NOT NULL,
-        rol VARCHAR(20) NOT NULL CHECK (rol IN ('admin', 'owner-event', 'client'))
+        rol VARCHAR(50) NOT NULL CHECK (
+            rol IN (
+                'admin',
+                'owner-event',
+                'client',
+                'clients-service'
+            )
+        )
     );

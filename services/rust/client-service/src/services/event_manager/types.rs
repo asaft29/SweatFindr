@@ -20,6 +20,14 @@ pub struct TicketInfo {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
+pub struct BindTicketRequest {
+    #[serde(rename = "evenimentid")]
+    pub id_event: Option<i32>,
+    #[serde(rename = "pachetid")]
+    pub id_pachet: Option<i32>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]
 pub struct EventInfo {
     pub id: i32,
     pub id_owner: i32,

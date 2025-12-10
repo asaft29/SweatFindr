@@ -1,4 +1,5 @@
 use crate::repositories::client_repo::ClientRepo;
+use crate::services::event_manager::EventManagerClient;
 use std::sync::Arc;
 pub mod handlers;
 pub mod middleware;
@@ -12,4 +13,6 @@ pub struct AppState {
     pub base_url: String,
     pub event_service_url: String,
     pub auth_service_url: String,
+    pub service_token: String,
+    pub event_manager_client: Arc<EventManagerClient>,
 }

@@ -102,6 +102,7 @@ impl EventPacketRepo {
 
     pub async fn create_event_packet(
         &self,
+        id_owner: i32,
         payload: CreateEventPacket,
     ) -> Result<EventPackets, EventPacketRepoError> {
         let result = sqlx::query_as::<_, EventPackets>(
@@ -111,7 +112,7 @@ impl EventPacketRepo {
             RETURNING id, id_owner, nume, locatie, descriere, numarlocuri
             "#,
         )
-        .bind(payload.id_owner)
+        .bind(id_owner)
         .bind(&payload.nume)
         .bind(&payload.locatie)
         .bind(&payload.descriere)
@@ -144,6 +145,36 @@ impl EventPacketRepo {
         .bind(&payload.nume)
         .bind(&payload.locatie)
         .bind(&payload.descriere)
+        .bind(payload.numarlocuri)
+        .bind(packet_id)
+        .fetch_one(&self.pool)
+        .await;
+
+        result.map_err(map_sqlx_packet_error)
+    }
+
+    pub async fn patch_event_packet(
+        &self,
+        packet_id: i32,
+        payload: crate::models::event_packets::PatchEventPacket,
+    ) -> Result<EventPackets, EventPacketRepoError> {
+        let result = sqlx::query_as::<_, EventPackets>(
+            r#"
+            UPDATE PACHETE
+            SET
+                id_owner = COALESCE($1, id_owner),
+                nume = COALESCE($2, nume),
+                locatie = COALESCE($3, locatie),
+                descriere = COALESCE($4, descriere),
+                numarlocuri = COALESCE($5, numarlocuri)
+            WHERE id = $6
+            RETURNING id, id_owner, nume, locatie, descriere, numarlocuri
+            "#,
+        )
+        .bind(payload.id_owner)
+        .bind(payload.nume.as_deref())
+        .bind(payload.locatie.as_deref())
+        .bind(payload.descriere.as_deref())
         .bind(payload.numarlocuri)
         .bind(packet_id)
         .fetch_one(&self.pool)

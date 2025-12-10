@@ -1,7 +1,11 @@
-FROM rust:1.90.0-alpine AS builder
+FROM rust:1.90.0-slim AS builder
 WORKDIR /app
 
-RUN apk add --no-cache musl-dev pkgconfig openssl-dev openssl-libs-static protobuf-dev
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev \
+    protobuf-compiler \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY services/rust/Cargo.toml ./Cargo.toml
 COPY services/rust/Cargo.lock ./Cargo.lock
@@ -23,7 +27,6 @@ RUN mkdir -p client-service/src && \
     mkdir -p common/src && \
     echo "" > common/src/lib.rs
 
-
 RUN cargo build --release --manifest-path client-service/Cargo.toml
 
 RUN rm -rf client-service/src common/src
@@ -35,9 +38,11 @@ RUN touch common/src/lib.rs && \
     touch client-service/src/main.rs && \
     cargo build --release --manifest-path client-service/Cargo.toml
 
-FROM alpine:latest
+FROM debian:bookworm-slim
 
-RUN apk add --no-cache libgcc
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

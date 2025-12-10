@@ -3,6 +3,7 @@ use serde_with::{DisplayFromStr, serde_as};
 use sqlx::prelude::FromRow;
 use utoipa::ToSchema;
 use validator::Validate;
+use common::authorization::{ResourceOwnership, UserClaims};
 
 #[derive(Debug, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct EventPackets {
@@ -14,10 +15,19 @@ pub struct EventPackets {
     pub numarlocuri: Option<i32>,
 }
 
+impl ResourceOwnership for EventPackets {
+    fn is_owned_by(&self, claims: &UserClaims, _user_email: Option<&str>) -> bool {
+        claims.is_owner_event() && self.id_owner == claims.user_id
+    }
+
+    fn resource_description(&self) -> String {
+        format!("event packet '{}'", self.nume)
+    }
+}
+
 #[derive(Debug, Deserialize, ToSchema, Validate)]
 #[serde(deny_unknown_fields)]
 pub struct CreateEventPacket {
-    pub id_owner: i32,
     #[validate(length(
         min = 3,
         max = 100,
@@ -46,6 +56,27 @@ pub struct UpdateEventPacket {
         message = "Name must be between 3 and 100 characters"
     ))]
     pub nume: String,
+    #[validate(length(max = 255, message = "Location must be less than 255 characters"))]
+    pub locatie: Option<String>,
+    #[validate(length(
+        min = 10,
+        max = 500,
+        message = "Description must be between 10 and 500 characters"
+    ))]
+    pub descriere: Option<String>,
+    #[validate(range(min = 1, max = 50000, message = "Seats must be between 1 and 50,000"))]
+    pub numarlocuri: Option<i32>,
+}
+
+#[derive(Debug, Deserialize, ToSchema, Validate)]
+pub struct PatchEventPacket {
+    pub id_owner: Option<i32>,
+    #[validate(length(
+        min = 3,
+        max = 100,
+        message = "Name must be between 3 and 100 characters"
+    ))]
+    pub nume: Option<String>,
     #[validate(length(max = 255, message = "Location must be less than 255 characters"))]
     pub locatie: Option<String>,
     #[validate(length(

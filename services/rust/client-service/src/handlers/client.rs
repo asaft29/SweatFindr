@@ -11,7 +11,7 @@ use crate::AppState;
 use crate::middleware::{Authorization, UserClaims};
 use crate::models::client::{AddTicket, Client, ClientQuery, TicketRef, UpdateClient};
 use crate::services::event_service;
-use crate::utils::error::{ClientApiError, map_event_service_error, map_authorization_error};
+use crate::utils::error::{ClientApiError, map_authorization_error, map_event_service_error};
 use crate::utils::links::{Response, client_links, ticket_ref_links};
 
 pub mod auth {
@@ -235,8 +235,7 @@ pub async fn delete_client(
     Extension(user_claims): Extension<UserClaims>,
     Path(id): Path<String>,
 ) -> Result<StatusCode, ClientApiError> {
-    Authorization::can_delete_resource(&user_claims)
-        .map_err(map_authorization_error)?;
+    Authorization::can_delete_resource(&user_claims).map_err(map_authorization_error)?;
 
     state.client_repo.delete_client(&id).await?;
     Ok(StatusCode::NO_CONTENT)
@@ -317,16 +316,20 @@ pub async fn add_ticket_to_client(
     payload.validate()?;
 
     let ticket_details = match (payload.id_event, payload.id_pachet) {
-        (Some(event_id), _) => {
-            event_service::create_ticket_for_event(&state.event_service_url, event_id)
-                .await
-                .map_err(map_event_service_error)?
-        }
-        (_, Some(packet_id)) => {
-            event_service::create_ticket_for_packet(&state.event_service_url, packet_id)
-                .await
-                .map_err(map_event_service_error)?
-        }
+        (Some(event_id), None) => event_service::create_ticket_for_event(
+            &state.event_manager_client,
+            event_id,
+            &state.service_token,
+        )
+        .await
+        .map_err(map_event_service_error)?,
+        (None, Some(packet_id)) => event_service::create_ticket_for_packet(
+            &state.event_manager_client,
+            packet_id,
+            &state.service_token,
+        )
+        .await
+        .map_err(map_event_service_error)?,
         _ => {
             return Err(ClientApiError::BadRequest(
                 "Must specify either evenimentid or pachetid".to_string(),
@@ -334,8 +337,10 @@ pub async fn add_ticket_to_client(
         }
     };
 
+    let ticket_code = ticket_details.ticket.cod.clone();
+
     let ticket_ref = TicketRef {
-        cod: ticket_details.ticket.cod,
+        cod: ticket_code.clone(),
         nume_eveniment: ticket_details
             .event
             .as_ref()
@@ -353,10 +358,42 @@ pub async fn add_ticket_to_client(
             .or_else(|| ticket_details.packet.as_ref().map(|p| p.descriere.clone())),
     };
 
-    let client = state
+    let client = match state
         .client_repo
         .add_ticket_ref_to_client(&id, ticket_ref)
-        .await?;
+        .await
+    {
+        Ok(client) => client,
+        Err(mongo_error) => {
+            tracing::error!(
+                "Failed to add ticket {} to client {}. Rolling back ticket creation: {:?}",
+                ticket_code,
+                id,
+                mongo_error
+            );
+
+            if let Err(delete_error) = event_service::delete_ticket(
+                &state.event_manager_client,
+                &ticket_code,
+                &state.service_token,
+            )
+            .await
+            {
+                tracing::error!(
+                    "CRITICAL: Failed to rollback ticket {} from event-service: {:?}. Manual cleanup required!",
+                    ticket_code,
+                    delete_error
+                );
+            } else {
+                tracing::info!(
+                    "Successfully rolled back ticket {} from event-service",
+                    ticket_code
+                );
+            }
+
+            return Err(ClientApiError::Client(mongo_error));
+        }
+    };
 
     let client_id = client.id.to_hex();
     let links = client_links(&state.base_url, &client_id);
@@ -391,7 +428,7 @@ pub async fn remove_ticket_from_client(
     Authorization::can_modify_resource(&user_claims, &client, user_email.as_deref())
         .map_err(map_authorization_error)?;
 
-    event_service::delete_ticket(&state.event_service_url, &cod)
+    event_service::delete_ticket(&state.event_manager_client, &cod, &state.service_token)
         .await
         .map_err(map_event_service_error)?;
 
