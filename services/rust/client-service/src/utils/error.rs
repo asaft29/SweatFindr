@@ -151,6 +151,8 @@ pub fn map_event_service_error(error: EventServiceError) -> ClientApiError {
         EventServiceError::HttpError(msg) => ClientApiError::ExternalServiceError(msg),
         EventServiceError::DeserializationError(msg) => ClientApiError::ExternalServiceError(msg),
         EventServiceError::NotFound(msg) => ClientApiError::NotFound(msg),
+        EventServiceError::Forbidden(msg) => ClientApiError::Forbidden(msg),
+        EventServiceError::Unauthorized(msg) => ClientApiError::Unauthorized(msg),
     }
 }
 

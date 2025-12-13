@@ -10,6 +10,8 @@ pub enum ExternalServiceError {
     DeserializationError(String),
     NoSeatsAvailable(String),
     InvalidReference(String),
+    Forbidden(String),
+    Unauthorized(String),
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, ToSchema)]

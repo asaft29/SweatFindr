@@ -41,9 +41,22 @@ pub fn ticket_manager_router() -> Router<Arc<AppState>> {
 )]
 pub async fn get_ticket(
     State(state): State<Arc<AppState>>,
+    Extension(user_claims): Extension<UserClaims>,
     Path(cod): Path<String>,
 ) -> Result<impl IntoResponse, ApiError> {
     let ticket = state.ticket_repo.get_ticket(&cod).await?;
+
+    if !user_claims.is_clients_service() {
+        if let Some(event_id) = ticket.id_event {
+            let event = state.event_repo.get_event(event_id).await?;
+            Authorization::can_access_resource(&user_claims, &event, None)
+                .map_err(map_authorization_error)?;
+        } else if let Some(packet_id) = ticket.id_pachet {
+            let packet = state.event_packet_repo.get_event_packet(packet_id).await?;
+            Authorization::can_access_resource(&user_claims, &packet, None)
+                .map_err(map_authorization_error)?;
+        }
+    }
 
     let ticket_response = links::build_simple_ticket(ticket, &state.base_url);
 
@@ -65,7 +78,14 @@ pub async fn get_ticket(
 )]
 pub async fn list_tickets(
     State(state): State<Arc<AppState>>,
+    Extension(user_claims): Extension<UserClaims>,
 ) -> Result<impl IntoResponse, ApiError> {
+    if !user_claims.is_admin() && !user_claims.is_clients_service() {
+        return Err(ApiError::Forbidden(
+            "Only admins can list all tickets".to_string(),
+        ));
+    }
+
     let tickets = state.ticket_repo.list_tickets().await?;
 
     let wrapped: Vec<Response<Ticket>> = tickets
@@ -179,14 +199,17 @@ pub async fn delete_ticket(
 ) -> Result<impl IntoResponse, ApiError> {
     let existing_ticket = state.ticket_repo.get_ticket(&cod).await?;
 
-    if let Some(event_id) = existing_ticket.id_event {
-        let event = state.event_repo.get_event(event_id).await?;
-        Authorization::can_modify_resource(&user_claims, &event, None)
-            .map_err(map_authorization_error)?;
-    } else if let Some(packet_id) = existing_ticket.id_pachet {
-        let packet = state.event_packet_repo.get_event_packet(packet_id).await?;
-        Authorization::can_modify_resource(&user_claims, &packet, None)
-            .map_err(map_authorization_error)?;
+    // Check authorization: clients-service role OR admin OR event/packet owner
+    if !user_claims.is_clients_service() {
+        if let Some(event_id) = existing_ticket.id_event {
+            let event = state.event_repo.get_event(event_id).await?;
+            Authorization::can_modify_resource(&user_claims, &event, None)
+                .map_err(map_authorization_error)?;
+        } else if let Some(packet_id) = existing_ticket.id_pachet {
+            let packet = state.event_packet_repo.get_event_packet(packet_id).await?;
+            Authorization::can_modify_resource(&user_claims, &packet, None)
+                .map_err(map_authorization_error)?;
+        }
     }
 
     state.ticket_repo.delete_ticket(&cod).await?;
@@ -213,11 +236,20 @@ pub async fn delete_ticket(
 )]
 pub async fn get_ticket_for_event(
     State(state): State<Arc<AppState>>,
+    Extension(user_claims): Extension<UserClaims>,
     Path((event_id, ticket_cod)): Path<(i32, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
     if event_id < 0 {
         return Err(ApiError::BadRequest("ID cannot be negative".into()));
     }
+
+    // Check authorization: clients-service role OR admin OR event owner
+    if !user_claims.is_clients_service() {
+        let event = state.event_repo.get_event(event_id).await?;
+        Authorization::can_access_resource(&user_claims, &event, None)
+            .map_err(map_authorization_error)?;
+    }
+
     let ticket = state
         .ticket_repo
         .get_ticket_for_event(event_id, &ticket_cod)
@@ -246,11 +278,19 @@ pub async fn get_ticket_for_event(
 )]
 pub async fn list_tickets_for_event(
     State(state): State<Arc<AppState>>,
+    Extension(user_claims): Extension<UserClaims>,
     Path(event_id): Path<i32>,
 ) -> Result<impl IntoResponse, ApiError> {
     if event_id < 0 {
         return Err(ApiError::BadRequest("ID cannot be negative".into()));
     }
+
+    if !user_claims.is_clients_service() {
+        let event = state.event_repo.get_event(event_id).await?;
+        Authorization::can_access_resource(&user_claims, &event, None)
+            .map_err(map_authorization_error)?;
+    }
+
     let tickets = state.ticket_repo.list_tickets_for_event(event_id).await?;
 
     let wrapped: Vec<Response<Ticket>> = tickets
@@ -355,11 +395,19 @@ pub async fn delete_ticket_for_event(
 )]
 pub async fn list_tickets_for_packet(
     State(state): State<Arc<AppState>>,
+    Extension(user_claims): Extension<UserClaims>,
     Path(packet_id): Path<i32>,
 ) -> Result<impl IntoResponse, ApiError> {
     if packet_id < 0 {
         return Err(ApiError::BadRequest("ID cannot be negative".into()));
     }
+
+    if !user_claims.is_clients_service() {
+        let packet = state.event_packet_repo.get_event_packet(packet_id).await?;
+        Authorization::can_access_resource(&user_claims, &packet, None)
+            .map_err(map_authorization_error)?;
+    }
+
     let tickets = state.ticket_repo.list_tickets_for_packet(packet_id).await?;
 
     let wrapped: Vec<Response<Ticket>> = tickets
@@ -390,11 +438,20 @@ pub async fn list_tickets_for_packet(
 )]
 pub async fn get_ticket_for_packet(
     State(state): State<Arc<AppState>>,
+    Extension(user_claims): Extension<UserClaims>,
     Path((packet_id, ticket_cod)): Path<(i32, String)>,
 ) -> Result<impl IntoResponse, ApiError> {
     if packet_id < 0 {
         return Err(ApiError::BadRequest("ID cannot be negative".into()));
     }
+
+    // Check authorization: clients-service role OR admin OR packet owner
+    if !user_claims.is_clients_service() {
+        let packet = state.event_packet_repo.get_event_packet(packet_id).await?;
+        Authorization::can_access_resource(&user_claims, &packet, None)
+            .map_err(map_authorization_error)?;
+    }
+
     let ticket = state
         .ticket_repo
         .get_ticket_for_packet(packet_id, &ticket_cod)

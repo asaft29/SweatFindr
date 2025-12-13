@@ -1,7 +1,8 @@
-use crate::repository::UserRepository;
-use crate::services::{JwtService, TokenBlacklist};
+use crate::models::UserRole;
+use crate::repository::{UserRepository, VerificationRepository};
+use crate::services::{EmailService, JwtService, TokenBlacklist};
+use std::str::FromStr;
 use tonic::{Request, Response, Status};
-
 pub mod auth {
     tonic::include_proto!("auth");
 }
@@ -9,14 +10,17 @@ pub mod auth {
 use auth::auth_service_server::AuthService;
 use auth::{
     AuthRequest, AuthResponse, DestroyRequest, DestroyResponse, GetUserEmailRequest,
-    GetUserEmailResponse, RegisterRequest, RegisterResponse, UpdateRoleRequest, UpdateRoleResponse,
-    ValidateRequest, ValidateResponse,
+    GetUserEmailResponse, RegisterRequest, RegisterResponse, ResendVerificationRequest,
+    ResendVerificationResponse, UpdateRoleRequest, UpdateRoleResponse, ValidateRequest,
+    ValidateResponse, VerifyEmailRequest, VerifyEmailResponse,
 };
 
 pub struct AuthServiceImpl {
     pub user_repo: UserRepository,
+    pub verification_repo: VerificationRepository,
     pub jwt_service: JwtService,
     pub blacklist: TokenBlacklist,
+    pub email_service: EmailService,
 }
 
 #[tonic::async_trait]
@@ -56,6 +60,15 @@ impl AuthService for AuthServiceImpl {
                     e
                 )));
             }
+        }
+
+        if !user.email_verified {
+            return Ok(Response::new(AuthResponse {
+                success: false,
+                token_value: String::new(),
+                message: "Email not verified. Please verify your email before logging in."
+                    .to_string(),
+            }));
         }
 
         self.blacklist.clear_user_invalidation(user.id).await;
@@ -172,8 +185,23 @@ impl AuthService for AuthServiceImpl {
     ) -> Result<Response<RegisterResponse>, Status> {
         let req = request.into_inner();
 
-        if !req.email.contains('@') {
+        if email_address::EmailAddress::from_str(&req.email).is_err() {
             return Err(Status::invalid_argument("Invalid email format"));
+        }
+
+        if let Some(domain) = req.email.split('@').nth(1) {
+            if !domain.contains('.') {
+                return Err(Status::invalid_argument(
+                    "Invalid email domain - must include domain name and TLD (e.g., example.com)",
+                ));
+            }
+
+            let tld_part = domain.rsplit('.').next().unwrap_or("");
+            if !tld::exist(tld_part) {
+                return Err(Status::invalid_argument(
+                    "Invalid email domain - TLD does not exist",
+                ));
+            }
         }
 
         match self.user_repo.find_by_email(&req.email).await {
@@ -185,9 +213,6 @@ impl AuthService for AuthServiceImpl {
                 return Err(Status::internal(format!("Database error: {}", e)));
             }
         }
-
-        use crate::models::UserRole;
-        use std::str::FromStr;
 
         let role = match UserRole::from_str(&req.role) {
             Ok(role) => role,
@@ -216,6 +241,33 @@ impl AuthService for AuthServiceImpl {
             }
         };
 
+        let verification_code = EmailService::generate_verification_code();
+
+        match self
+            .verification_repo
+            .create_verification(user_id, &verification_code)
+            .await
+        {
+            Ok(_) => {}
+            Err(e) => {
+                return Err(Status::internal(format!(
+                    "Failed to create verification: {}",
+                    e
+                )));
+            }
+        }
+
+        if let Err(e) = self
+            .email_service
+            .send_verification_email(&req.email, &verification_code)
+            .await
+        {
+            return Err(Status::internal(format!(
+                "Failed to send verification email: {}",
+                e
+            )));
+        }
+
         let token = match self.jwt_service.generate_token(user_id, &role.to_string()) {
             Ok(token) => token,
             Err(e) => {
@@ -227,7 +279,8 @@ impl AuthService for AuthServiceImpl {
             success: true,
             user_id,
             token_value: token,
-            message: "User registered successfully".to_string(),
+            message: "User registered successfully. Please check your email for verification code."
+                .to_string(),
         }))
     }
 
@@ -295,5 +348,111 @@ impl AuthService for AuthServiceImpl {
             ))),
             Err(e) => Err(Status::internal(format!("Database error: {}", e))),
         }
+    }
+
+    async fn verify_email(
+        &self,
+        request: Request<VerifyEmailRequest>,
+    ) -> Result<Response<VerifyEmailResponse>, Status> {
+        let req = request.into_inner();
+
+        let user = match self.user_repo.find_by_email(&req.email).await {
+            Ok(Some(user)) => user,
+            Ok(None) => {
+                return Err(Status::not_found("User not found"));
+            }
+            Err(e) => {
+                return Err(Status::internal(format!("Database error: {}", e)));
+            }
+        };
+
+        if user.email_verified {
+            return Ok(Response::new(VerifyEmailResponse {
+                success: true,
+                message: "Email already verified".to_string(),
+            }));
+        }
+
+        let verified = match self
+            .verification_repo
+            .verify_code(user.id, &req.verification_code)
+            .await
+        {
+            Ok(verified) => verified,
+            Err(e) => {
+                return Err(Status::internal(format!("Verification error: {}", e)));
+            }
+        };
+
+        if !verified {
+            return Err(Status::invalid_argument(
+                "Invalid or expired verification code",
+            ));
+        }
+
+        match self.user_repo.mark_email_verified(user.id).await {
+            Ok(true) => Ok(Response::new(VerifyEmailResponse {
+                success: true,
+                message: "Email verified successfully".to_string(),
+            })),
+            Ok(false) => Err(Status::not_found("User not found")),
+            Err(e) => Err(Status::internal(format!("Database error: {}", e))),
+        }
+    }
+
+    async fn resend_verification_code(
+        &self,
+        request: Request<ResendVerificationRequest>,
+    ) -> Result<Response<ResendVerificationResponse>, Status> {
+        let req = request.into_inner();
+
+        let user = match self.user_repo.find_by_email(&req.email).await {
+            Ok(Some(user)) => user,
+            Ok(None) => {
+                return Err(Status::not_found("User not found"));
+            }
+            Err(e) => {
+                return Err(Status::internal(format!("Database error: {}", e)));
+            }
+        };
+
+        if user.email_verified {
+            return Ok(Response::new(ResendVerificationResponse {
+                success: true,
+                message: "Email already verified".to_string(),
+            }));
+        }
+
+        let verification_code = EmailService::generate_verification_code();
+
+        match self
+            .verification_repo
+            .create_verification(user.id, &verification_code)
+            .await
+        {
+            Ok(_) => {}
+            Err(e) => {
+                return Err(Status::internal(format!(
+                    "Failed to create verification: {}",
+                    e
+                )));
+            }
+        }
+
+        if let Err(e) = self
+            .email_service
+            .send_verification_email(&req.email, &verification_code)
+            .await
+        {
+            return Err(Status::internal(format!(
+                "Failed to send verification email: {}",
+                e
+            )));
+        }
+
+        Ok(Response::new(ResendVerificationResponse {
+            success: true,
+            message: "Verification code sent successfully".to_string(),
+        }))
     }
 }

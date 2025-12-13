@@ -12,7 +12,7 @@ impl UserRepository {
     }
 
     pub async fn find_by_email(&self, email: &str) -> Result<Option<User>, String> {
-        let query = "SELECT id, email, parola, rol FROM UTILIZATORI WHERE email = $1";
+        let query = "SELECT id, email, parola, rol, email_verified FROM UTILIZATORI WHERE email = $1";
 
         match self.client.query_opt(query, &[&email]).await {
             Ok(Some(row)) => {
@@ -25,6 +25,7 @@ impl UserRepository {
                     email: row.get(1),
                     parola: row.get(2),
                     rol,
+                    email_verified: row.get(4),
                 }))
             }
             Ok(_) => Ok(None),
@@ -33,7 +34,7 @@ impl UserRepository {
     }
 
     pub async fn find_by_id(&self, id: i32) -> Result<Option<User>, String> {
-        let query = "SELECT id, email, parola, rol FROM UTILIZATORI WHERE id = $1";
+        let query = "SELECT id, email, parola, rol, email_verified FROM UTILIZATORI WHERE id = $1";
 
         match self.client.query_opt(query, &[&id]).await {
             Ok(Some(row)) => {
@@ -46,6 +47,7 @@ impl UserRepository {
                     email: row.get(1),
                     parola: row.get(2),
                     rol,
+                    email_verified: row.get(4),
                 }))
             }
             Ok(_) => Ok(None),
@@ -85,6 +87,18 @@ impl UserRepository {
                 _ => Ok(true),
             },
             Err(e) => Err(format!("Failed to update user role: {}", e)),
+        }
+    }
+
+    pub async fn mark_email_verified(&self, user_id: i32) -> Result<bool, String> {
+        let query = "UPDATE UTILIZATORI SET email_verified = true WHERE id = $1";
+
+        match self.client.execute(query, &[&user_id]).await {
+            Ok(rows_affected) => match rows_affected {
+                0 => Ok(false),
+                _ => Ok(true),
+            },
+            Err(e) => Err(format!("Failed to mark email as verified: {}", e)),
         }
     }
 }

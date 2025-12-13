@@ -12,5 +12,6 @@ CREATE TABLE
                 'client',
                 'clients-service'
             )
-        )
+        ),
+        email_verified BOOLEAN DEFAULT FALSE
     );

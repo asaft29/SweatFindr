@@ -14,15 +14,24 @@ services:
       - DB_USER=${POSTGRES_USER}
       - DB_PASSWORD=${POSTGRES_PASSWORD}
       - DB_NAME=${POSTGRES_DB}
+      - REDIS_URL=redis://auth-redis:6379
       - JWT_SECRET=${JWT_SECRET}
       - JWT_ISSUER=auth-service
       - JWT_EXPIRATION=${JWT_EXPIRATION}
       - RUST_LOG=info,auth_service=info
       - SERVER_HOST=0.0.0.0
       - SERVER_PORT=50051
+      - SMTP_HOST=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM_NAME=${SMTP_FROM_NAME}
+      - SMTP_FROM_EMAIL=${SMTP_USERNAME}
     depends_on:
       auth-db:
         condition: service_healthy
+      auth-redis:
+        condition: service_started
     networks:
       - auth-network
       - shared-network
@@ -46,6 +55,15 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - auth-network
+    restart: unless-stopped
+
+  auth-redis:
+    image: redis:7-alpine
+    container_name: auth-redis
+    ports:
+      - "6379:6379"
     networks:
       - auth-network
     restart: unless-stopped

@@ -9,6 +9,7 @@ pub struct User {
     pub email: String,
     pub parola: String,
     pub rol: UserRole,
+    pub email_verified: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

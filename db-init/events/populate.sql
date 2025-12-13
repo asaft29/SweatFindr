@@ -7,42 +7,42 @@ INSERT INTO
     EVENIMENTE (ID_OWNER, nume, locatie, descriere, numarLocuri)
 VALUES
     (
-        2,
+        3,
         'Concert Vama Veche',
         'Cluj-Napoca, BT Arena',
         'Concert de muzică rock alternativ cu trupa Vama Veche. Atmosphere electrizantă și hit-uri legendare!',
         5000
     ),
     (
-        2,
+        3,
         'Festival Electric Castle 2025',
         'Cluj, Domeniul Banffy',
         'Cel mai mare festival de muzică electronică din România cu artiști internaționali.',
         50000
     ),
     (
-        2,
+        3,
         'Concert Simfonic de Crăciun',
         'București, Sala Palatului',
         'Orchestra Filarmonică București prezintă concerte clasice de sărbători.',
         2500
     ),
     (
-        3,
+        4,
         'Untold Festival 2025',
         'Cluj-Napoca, Cluj Arena',
         'Festival internațional de muzică electronică, dans și cultură.',
         80000
     ),
     (
-        3,
+        4,
         'Festivalul de Teatru',
         'Iași, Teatrul Național',
         'Săptămâna dedicată pieselor de teatru clasic și modern. Reprezentații zilnice cu trupe din toată țara.',
         1000
     ),
     (
-        3,
+        4,
         'Spectacol Shakespeare',
         'Sibiu, Teatrul Radu Stanca',
         'Adaptare modernă a piesei "Hamlet" de către regizorul Ion Caramitru.',
@@ -70,21 +70,21 @@ VALUES
         15000
     ),
     (
-        5,
+        3,
         'Târgul de Paște',
         'Brașov, Piața Sfatului',
         'Târg tradițional cu produse pascale, ouă decorate și muzică populară.',
         8000
     ),
     (
-        2,
+        3,
         'Maraton București 2025',
         'București, Piața Constituției',
         'Competiție sportivă internațională - maraton complet și semimaraton.',
         30000
     ),
     (
-        5,
+        3,
         'Cupa României la Escaladă',
         'Brașov, Sala Sporturilor',
         'Competiție națională de escaladă sportivă pentru toate categoriile de vârstă.',
@@ -98,28 +98,28 @@ VALUES
         12000
     ),
     (
-        5,
+        3,
         'Festivalul Vinului și Bucatelor',
         'Alba Iulia, Cetatea Alba Carolina',
         'Degustări de vinuri românești premium și preparate gastronomice locale.',
         5000
     ),
     (
-        5,
+        3,
         'Expoziție de Artă Modernă',
         'Timișoara, Galeria Delta',
         'Colecție de artă contemporană: picturi, sculpturi și instalații multimedia.',
         500
     ),
     (
-        3,
+        4,
         'Bienala de Arhitectură',
         'București, MNAC',
         'Expoziție internațională dedicată arhitecturii contemporane și urbanismului.',
         2000
     ),
     (
-        2,
+        3,
         'Tech Summit România 2025',
         'Cluj-Napoca, Grand Hotel Italia',
         'Conferință de tehnologie cu speakeri internaționali, workshop-uri AI și networking.',
@@ -137,35 +137,35 @@ INSERT INTO
     PACHETE (ID_OWNER, nume, locatie, descriere, numarLocuri)
 VALUES
     (
-        2,
+        3,
         'Pachet Weekend Rock Cluj',
         'Cluj-Napoca',
         'Include Concert Vama Veche + Electric Castle cu acces VIP și transport inclus.',
         5000
     ),
     (
-        2,
+        3,
         'Abonament Muzical Complet',
         'Multiple',
         'Acces la toate concertele din Cluj și București pentru 2025.',
         2500
     ),
     (
-        3,
+        4,
         'Festival Pass Untold Premium',
         'Cluj-Napoca',
         'Abonament 4 zile Untold cu camping și early entry.',
         80000
     ),
     (
-        3,
+        4,
         'Abonament Teatru 7 Zile',
         'Iași',
         'Abonament pentru toate cele 7 zile de festival cu acces la toate reprezentațiile.',
         1000
     ),
     (
-        3,
+        4,
         'Pachet Cultură Sibiu',
         'Sibiu',
         'Spectacol Shakespeare + vizită muzeală ghidată.',
@@ -193,7 +193,7 @@ VALUES
         15000
     ),
     (
-        5,
+        3,
         'Weekend Brașov Primăvară',
         'Brașov',
         'Târg de Paște + Escaladă spectatori cu cazare 2 nopți.',
@@ -207,14 +207,14 @@ VALUES
         5000
     ),
     (
-        5,
+        3,
         'Pachet Relaxare Alba Iulia',
         'Alba Iulia',
         'Festival Vinului cu tur ghidat și cazare spa.',
         5000
     ),
     (
-        2,
+        3,
         'Tech Enthusiast Bundle',
         'Cluj & Iași',
         'Tech Summit + Innovation Fest cu acces workshop-uri.',

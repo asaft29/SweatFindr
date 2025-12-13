@@ -21,6 +21,8 @@ pub mod auth {
 }
 
 use auth::RegisterRequest as GrpcRegisterRequest;
+use auth::ResendVerificationRequest as GrpcResendVerificationRequest;
+use auth::VerifyEmailRequest as GrpcVerifyEmailRequest;
 use auth::auth_service_client::AuthServiceClient;
 
 #[derive(Deserialize, ToSchema)]
@@ -50,6 +52,8 @@ pub fn auth_router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/register", post(register))
         .route("/login", post(login))
+        .route("/verify", post(verify_email))
+        .route("/resend", post(resend_verification))
 }
 
 pub fn auth_protected_router() -> Router<Arc<AppState>> {
@@ -132,7 +136,8 @@ pub async fn register(
         Json(RegisterResponse {
             success: true,
             token: response.token_value,
-            message: "User registered successfully".to_string(),
+            message: "User registered successfully. Please check your email for verification code."
+                .to_string(),
             client_id: Some(created_client.id.to_hex()),
         }),
     ))
@@ -286,6 +291,122 @@ pub async fn update_user_role(
 
     Ok(Json(UpdateRoleResponse {
         success: true,
+        message: response.message,
+    }))
+}
+
+#[derive(Deserialize, ToSchema)]
+#[serde(deny_unknown_fields)]
+pub struct VerifyEmailRequest {
+    pub email: String,
+    pub verification_code: String,
+}
+
+#[derive(Serialize, ToSchema)]
+pub struct VerifyEmailResponse {
+    pub success: bool,
+    pub message: String,
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/auth/verify",
+    request_body = VerifyEmailRequest,
+    responses(
+        (status = 200, description = "Email verified successfully", body = VerifyEmailResponse),
+        (status = 400, description = "Invalid or expired verification code"),
+        (status = 404, description = "User not found"),
+        (status = 500, description = "Internal server error"),
+    ),
+    tag = "auth"
+)]
+pub async fn verify_email(
+    State(state): State<Arc<AppState>>,
+    payload: Result<Json<VerifyEmailRequest>, JsonRejection>,
+) -> Result<Json<VerifyEmailResponse>, ClientApiError> {
+    let Json(payload) = payload?;
+
+    let mut auth_client = AuthServiceClient::connect(state.auth_service_url.clone())
+        .await
+        .map_err(|e| {
+            ClientApiError::InternalError(format!("Failed to connect to auth service: {}", e))
+        })?;
+
+    let grpc_request = GrpcVerifyEmailRequest {
+        email: payload.email,
+        verification_code: payload.verification_code,
+    };
+
+    let response = match auth_client.verify_email(grpc_request).await {
+        Ok(response) => response.into_inner(),
+        Err(status) => {
+            return Err(match status.code() {
+                tonic::Code::InvalidArgument => {
+                    ClientApiError::BadRequest(status.message().to_string())
+                }
+                tonic::Code::NotFound => ClientApiError::NotFound(status.message().to_string()),
+                _ => ClientApiError::InternalError(status.message().to_string()),
+            });
+        }
+    };
+
+    Ok(Json(VerifyEmailResponse {
+        success: response.success,
+        message: response.message,
+    }))
+}
+
+#[derive(Deserialize, ToSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ResendVerificationRequest {
+    pub email: String,
+}
+
+#[derive(Serialize, ToSchema)]
+pub struct ResendVerificationResponse {
+    pub success: bool,
+    pub message: String,
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/auth/resend",
+    request_body = ResendVerificationRequest,
+    responses(
+        (status = 200, description = "Verification code resent", body = ResendVerificationResponse),
+        (status = 404, description = "User not found"),
+        (status = 500, description = "Internal server error"),
+    ),
+    tag = "auth"
+)]
+pub async fn resend_verification(
+    State(state): State<Arc<AppState>>,
+    payload: Result<Json<ResendVerificationRequest>, JsonRejection>,
+) -> Result<Json<ResendVerificationResponse>, ClientApiError> {
+    let Json(payload) = payload?;
+
+    let mut auth_client = AuthServiceClient::connect(state.auth_service_url.clone())
+        .await
+        .map_err(|e| {
+            ClientApiError::InternalError(format!("Failed to connect to auth service: {}", e))
+        })?;
+
+    let grpc_request = GrpcResendVerificationRequest {
+        email: payload.email,
+    };
+
+    let response = match auth_client.resend_verification_code(grpc_request).await {
+        Ok(response) => response.into_inner(),
+        Err(status) => {
+            return Err(match status.code() {
+                tonic::Code::NotFound => ClientApiError::NotFound(status.message().to_string()),
+                _ => ClientApiError::InternalError(status.message().to_string()),
+            });
+        }
+    };
+
+    Ok(Json(ResendVerificationResponse {
+        success: response.success,
         message: response.message,
     }))
 }

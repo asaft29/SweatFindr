@@ -101,10 +101,10 @@ impl EventManagerClient {
                 "Invalid {} ID or request: {}",
                 resource_type, resource_id
             ))),
-            StatusCode::UNAUTHORIZED => Err(ExternalServiceError::HttpError(
+            StatusCode::UNAUTHORIZED => Err(ExternalServiceError::Unauthorized(
                 "Unauthorized - Invalid or missing authentication token".to_string(),
             )),
-            StatusCode::FORBIDDEN => Err(ExternalServiceError::HttpError(
+            StatusCode::FORBIDDEN => Err(ExternalServiceError::Forbidden(
                 "Forbidden - You don't have permission to access this resource".to_string(),
             )),
             StatusCode::NOT_FOUND => Err(ExternalServiceError::NotFound(format!(
