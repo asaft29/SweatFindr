@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package email;
+
+service EmailService {
+  rpc SendVerificationEmail(SendVerificationRequest) returns (SendVerificationResponse);
+  rpc VerifyCode(VerifyCodeRequest) returns (VerifyCodeResponse);
+  rpc ResendVerificationCode(ResendVerificationRequest) returns (ResendVerificationResponse);
+}
+
+message SendVerificationRequest {
+  int32 user_id = 1;
+  string email = 2;
+}
+
+message SendVerificationResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message VerifyCodeRequest {
+  int32 user_id = 1;
+  string verification_code = 2;
+}
+
+message VerifyCodeResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message ResendVerificationRequest {
+  int32 user_id = 1;
+  string email = 2;
+}
+
+message ResendVerificationResponse {
+  bool success = 1;
+  string message = 2;
+}

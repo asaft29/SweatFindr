@@ -7,12 +7,15 @@ use axum::{
     http::StatusCode,
     routing::{post, put},
 };
-use serde::{Deserialize, Serialize};
-use utoipa::ToSchema;
 use validator::Validate;
 
 use crate::AppState;
-use crate::models::client::{CreateClient, SocialMedia};
+use crate::models::auth::{
+    LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, ResendVerificationRequest,
+    ResendVerificationResponse, UpdateRoleRequest, UpdateRoleResponse, VerifyEmailRequest,
+    VerifyEmailResponse,
+};
+use crate::models::client::CreateClient;
 use crate::utils::error::ClientApiError;
 use common::authorization::UserClaims;
 
@@ -20,33 +23,16 @@ pub mod auth {
     tonic::include_proto!("auth");
 }
 
+pub mod email {
+    tonic::include_proto!("email");
+}
+
 use auth::RegisterRequest as GrpcRegisterRequest;
-use auth::ResendVerificationRequest as GrpcResendVerificationRequest;
-use auth::VerifyEmailRequest as GrpcVerifyEmailRequest;
 use auth::auth_service_client::AuthServiceClient;
-
-#[derive(Deserialize, ToSchema)]
-#[serde(deny_unknown_fields)]
-pub struct RegisterRequest {
-    pub email: String,
-    pub password: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub prenume: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub nume: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub public_info: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub social_media: Option<SocialMedia>,
-}
-
-#[derive(Serialize, ToSchema)]
-pub struct RegisterResponse {
-    pub success: bool,
-    pub token: String,
-    pub message: String,
-    pub client_id: Option<String>,
-}
+use email::email_service_client::EmailServiceClient;
+use email::{
+    ResendVerificationRequest as EmailResendRequest, SendVerificationRequest, VerifyCodeRequest,
+};
 
 pub fn auth_router() -> Router<Arc<AppState>> {
     Router::new()
@@ -131,6 +117,23 @@ pub async fn register(
             ))
         })?;
 
+    let mut email_client = EmailServiceClient::connect(state.email_service_url.clone())
+        .await
+        .map_err(|e| {
+            ClientApiError::InternalError(format!("Failed to connect to email service: {}", e))
+        })?;
+
+    let email_request = SendVerificationRequest {
+        user_id: response.user_id,
+        email: payload.email.clone(),
+    };
+
+    tokio::spawn(async move {
+        if let Err(e) = email_client.send_verification_email(email_request).await {
+            eprintln!("Failed to send verification email: {}", e);
+        }
+    });
+
     Ok((
         StatusCode::CREATED,
         Json(RegisterResponse {
@@ -141,20 +144,6 @@ pub async fn register(
             client_id: Some(created_client.id.to_hex()),
         }),
     ))
-}
-
-#[derive(Deserialize, ToSchema)]
-#[serde(deny_unknown_fields)]
-pub struct LoginRequest {
-    pub email: String,
-    pub password: String,
-}
-
-#[derive(Serialize, ToSchema)]
-pub struct LoginResponse {
-    pub success: bool,
-    pub token: String,
-    pub message: String,
 }
 
 #[utoipa::path(
@@ -210,18 +199,6 @@ pub async fn login(
         token: response.token_value,
         message: "Login successful".to_string(),
     }))
-}
-
-#[derive(Deserialize, ToSchema)]
-#[serde(deny_unknown_fields)]
-pub struct UpdateRoleRequest {
-    pub role: String,
-}
-
-#[derive(Serialize, ToSchema)]
-pub struct UpdateRoleResponse {
-    pub success: bool,
-    pub message: String,
 }
 
 #[utoipa::path(
@@ -295,19 +272,6 @@ pub async fn update_user_role(
     }))
 }
 
-#[derive(Deserialize, ToSchema)]
-#[serde(deny_unknown_fields)]
-pub struct VerifyEmailRequest {
-    pub email: String,
-    pub verification_code: String,
-}
-
-#[derive(Serialize, ToSchema)]
-pub struct VerifyEmailResponse {
-    pub success: bool,
-    pub message: String,
-}
-
 #[utoipa::path(
     post,
     path = "/api/auth/verify",
@@ -332,12 +296,32 @@ pub async fn verify_email(
             ClientApiError::InternalError(format!("Failed to connect to auth service: {}", e))
         })?;
 
-    let grpc_request = GrpcVerifyEmailRequest {
-        email: payload.email,
+    let user_id_request = auth::GetUserIdByEmailRequest {
+        email: payload.email.clone(),
+    };
+
+    let user_id_response = match auth_client.get_user_id_by_email(user_id_request).await {
+        Ok(response) => response.into_inner(),
+        Err(status) => {
+            return Err(match status.code() {
+                tonic::Code::NotFound => ClientApiError::NotFound(status.message().to_string()),
+                _ => ClientApiError::InternalError(status.message().to_string()),
+            });
+        }
+    };
+
+    let mut email_client = EmailServiceClient::connect(state.email_service_url.clone())
+        .await
+        .map_err(|e| {
+            ClientApiError::InternalError(format!("Failed to connect to email service: {}", e))
+        })?;
+
+    let verify_request = VerifyCodeRequest {
+        user_id: user_id_response.user_id,
         verification_code: payload.verification_code,
     };
 
-    let response = match auth_client.verify_email(grpc_request).await {
+    let response = match email_client.verify_code(verify_request).await {
         Ok(response) => response.into_inner(),
         Err(status) => {
             return Err(match status.code() {
@@ -350,22 +334,25 @@ pub async fn verify_email(
         }
     };
 
+    if !response.success {
+        return Err(ClientApiError::BadRequest(response.message));
+    }
+
+    let mark_verified_request = auth::MarkEmailVerifiedRequest {
+        user_id: user_id_response.user_id,
+    };
+
+    match auth_client.mark_email_verified(mark_verified_request).await {
+        Ok(_) => {}
+        Err(e) => {
+            eprintln!("Failed to mark email as verified in auth service: {}", e);
+        }
+    }
+
     Ok(Json(VerifyEmailResponse {
-        success: response.success,
-        message: response.message,
+        success: true,
+        message: "Email verified successfully".to_string(),
     }))
-}
-
-#[derive(Deserialize, ToSchema)]
-#[serde(deny_unknown_fields)]
-pub struct ResendVerificationRequest {
-    pub email: String,
-}
-
-#[derive(Serialize, ToSchema)]
-pub struct ResendVerificationResponse {
-    pub success: bool,
-    pub message: String,
 }
 
 #[utoipa::path(
@@ -391,11 +378,32 @@ pub async fn resend_verification(
             ClientApiError::InternalError(format!("Failed to connect to auth service: {}", e))
         })?;
 
-    let grpc_request = GrpcResendVerificationRequest {
+    let user_id_request = auth::GetUserIdByEmailRequest {
+        email: payload.email.clone(),
+    };
+
+    let user_id_response = match auth_client.get_user_id_by_email(user_id_request).await {
+        Ok(response) => response.into_inner(),
+        Err(status) => {
+            return Err(match status.code() {
+                tonic::Code::NotFound => ClientApiError::NotFound(status.message().to_string()),
+                _ => ClientApiError::InternalError(status.message().to_string()),
+            });
+        }
+    };
+
+    let mut email_client = EmailServiceClient::connect(state.email_service_url.clone())
+        .await
+        .map_err(|e| {
+            ClientApiError::InternalError(format!("Failed to connect to email service: {}", e))
+        })?;
+
+    let resend_request = EmailResendRequest {
+        user_id: user_id_response.user_id,
         email: payload.email,
     };
 
-    let response = match auth_client.resend_verification_code(grpc_request).await {
+    let response = match email_client.resend_verification_code(resend_request).await {
         Ok(response) => response.into_inner(),
         Err(status) => {
             return Err(match status.code() {

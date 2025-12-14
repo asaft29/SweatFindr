@@ -6,8 +6,8 @@ mod services;
 use anyhow::Result;
 use grpc_service::auth::auth_service_server::AuthServiceServer;
 use grpc_service::AuthServiceImpl;
-use repository::{UserRepository, VerificationRepository};
-use services::{EmailService, JwtService, TokenBlacklist};
+use repository::UserRepository;
+use services::{JwtService, TokenBlacklist};
 use tonic::transport::Server;
 
 #[tokio::main]
@@ -38,31 +38,17 @@ async fn main() -> Result<()> {
         }
     });
 
-    let redis_url =
-        std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://localhost:6379".to_string());
-    println!("Connecting to Redis: {}", redis_url);
-
-    let redis_client =
-        redis::Client::open(redis_url.as_str()).expect("Failed to create Redis client");
-    let redis_conn = redis::aio::ConnectionManager::new(redis_client)
-        .await
-        .expect("Failed to connect to Redis");
-
     let user_repo = UserRepository::new(client);
-    let verification_repo = VerificationRepository::new(redis_conn);
     let jwt_secret = std::env::var("JWT_SECRET").unwrap();
     let jwt_issuer =
         std::env::var("JWT_ISSUER").unwrap_or_else(|_| "http://localhost:50051".to_string());
     let jwt_service = JwtService::new(jwt_secret, jwt_issuer);
     let blacklist = TokenBlacklist::default();
-    let email_service = EmailService::new().expect("Failed to initialize email service");
 
     let auth_service = AuthServiceImpl {
         user_repo,
-        verification_repo,
         jwt_service,
         blacklist,
-        email_service,
     };
 
     let addr = std::env::var("GRPC_ADDR")

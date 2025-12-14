@@ -19,14 +19,6 @@ anyhow = "1.0.100"
 validator = { version = "0.18", features = ["derive"] }
 email_address = "0.2"
 tld = "2.14"
-lettre = { version = "0.11", features = [
-    "tokio1",
-    "tokio1-native-tls",
-    "builder",
-] }
-rand = "0.8"
-redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }
-maud = { version = "0.27.0", features = ["axum"] }
 
 [build-dependencies]
 tonic-build = "0.12"

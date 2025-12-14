@@ -51,7 +51,6 @@ impl TicketRepo {
         result.map_err(map_sqlx_ticket_error)
     }
 
-
     pub async fn create_ticket_for_event(&self, event_id: i32) -> Result<Ticket, TicketRepoError> {
         let new_code = Uuid::now_v7().to_string();
 
@@ -61,28 +60,31 @@ impl TicketRepo {
             .await
             .map_err(TicketRepoError::InternalError)?;
 
-        let seats: Option<i32> =
-            sqlx::query_scalar("SELECT numarlocuri FROM EVENIMENTE WHERE id = $1")
-                .bind(event_id)
-                .fetch_optional(&mut *tx)
-                .await
-                .map_err(TicketRepoError::InternalError)?;
+        let seats_result: Option<i32> = sqlx::query_scalar(
+            "UPDATE EVENIMENTE
+             SET numarlocuri = numarlocuri - 1
+             WHERE id = $1 AND numarlocuri > 0
+             RETURNING numarlocuri",
+        )
+        .bind(event_id)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(TicketRepoError::InternalError)?;
 
-        match seats {
-            None => {
-                return Err(TicketRepoError::InvalidReference);
-            }
-            Some(count) if count <= 0 => {
-                return Err(TicketRepoError::NoSeatsAvailable);
-            }
-            Some(_) => {}
+        if seats_result.is_none() {
+            let exists: bool =
+                sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM EVENIMENTE WHERE id = $1)")
+                    .bind(event_id)
+                    .fetch_one(&mut *tx)
+                    .await
+                    .map_err(TicketRepoError::InternalError)?;
+
+            return Err(if exists {
+                TicketRepoError::NoSeatsAvailable
+            } else {
+                TicketRepoError::InvalidReference
+            });
         }
-
-        sqlx::query("UPDATE EVENIMENTE SET numarlocuri = numarlocuri - 1 WHERE id = $1")
-            .bind(event_id)
-            .execute(&mut *tx)
-            .await
-            .map_err(TicketRepoError::InternalError)?;
 
         let ticket = sqlx::query_as::<_, Ticket>(
             r#"
@@ -293,9 +295,9 @@ impl TicketRepo {
             .await
             .map_err(TicketRepoError::InternalError)?;
 
-        let events: Vec<(i32, Option<i32>)> = sqlx::query_as(
+        let events: Vec<(i32,)> = sqlx::query_as(
             r#"
-            SELECT e.id, e.numarlocuri
+            SELECT e.id
             FROM EVENIMENTE e
             JOIN JOIN_PE j ON e.id = j.evenimentid
             WHERE j.pachetid = $1
@@ -310,27 +312,39 @@ impl TicketRepo {
             return Err(TicketRepoError::InvalidReference);
         }
 
-        let min_seats = events
-            .iter()
-            .filter_map(|(_, seats)| *seats)
-            .min()
-            .unwrap_or(0);
+        for (event_id,) in &events {
+            let result: Option<i32> = sqlx::query_scalar(
+                "UPDATE EVENIMENTE
+                 SET numarlocuri = numarlocuri - 1
+                 WHERE id = $1 AND numarlocuri > 0
+                 RETURNING numarlocuri",
+            )
+            .bind(event_id)
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(TicketRepoError::InternalError)?;
 
-        if min_seats <= 0 {
-            return Err(TicketRepoError::NoSeatsAvailable);
+            if result.is_none() {
+                return Err(TicketRepoError::NoSeatsAvailable);
+            }
         }
 
-        for (event_id, _) in &events {
-            sqlx::query("UPDATE EVENIMENTE SET numarlocuri = numarlocuri - 1 WHERE id = $1")
-                .bind(event_id)
-                .execute(&mut *tx)
-                .await
-                .map_err(TicketRepoError::InternalError)?;
-        }
+        let min_seats: Option<i32> = sqlx::query_scalar(
+            r#"
+            SELECT MIN(e.numarlocuri)
+            FROM EVENIMENTE e
+            JOIN JOIN_PE j ON e.id = j.evenimentid
+            WHERE j.pachetid = $1
+            "#,
+        )
+        .bind(packet_id)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(TicketRepoError::InternalError)?
+        .flatten();
 
-        let new_min = min_seats - 1;
         sqlx::query("UPDATE PACHETE SET numarlocuri = $1 WHERE id = $2")
-            .bind(new_min)
+            .bind(min_seats)
             .bind(packet_id)
             .execute(&mut *tx)
             .await
@@ -384,28 +398,31 @@ impl TicketRepo {
             .await
             .map_err(TicketRepoError::InternalError)?;
 
-        let seats: Option<i32> =
-            sqlx::query_scalar("SELECT numarlocuri FROM EVENIMENTE WHERE id = $1")
-                .bind(event_id)
-                .fetch_optional(&mut *tx)
-                .await
-                .map_err(TicketRepoError::InternalError)?;
+        let seats_result: Option<i32> = sqlx::query_scalar(
+            "UPDATE EVENIMENTE
+             SET numarlocuri = numarlocuri - 1
+             WHERE id = $1 AND numarlocuri > 0
+             RETURNING numarlocuri",
+        )
+        .bind(event_id)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(TicketRepoError::InternalError)?;
 
-        match seats {
-            None => {
-                return Err(TicketRepoError::InvalidReference);
-            }
-            Some(count) if count <= 0 => {
-                return Err(TicketRepoError::NoSeatsAvailable);
-            }
-            Some(_) => {}
+        if seats_result.is_none() {
+            let exists: bool =
+                sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM EVENIMENTE WHERE id = $1)")
+                    .bind(event_id)
+                    .fetch_one(&mut *tx)
+                    .await
+                    .map_err(TicketRepoError::InternalError)?;
+
+            return Err(if exists {
+                TicketRepoError::NoSeatsAvailable
+            } else {
+                TicketRepoError::InvalidReference
+            });
         }
-
-        sqlx::query("UPDATE EVENIMENTE SET numarlocuri = numarlocuri - 1 WHERE id = $1")
-            .bind(event_id)
-            .execute(&mut *tx)
-            .await
-            .map_err(TicketRepoError::InternalError)?;
 
         let ticket = sqlx::query_as::<_, Ticket>(
             r#"
@@ -436,9 +453,9 @@ impl TicketRepo {
             .await
             .map_err(TicketRepoError::InternalError)?;
 
-        let events: Vec<(i32, Option<i32>)> = sqlx::query_as(
+        let events: Vec<(i32,)> = sqlx::query_as(
             r#"
-            SELECT e.id, e.numarlocuri
+            SELECT e.id
             FROM EVENIMENTE e
             JOIN JOIN_PE j ON e.id = j.evenimentid
             WHERE j.pachetid = $1
@@ -453,27 +470,39 @@ impl TicketRepo {
             return Err(TicketRepoError::InvalidReference);
         }
 
-        let min_seats = events
-            .iter()
-            .filter_map(|(_, seats)| *seats)
-            .min()
-            .unwrap_or(0);
+        for (event_id,) in &events {
+            let result: Option<i32> = sqlx::query_scalar(
+                "UPDATE EVENIMENTE
+                 SET numarlocuri = numarlocuri - 1
+                 WHERE id = $1 AND numarlocuri > 0
+                 RETURNING numarlocuri",
+            )
+            .bind(event_id)
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(TicketRepoError::InternalError)?;
 
-        if min_seats <= 0 {
-            return Err(TicketRepoError::NoSeatsAvailable);
+            if result.is_none() {
+                return Err(TicketRepoError::NoSeatsAvailable);
+            }
         }
 
-        for (event_id, _) in &events {
-            sqlx::query("UPDATE EVENIMENTE SET numarlocuri = numarlocuri - 1 WHERE id = $1")
-                .bind(event_id)
-                .execute(&mut *tx)
-                .await
-                .map_err(TicketRepoError::InternalError)?;
-        }
+        let min_seats: Option<i32> = sqlx::query_scalar(
+            r#"
+            SELECT MIN(e.numarlocuri)
+            FROM EVENIMENTE e
+            JOIN JOIN_PE j ON e.id = j.evenimentid
+            WHERE j.pachetid = $1
+            "#,
+        )
+        .bind(packet_id)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(TicketRepoError::InternalError)?
+        .flatten();
 
-        let new_min = min_seats - 1;
         sqlx::query("UPDATE PACHETE SET numarlocuri = $1 WHERE id = $2")
-            .bind(new_min)
+            .bind(min_seats)
             .bind(packet_id)
             .execute(&mut *tx)
             .await

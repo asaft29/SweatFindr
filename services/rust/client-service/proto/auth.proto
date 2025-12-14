@@ -8,10 +8,9 @@ service AuthService {
   rpc DestroyToken(DestroyRequest) returns (DestroyResponse);
   rpc RegisterUser(RegisterRequest) returns (RegisterResponse);
   rpc GetUserEmail(GetUserEmailRequest) returns (GetUserEmailResponse);
+  rpc GetUserIdByEmail(GetUserIdByEmailRequest) returns (GetUserIdByEmailResponse);
   rpc UpdateRole(UpdateRoleRequest) returns (UpdateRoleResponse);
-  rpc VerifyEmail(VerifyEmailRequest) returns (VerifyEmailResponse);
-  rpc ResendVerificationCode(ResendVerificationRequest)
-      returns (ResendVerificationResponse);
+  rpc MarkEmailVerified(MarkEmailVerifiedRequest) returns (MarkEmailVerifiedResponse);
 }
 
 message AuthRequest {
@@ -55,7 +54,9 @@ message RegisterResponse {
   string message = 4;
 }
 
-message GetUserEmailRequest { int32 user_id = 1; }
+message GetUserEmailRequest {
+  int32 user_id = 1;
+}
 
 message GetUserEmailResponse {
   bool success = 1;
@@ -68,24 +69,26 @@ message UpdateRoleRequest {
   string role = 2;
 }
 
+message GetUserIdByEmailRequest {
+  string email = 1;
+}
+
+message GetUserIdByEmailResponse {
+  bool success = 1;
+  int32 user_id = 2;
+  string message = 3;
+}
+
 message UpdateRoleResponse {
   bool success = 1;
   string message = 2;
 }
 
-message VerifyEmailRequest {
-  string email = 1;
-  string verification_code = 2;
+message MarkEmailVerifiedRequest {
+  int32 user_id = 1;
 }
 
-message VerifyEmailResponse {
-  bool success = 1;
-  string message = 2;
-}
-
-message ResendVerificationRequest { string email = 1; }
-
-message ResendVerificationResponse {
+message MarkEmailVerifiedResponse {
   bool success = 1;
   string message = 2;
 }

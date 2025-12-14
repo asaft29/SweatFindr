@@ -13,6 +13,7 @@ COPY services/rust/Cargo.lock ./Cargo.lock
 COPY services/rust/event-service/Cargo.toml ./event-service/Cargo.toml
 COPY services/rust/client-service/Cargo.toml ./client-service/Cargo.toml
 COPY services/rust/auth-service/Cargo.toml ./auth-service/Cargo.toml
+COPY services/rust/email-service/Cargo.toml ./email-service/Cargo.toml
 COPY services/rust/common/Cargo.toml ./common/Cargo.toml
 
 RUN mkdir -p event-service/src && \
@@ -21,6 +22,8 @@ RUN mkdir -p event-service/src && \
     echo "fn main() {}" > client-service/src/main.rs && \
     mkdir -p auth-service/src && \
     echo "fn main() {}" > auth-service/src/main.rs && \
+    mkdir -p email-service/src && \
+    echo "fn main() {}" > email-service/src/main.rs && \
     mkdir -p common/src && \
     echo "" > common/src/lib.rs
 

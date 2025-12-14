@@ -21,7 +21,7 @@ impl EmailService {
         let smtp_host = std::env::var("SMTP_HOST").unwrap_or_else(|_| "smtp.gmail.com".to_string());
         let from_email = std::env::var("SMTP_FROM_EMAIL").unwrap_or_else(|_| smtp_username.clone());
         let from_name =
-            std::env::var("SMTP_FROM_NAME").unwrap_or_else(|_| "Auth Service".to_string());
+            std::env::var("SMTP_FROM_NAME").unwrap_or_else(|_| "Email Service".to_string());
 
         let creds = Credentials::new(smtp_username, smtp_password);
 

@@ -1,5 +1,10 @@
 use crate::handlers::auth::*;
 use crate::handlers::client::*;
+use crate::models::auth::{
+    LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, ResendVerificationRequest,
+    ResendVerificationResponse, UpdateRoleRequest, UpdateRoleResponse, VerifyEmailRequest,
+    VerifyEmailResponse,
+};
 use crate::models::client::{AddTicket, Client, SocialMedia, TicketRef, UpdateClient};
 use crate::services::event_service::{EventInfo, PacketInfo, TicketDetails, TicketInfo};
 use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};

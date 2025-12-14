@@ -13,6 +13,7 @@ pub struct AppState {
     pub base_url: String,
     pub event_service_url: String,
     pub auth_service_url: String,
+    pub email_service_url: String,
     pub service_token: String,
     pub event_manager_client: Arc<EventManagerClient>,
 }

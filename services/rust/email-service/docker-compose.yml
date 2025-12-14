@@ -1,0 +1,41 @@
+services:
+  email-service:
+    build:
+      context: ../../../
+      dockerfile: services/rust/email-service/Dockerfile
+    image: email-service:latest
+    container_name: email-service
+    ports:
+      - "50052:50052"
+    environment:
+      - REDIS_URL=redis://email-redis:6379
+      - RUST_LOG=info,email_service=info
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=50052
+      - SMTP_HOST=smtp.gmail.com
+      - SMTP_PORT=587
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM_NAME=${SMTP_FROM_NAME}
+      - SMTP_FROM_EMAIL=${SMTP_USERNAME}
+    depends_on:
+      email-redis:
+        condition: service_started
+    networks:
+      - email-network
+      - shared-network
+    restart: unless-stopped
+
+  email-redis:
+    image: redis:7-alpine
+    container_name: email-redis
+    user: "999:999"
+    ports:
+      - "6380:6379"
+    networks:
+      - email-network
+    restart: unless-stopped
+
+networks:
+  email-network:
+    driver: bridge

@@ -1,6 +1,6 @@
 use crate::models::UserRole;
-use crate::repository::{UserRepository, VerificationRepository};
-use crate::services::{EmailService, JwtService, TokenBlacklist};
+use crate::repository::UserRepository;
+use crate::services::{JwtService, TokenBlacklist};
 use std::str::FromStr;
 use tonic::{Request, Response, Status};
 pub mod auth {
@@ -10,17 +10,15 @@ pub mod auth {
 use auth::auth_service_server::AuthService;
 use auth::{
     AuthRequest, AuthResponse, DestroyRequest, DestroyResponse, GetUserEmailRequest,
-    GetUserEmailResponse, RegisterRequest, RegisterResponse, ResendVerificationRequest,
-    ResendVerificationResponse, UpdateRoleRequest, UpdateRoleResponse, ValidateRequest,
-    ValidateResponse, VerifyEmailRequest, VerifyEmailResponse,
+    GetUserEmailResponse, GetUserIdByEmailRequest, GetUserIdByEmailResponse,
+    MarkEmailVerifiedRequest, MarkEmailVerifiedResponse, RegisterRequest, RegisterResponse,
+    UpdateRoleRequest, UpdateRoleResponse, ValidateRequest, ValidateResponse,
 };
 
 pub struct AuthServiceImpl {
     pub user_repo: UserRepository,
-    pub verification_repo: VerificationRepository,
     pub jwt_service: JwtService,
     pub blacklist: TokenBlacklist,
-    pub email_service: EmailService,
 }
 
 #[tonic::async_trait]
@@ -241,33 +239,6 @@ impl AuthService for AuthServiceImpl {
             }
         };
 
-        let verification_code = EmailService::generate_verification_code();
-
-        match self
-            .verification_repo
-            .create_verification(user_id, &verification_code)
-            .await
-        {
-            Ok(_) => {}
-            Err(e) => {
-                return Err(Status::internal(format!(
-                    "Failed to create verification: {}",
-                    e
-                )));
-            }
-        }
-
-        if let Err(e) = self
-            .email_service
-            .send_verification_email(&req.email, &verification_code)
-            .await
-        {
-            return Err(Status::internal(format!(
-                "Failed to send verification email: {}",
-                e
-            )));
-        }
-
         let token = match self.jwt_service.generate_token(user_id, &role.to_string()) {
             Ok(token) => token,
             Err(e) => {
@@ -279,8 +250,7 @@ impl AuthService for AuthServiceImpl {
             success: true,
             user_id,
             token_value: token,
-            message: "User registered successfully. Please check your email for verification code."
-                .to_string(),
+            message: "User registered successfully".to_string(),
         }))
     }
 
@@ -350,109 +320,36 @@ impl AuthService for AuthServiceImpl {
         }
     }
 
-    async fn verify_email(
+    async fn get_user_id_by_email(
         &self,
-        request: Request<VerifyEmailRequest>,
-    ) -> Result<Response<VerifyEmailResponse>, Status> {
+        request: Request<GetUserIdByEmailRequest>,
+    ) -> Result<Response<GetUserIdByEmailResponse>, Status> {
         let req = request.into_inner();
 
-        let user = match self.user_repo.find_by_email(&req.email).await {
-            Ok(Some(user)) => user,
-            Ok(None) => {
-                return Err(Status::not_found("User not found"));
-            }
-            Err(e) => {
-                return Err(Status::internal(format!("Database error: {}", e)));
-            }
-        };
-
-        if user.email_verified {
-            return Ok(Response::new(VerifyEmailResponse {
+        match self.user_repo.find_by_email(&req.email).await {
+            Ok(Some(user)) => Ok(Response::new(GetUserIdByEmailResponse {
                 success: true,
-                message: "Email already verified".to_string(),
-            }));
-        }
-
-        let verified = match self
-            .verification_repo
-            .verify_code(user.id, &req.verification_code)
-            .await
-        {
-            Ok(verified) => verified,
-            Err(e) => {
-                return Err(Status::internal(format!("Verification error: {}", e)));
-            }
-        };
-
-        if !verified {
-            return Err(Status::invalid_argument(
-                "Invalid or expired verification code",
-            ));
-        }
-
-        match self.user_repo.mark_email_verified(user.id).await {
-            Ok(true) => Ok(Response::new(VerifyEmailResponse {
-                success: true,
-                message: "Email verified successfully".to_string(),
+                user_id: user.id,
+                message: "User found".to_string(),
             })),
-            Ok(false) => Err(Status::not_found("User not found")),
+            Ok(None) => Err(Status::not_found("User not found")),
             Err(e) => Err(Status::internal(format!("Database error: {}", e))),
         }
     }
 
-    async fn resend_verification_code(
+    async fn mark_email_verified(
         &self,
-        request: Request<ResendVerificationRequest>,
-    ) -> Result<Response<ResendVerificationResponse>, Status> {
+        request: Request<MarkEmailVerifiedRequest>,
+    ) -> Result<Response<MarkEmailVerifiedResponse>, Status> {
         let req = request.into_inner();
 
-        let user = match self.user_repo.find_by_email(&req.email).await {
-            Ok(Some(user)) => user,
-            Ok(None) => {
-                return Err(Status::not_found("User not found"));
-            }
-            Err(e) => {
-                return Err(Status::internal(format!("Database error: {}", e)));
-            }
-        };
-
-        if user.email_verified {
-            return Ok(Response::new(ResendVerificationResponse {
+        match self.user_repo.mark_email_verified(req.user_id).await {
+            Ok(true) => Ok(Response::new(MarkEmailVerifiedResponse {
                 success: true,
-                message: "Email already verified".to_string(),
-            }));
+                message: "Email marked as verified".to_string(),
+            })),
+            Ok(false) => Err(Status::not_found("User not found")),
+            Err(e) => Err(Status::internal(format!("Database error: {}", e))),
         }
-
-        let verification_code = EmailService::generate_verification_code();
-
-        match self
-            .verification_repo
-            .create_verification(user.id, &verification_code)
-            .await
-        {
-            Ok(_) => {}
-            Err(e) => {
-                return Err(Status::internal(format!(
-                    "Failed to create verification: {}",
-                    e
-                )));
-            }
-        }
-
-        if let Err(e) = self
-            .email_service
-            .send_verification_email(&req.email, &verification_code)
-            .await
-        {
-            return Err(Status::internal(format!(
-                "Failed to send verification email: {}",
-                e
-            )));
-        }
-
-        Ok(Response::new(ResendVerificationResponse {
-            success: true,
-            message: "Verification code sent successfully".to_string(),
-        }))
     }
 }

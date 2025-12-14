@@ -32,6 +32,9 @@ async fn main() -> Result<()> {
     let auth_service_url = std::env::var("AUTH_SERVICE_URL")
         .unwrap_or_else(|_| "http://auth-service:50051".to_string());
 
+    let email_service_url = std::env::var("EMAIL_SERVICE_URL")
+        .unwrap_or_else(|_| "http://email-service:50052".to_string());
+
     let service_username = std::env::var("SERVICE_USERNAME").expect("SERVICE_USERNAME must be set");
     let service_password = std::env::var("SERVICE_PASSWORD").expect("SERVICE_PASSWORD must be set");
 
@@ -69,6 +72,7 @@ async fn main() -> Result<()> {
         base_url: "http://localhost:8002/api/client-manager".to_string(),
         event_service_url,
         auth_service_url,
+        email_service_url,
         service_token,
         event_manager_client,
     });
