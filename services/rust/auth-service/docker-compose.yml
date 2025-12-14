@@ -40,6 +40,7 @@ services:
   auth-db:
     image: postgres:16-alpine
     container_name: auth-db
+    user: "70:70"
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -62,6 +63,7 @@ services:
   auth-redis:
     image: redis:7-alpine
     container_name: auth-redis
+    user: "999:999"
     ports:
       - "6379:6379"
     networks:
