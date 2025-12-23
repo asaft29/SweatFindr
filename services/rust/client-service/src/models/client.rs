@@ -98,7 +98,7 @@ pub struct UpdateClient {
     pub social_media: Option<SocialMedia>,
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema, Clone)]
 pub struct ClientQuery {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,

@@ -13,32 +13,36 @@ use axum::{
     Extension, Json, Router,
     extract::{Path, State},
     http::StatusCode,
-    routing::{get, post},
+    routing::{get, post, put},
 };
 use std::sync::Arc;
 use validator::Validate;
 
 pub fn event_packet_manager_router() -> Router<Arc<AppState>> {
     Router::new()
-        .route(
-            "/event-packets",
-            post(create_event_packet).get(list_event_packets),
-        )
+        .route("/event-packets", post(create_event_packet))
         .route(
             "/event-packets/{id}",
-            get(get_event_packet)
-                .put(update_event_packet)
+            put(update_event_packet)
                 .delete(delete_event_packet)
                 .patch(patch_event_packet),
         )
         .route(
             "/event-packets/{id}/tickets",
-            get(ticket::list_tickets_for_packet).post(ticket::create_ticket_for_packet),
+            get(ticket::list_tickets_for_packet)
+                .post(ticket::create_ticket_for_packet),
         )
         .route(
             "/event-packets/{id}/tickets/{ticket_cod}",
-            get(ticket::get_ticket_for_packet).delete(ticket::delete_ticket_for_packet),
+            get(ticket::get_ticket_for_packet)
+                .delete(ticket::delete_ticket_for_packet),
         )
+}
+
+pub fn public_event_packet_router() -> Router<Arc<AppState>> {
+    Router::new()
+        .route("/event-packets", get(list_event_packets))
+        .route("/event-packets/{id}", get(get_event_packet))
 }
 
 #[utoipa::path(

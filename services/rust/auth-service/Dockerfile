@@ -7,14 +7,7 @@ RUN apt-get update && apt-get install -y \
     protobuf-compiler \
     && rm -rf /var/lib/apt/lists/*
 
-COPY services/rust/Cargo.toml ./Cargo.toml
-COPY services/rust/Cargo.lock ./Cargo.lock
-
-COPY services/rust/auth-service/Cargo.toml ./auth-service/Cargo.toml
-COPY services/rust/client-service/Cargo.toml ./client-service/Cargo.toml
-COPY services/rust/event-service/Cargo.toml ./event-service/Cargo.toml
-COPY services/rust/email-service/Cargo.toml ./email-service/Cargo.toml
-COPY services/rust/common/Cargo.toml ./common/Cargo.toml
+COPY services/rust/ .
 
 RUN mkdir -p auth-service/src && \
     echo "fn main() {}" > auth-service/src/main.rs && \
@@ -23,22 +16,15 @@ RUN mkdir -p auth-service/src && \
     mkdir -p event-service/src && \
     echo "fn main() {}" > event-service/src/main.rs && \
     mkdir -p email-service/src && \
-    echo "fn main() {}" > email-service/src/main.rs && \
-    mkdir -p common/src && \
-    echo "" > common/src/lib.rs
-
-COPY services/rust/auth-service/proto ./auth-service/proto
-COPY services/rust/auth-service/build.rs ./auth-service/build.rs
+    echo "fn main() {}" > email-service/src/main.rs
 
 RUN cargo build --release --manifest-path auth-service/Cargo.toml
 
-RUN rm -rf auth-service/src common/src
+RUN rm -rf auth-service/src
 
-COPY services/rust/common/src ./common/src
 COPY services/rust/auth-service/src ./auth-service/src
 
-RUN touch common/src/lib.rs && \
-    touch auth-service/src/main.rs && \
+RUN touch auth-service/src/main.rs && \
     cargo build --release --manifest-path auth-service/Cargo.toml
 
 FROM debian:bookworm-slim

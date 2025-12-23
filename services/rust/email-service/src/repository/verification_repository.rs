@@ -22,7 +22,7 @@ impl VerificationRepository {
 
     pub async fn create_verification(&self, user_id: i32, verification_code: &str) -> Result<()> {
         let mut conn = self.redis.lock().await;
-        conn.set_ex(
+        conn.set_ex::<_, _, ()>(
             Self::key(user_id),
             verification_code,
             VERIFICATION_TTL_SECONDS,

@@ -12,7 +12,7 @@ use crate::middleware::{Authorization, UserClaims};
 use crate::models::client::{AddTicket, Client, ClientQuery, TicketRef, UpdateClient};
 use crate::services::event_service;
 use crate::utils::error::{ClientApiError, map_authorization_error, map_event_service_error};
-use crate::utils::links::{Response, client_links, ticket_ref_links};
+use crate::utils::links::{Response, build_simple_client, build_filtered_client, build_ticket_ref};
 
 pub mod auth {
     tonic::include_proto!("auth");
@@ -33,6 +33,96 @@ async fn get_user_email(state: &AppState, user_id: i32) -> Option<String> {
         Some(response.email)
     } else {
         None
+    }
+}
+
+async fn create_ticket_via_event_service(
+    state: &AppState,
+    payload: &AddTicket,
+) -> Result<event_service::TicketDetails, ClientApiError> {
+    match (payload.id_event, payload.id_pachet) {
+        (Some(event_id), None) => event_service::create_ticket_for_event(
+            &state.event_manager_client,
+            event_id,
+            &state.service_token,
+        )
+        .await
+        .map_err(map_event_service_error),
+        (None, Some(packet_id)) => event_service::create_ticket_for_packet(
+            &state.event_manager_client,
+            packet_id,
+            &state.service_token,
+        )
+        .await
+        .map_err(map_event_service_error),
+        _ => Err(ClientApiError::BadRequest(
+            "Must specify either evenimentid or pachetid".to_string(),
+        )),
+    }
+}
+
+fn build_ticket_ref_from_details(ticket_details: &event_service::TicketDetails) -> TicketRef {
+    TicketRef {
+        cod: ticket_details.ticket.cod.clone(),
+        nume_eveniment: ticket_details
+            .event
+            .as_ref()
+            .map(|e| e.nume.clone())
+            .or_else(|| ticket_details.packet.as_ref().map(|p| p.nume.clone())),
+        locatie: ticket_details
+            .event
+            .as_ref()
+            .map(|e| e.locatie.clone())
+            .or_else(|| ticket_details.packet.as_ref().map(|p| p.locatie.clone())),
+        descriere: ticket_details
+            .event
+            .as_ref()
+            .map(|e| e.descriere.clone())
+            .or_else(|| ticket_details.packet.as_ref().map(|p| p.descriere.clone())),
+    }
+}
+
+async fn add_ticket_with_rollback(
+    state: &AppState,
+    client_id: &str,
+    ticket_ref: TicketRef,
+    ticket_code: &str,
+) -> Result<Client, ClientApiError> {
+    match state
+        .client_repo
+        .add_ticket_ref_to_client(client_id, ticket_ref)
+        .await
+    {
+        Ok(client) => Ok(client),
+        Err(mongo_error) => {
+            tracing::error!(
+                "Failed to add ticket {} to client {}. Rolling back ticket creation: {:?}",
+                ticket_code,
+                client_id,
+                mongo_error
+            );
+
+            if let Err(delete_error) = event_service::delete_ticket(
+                &state.event_manager_client,
+                ticket_code,
+                &state.service_token,
+            )
+            .await
+            {
+                tracing::error!(
+                    "CRITICAL: Failed to rollback ticket {} from event-service: {:?}. Manual cleanup required!",
+                    ticket_code,
+                    delete_error
+                );
+            } else {
+                tracing::info!(
+                    "Successfully rolled back ticket {} from event-service",
+                    ticket_code
+                );
+            }
+
+            Err(ClientApiError::Client(mongo_error))
+        }
     }
 }
 
@@ -82,16 +172,18 @@ pub async fn list_clients(
 ) -> Result<Json<Vec<Response<Client>>>, ClientApiError> {
     Authorization::can_list_all(&claims).map_err(map_authorization_error)?;
 
-    let clients = state.client_repo.list_clients(query).await?;
+    let clients = state.client_repo.list_clients(query.clone()).await?;
 
-    let responses: Vec<Response<Client>> = clients
-        .into_iter()
-        .map(|client| {
-            let client_id = client.id.to_hex();
-            let links = client_links(&state.base_url, &client_id);
-            Response::new(client, links)
-        })
-        .collect();
+    let has_filters = query.email.is_some() || query.prenume.is_some() || query.nume.is_some();
+
+    let responses: Vec<Response<Client>> = if has_filters {
+        build_filtered_client(clients, &query, &state.base_url)
+    } else {
+        clients
+            .into_iter()
+            .map(|client| build_simple_client(client, &state.base_url))
+            .collect()
+    };
 
     Ok(Json(responses))
 }
@@ -125,10 +217,7 @@ pub async fn get_client(
     Authorization::can_access_resource(&user_claims, &client, user_email.as_deref())
         .map_err(map_authorization_error)?;
 
-    let client_id = client.id.to_hex();
-    let links = client_links(&state.base_url, &client_id);
-
-    Ok(Json(Response::new(client, links)))
+    Ok(Json(build_simple_client(client, &state.base_url)))
 }
 
 #[utoipa::path(
@@ -166,10 +255,8 @@ pub async fn update_client(
     payload.validate()?;
 
     let client = state.client_repo.update_client(&id, payload).await?;
-    let client_id = client.id.to_hex();
-    let links = client_links(&state.base_url, &client_id);
 
-    Ok(Json(Response::new(client, links)))
+    Ok(Json(build_simple_client(client, &state.base_url)))
 }
 
 #[utoipa::path(
@@ -207,10 +294,8 @@ pub async fn patch_client(
     payload.validate()?;
 
     let client = state.client_repo.update_client(&id, payload).await?;
-    let client_id = client.id.to_hex();
-    let links = client_links(&state.base_url, &client_id);
 
-    Ok(Json(Response::new(client, links)))
+    Ok(Json(build_simple_client(client, &state.base_url)))
 }
 
 #[utoipa::path(
@@ -271,10 +356,7 @@ pub async fn get_client_tickets(
 
     let responses: Vec<Response<TicketRef>> = tickets
         .into_iter()
-        .map(|ticket| {
-            let links = ticket_ref_links(&state.base_url, &id, &ticket.cod);
-            Response::new(ticket, links)
-        })
+        .map(|ticket| build_ticket_ref(ticket, &id, &state.base_url))
         .collect();
 
     Ok(Json(responses))
@@ -315,90 +397,13 @@ pub async fn add_ticket_to_client(
     let Json(payload) = payload?;
     payload.validate()?;
 
-    let ticket_details = match (payload.id_event, payload.id_pachet) {
-        (Some(event_id), None) => event_service::create_ticket_for_event(
-            &state.event_manager_client,
-            event_id,
-            &state.service_token,
-        )
-        .await
-        .map_err(map_event_service_error)?,
-        (None, Some(packet_id)) => event_service::create_ticket_for_packet(
-            &state.event_manager_client,
-            packet_id,
-            &state.service_token,
-        )
-        .await
-        .map_err(map_event_service_error)?,
-        _ => {
-            return Err(ClientApiError::BadRequest(
-                "Must specify either evenimentid or pachetid".to_string(),
-            ));
-        }
-    };
-
+    let ticket_details = create_ticket_via_event_service(&state, &payload).await?;
     let ticket_code = ticket_details.ticket.cod.clone();
+    let ticket_ref = build_ticket_ref_from_details(&ticket_details);
 
-    let ticket_ref = TicketRef {
-        cod: ticket_code.clone(),
-        nume_eveniment: ticket_details
-            .event
-            .as_ref()
-            .map(|e| e.nume.clone())
-            .or_else(|| ticket_details.packet.as_ref().map(|p| p.nume.clone())),
-        locatie: ticket_details
-            .event
-            .as_ref()
-            .map(|e| e.locatie.clone())
-            .or_else(|| ticket_details.packet.as_ref().map(|p| p.locatie.clone())),
-        descriere: ticket_details
-            .event
-            .as_ref()
-            .map(|e| e.descriere.clone())
-            .or_else(|| ticket_details.packet.as_ref().map(|p| p.descriere.clone())),
-    };
+    let client = add_ticket_with_rollback(&state, &id, ticket_ref, &ticket_code).await?;
 
-    let client = match state
-        .client_repo
-        .add_ticket_ref_to_client(&id, ticket_ref)
-        .await
-    {
-        Ok(client) => client,
-        Err(mongo_error) => {
-            tracing::error!(
-                "Failed to add ticket {} to client {}. Rolling back ticket creation: {:?}",
-                ticket_code,
-                id,
-                mongo_error
-            );
-
-            if let Err(delete_error) = event_service::delete_ticket(
-                &state.event_manager_client,
-                &ticket_code,
-                &state.service_token,
-            )
-            .await
-            {
-                tracing::error!(
-                    "CRITICAL: Failed to rollback ticket {} from event-service: {:?}. Manual cleanup required!",
-                    ticket_code,
-                    delete_error
-                );
-            } else {
-                tracing::info!(
-                    "Successfully rolled back ticket {} from event-service",
-                    ticket_code
-                );
-            }
-
-            return Err(ClientApiError::Client(mongo_error));
-        }
-    };
-
-    let client_id = client.id.to_hex();
-    let links = client_links(&state.base_url, &client_id);
-
-    Ok((StatusCode::CREATED, Json(Response::new(client, links))))
+    Ok((StatusCode::CREATED, Json(build_simple_client(client, &state.base_url))))
 }
 
 #[utoipa::path(
@@ -437,8 +442,5 @@ pub async fn remove_ticket_from_client(
         .remove_ticket_from_client(&id, &cod)
         .await?;
 
-    let client_id = client.id.to_hex();
-    let links = client_links(&state.base_url, &client_id);
-
-    Ok(Json(Response::new(client, links)))
+    Ok(Json(build_simple_client(client, &state.base_url)))
 }

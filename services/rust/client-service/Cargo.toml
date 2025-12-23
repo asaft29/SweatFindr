@@ -8,6 +8,7 @@ anyhow = "1.0"
 axum = "0.8"
 bson = { version = "2.13", features = ["serde_with"] }
 common = { path = "../common" }
+hateoas-macros = { path = "../hateoas-macros" }
 futures = "0.3"
 mongodb = "3.1"
 prost = "0.13"

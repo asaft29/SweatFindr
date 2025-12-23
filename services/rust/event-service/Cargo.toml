@@ -7,6 +7,7 @@ edition = "2024"
 anyhow = "1.0"
 axum = "0.8"
 common = { path = "../common" }
+hateoas-macros = { path = "../hateoas-macros" }
 prost = "0.13"
 rayon = "1.11.0"
 serde = { version = "1.0", features = ["derive"] }

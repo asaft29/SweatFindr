@@ -49,11 +49,12 @@ async fn main() -> Result<()> {
         .route("/api", get(check_state))
         .nest(
             "/api/event-manager",
-            handlers::api_router().layer(middleware::from_fn_with_state(
+            handlers::authenticated_api_router().layer(middleware::from_fn_with_state(
                 app_state.clone(),
                 auth_middleware,
             )),
         )
+        .nest("/api/event-manager", handlers::public_api_router())
         .merge(handlers::swagger_router())
         .layer(TraceLayer::new_for_http())
         .with_state(app_state);
