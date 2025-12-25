@@ -57,7 +57,10 @@ async fn main() -> Result<()> {
         .layer(TraceLayer::new_for_http())
         .with_state(app_state);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await?;
+    let port = std::env::var("SERVER_PORT").unwrap_or_else(|_| "10000".to_string());
+    let addr = format!("0.0.0.0:{}", port);
+
+    let listener = tokio::net::TcpListener::bind(&addr).await?;
     info!("{:<12} - gRPC Gateway listening on {:?}", "LISTENING", listener.local_addr());
     info!("{:<12} - Proxying auth-service and email-service gRPC calls", "INFO");
 

@@ -1,10 +1,16 @@
 use crate::models::UserRole;
 use crate::repository::UserRepository;
 use crate::services::{JwtService, TokenBlacklist};
+use email::email_service_client::EmailServiceClient;
 use std::str::FromStr;
 use tonic::{Request, Response, Status};
+
 pub mod auth {
     tonic::include_proto!("auth");
+}
+
+pub mod email {
+    tonic::include_proto!("email");
 }
 
 use auth::auth_service_server::AuthService;
@@ -14,6 +20,7 @@ pub struct AuthServiceImpl {
     pub user_repo: UserRepository,
     pub jwt_service: JwtService,
     pub blacklist: TokenBlacklist,
+    pub email_service_url: String,
 }
 
 #[tonic::async_trait]
@@ -241,11 +248,37 @@ impl AuthService for AuthServiceImpl {
             }
         };
 
+        let email_service_url = self.email_service_url.clone();
+        let user_email = req.email.clone();
+        tokio::spawn(async move {
+            match EmailServiceClient::connect(email_service_url).await {
+                Ok(mut client) => {
+                    let email_request = email::SendVerificationRequest {
+                        user_id,
+                        email: user_email,
+                    };
+
+                    match client.send_verification_email(email_request).await {
+                        Ok(_) => {
+                            tracing::info!("Verification email sent to user {}", user_id);
+                        }
+                        Err(e) => {
+                            tracing::error!("Failed to send verification email: {}", e);
+                        }
+                    }
+                }
+                Err(e) => {
+                    tracing::error!("Failed to connect to email service: {}", e);
+                }
+            }
+        });
+
         Ok(Response::new(RegisterResponse {
             success: true,
             user_id,
             token_value: token,
-            message: "User registered successfully".to_string(),
+            message: "User registered successfully. Check your email for verification code."
+                .to_string(),
         }))
     }
 
@@ -327,7 +360,7 @@ impl AuthService for AuthServiceImpl {
                 user_id: user.id,
                 message: "User found".to_string(),
             })),
-            Ok(None) => Err(Status::not_found("User not found")),
+            Ok(_) => Err(Status::not_found("User not found")),
             Err(e) => Err(Status::internal(format!("Database error: {}", e))),
         }
     }

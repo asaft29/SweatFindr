@@ -45,10 +45,14 @@ async fn main() -> Result<()> {
     let jwt_service = JwtService::new(jwt_secret, jwt_issuer);
     let blacklist = TokenBlacklist::default();
 
+    let email_service_url = std::env::var("EMAIL_SERVICE_URL")
+        .unwrap_or_else(|_| "http://email-service:50052".to_string());
+
     let auth_service = AuthServiceImpl {
         user_repo,
         jwt_service,
         blacklist,
+        email_service_url,
     };
 
     let addr = std::env::var("GRPC_ADDR")

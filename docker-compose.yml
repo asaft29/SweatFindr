@@ -4,6 +4,7 @@ include:
   - services/rust/auth-service/docker-compose.yaml
   - services/rust/email-service/docker-compose.yaml
   - services/rust/gateway/docker-compose.yaml
+  - services/react/docker-compose.yaml
 
 networks:
   shared-network:
