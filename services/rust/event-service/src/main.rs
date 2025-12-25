@@ -1,5 +1,7 @@
 use anyhow::Result;
+use axum::middleware;
 use axum::{Router, extract::State, routing::get};
+use event_service::middleware::auth::auth_middleware;
 use event_service::{
     AppState, handlers,
     repositories::{
@@ -9,8 +11,10 @@ use event_service::{
 };
 use sqlx::postgres::PgPoolOptions;
 use std::sync::Arc;
+use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
 use tracing::info;
+
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt()
@@ -42,8 +46,10 @@ async fn main() -> Result<()> {
         auth_service_url,
     });
 
-    use axum::middleware;
-    use event_service::middleware::auth::auth_middleware;
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods(Any)
+        .allow_headers(Any);
 
     let app = Router::new()
         .route("/api", get(check_state))
@@ -56,6 +62,7 @@ async fn main() -> Result<()> {
         )
         .nest("/api/event-manager", handlers::public_api_router())
         .merge(handlers::swagger_router())
+        .layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(app_state);
 

@@ -12,7 +12,8 @@ impl UserRepository {
     }
 
     pub async fn find_by_email(&self, email: &str) -> Result<Option<User>, String> {
-        let query = "SELECT id, email, parola, rol, email_verified FROM UTILIZATORI WHERE email = $1";
+        let query =
+            "SELECT id, email, parola, rol, email_verified FROM UTILIZATORI WHERE email = $1";
 
         match self.client.query_opt(query, &[&email]).await {
             Ok(Some(row)) => {
@@ -99,6 +100,18 @@ impl UserRepository {
                 _ => Ok(true),
             },
             Err(e) => Err(format!("Failed to mark email as verified: {}", e)),
+        }
+    }
+
+    pub async fn delete_unverified_user(&self, user_id: i32) -> Result<bool, String> {
+        let query = "DELETE FROM UTILIZATORI WHERE id = $1 AND email_verified = false";
+
+        match self.client.execute(query, &[&user_id]).await {
+            Ok(rows_affected) => match rows_affected {
+                0 => Ok(false),
+                _ => Ok(true),
+            },
+            Err(e) => Err(format!("Failed to delete unverified user: {}", e)),
         }
     }
 }

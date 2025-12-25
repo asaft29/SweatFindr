@@ -8,12 +8,7 @@ pub mod auth {
 }
 
 use auth::auth_service_server::AuthService;
-use auth::{
-    AuthRequest, AuthResponse, DestroyRequest, DestroyResponse, GetUserEmailRequest,
-    GetUserEmailResponse, GetUserIdByEmailRequest, GetUserIdByEmailResponse,
-    MarkEmailVerifiedRequest, MarkEmailVerifiedResponse, RegisterRequest, RegisterResponse,
-    UpdateRoleRequest, UpdateRoleResponse, ValidateRequest, ValidateResponse,
-};
+use auth::*;
 
 pub struct AuthServiceImpl {
     pub user_repo: UserRepository,
@@ -349,6 +344,24 @@ impl AuthService for AuthServiceImpl {
                 message: "Email marked as verified".to_string(),
             })),
             Ok(false) => Err(Status::not_found("User not found")),
+            Err(e) => Err(Status::internal(format!("Database error: {}", e))),
+        }
+    }
+
+    async fn delete_unverified_user(
+        &self,
+        request: Request<DeleteUnverifiedUserRequest>,
+    ) -> Result<Response<DeleteUnverifiedUserResponse>, Status> {
+        let req = request.into_inner();
+
+        match self.user_repo.delete_unverified_user(req.user_id).await {
+            Ok(true) => Ok(Response::new(DeleteUnverifiedUserResponse {
+                success: true,
+                message: format!("Unverified user {} deleted successfully", req.user_id),
+            })),
+            Ok(false) => Err(Status::not_found(
+                "User not found or already verified (verified users cannot be deleted via this method)",
+            )),
             Err(e) => Err(Status::internal(format!("Database error: {}", e))),
         }
     }

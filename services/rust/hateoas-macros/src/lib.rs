@@ -1,6 +1,9 @@
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, parse::Parse, parse::ParseStream, token::Comma, Expr, ExprLit, ExprTuple, ItemFn, Lit, Meta, Token};
+use syn::{
+    parse::Parse, parse::ParseStream, parse_macro_input, token::Comma, Expr, ExprLit, ExprTuple,
+    ItemFn, Lit, Meta, Token,
+};
 
 struct HateoasArgs {
     args: Vec<(String, String)>,
@@ -20,7 +23,10 @@ impl Parse for HateoasArgs {
             match &meta {
                 Meta::NameValue(nv) => {
                     let name = nv.path.get_ident().unwrap().to_string();
-                    if let Expr::Lit(ExprLit { lit: Lit::Str(s), .. }) = &nv.value {
+                    if let Expr::Lit(ExprLit {
+                        lit: Lit::Str(s), ..
+                    }) = &nv.value
+                    {
                         args.push((name, s.value()));
                     }
                 }
@@ -28,36 +34,56 @@ impl Parse for HateoasArgs {
                     let name = list.path.get_ident().unwrap().to_string();
                     if name == "links" {
                         let content = list.tokens.clone();
-                        let parser = syn::punctuated::Punctuated::<ExprTuple, Comma>::parse_terminated;
+                        let parser =
+                            syn::punctuated::Punctuated::<ExprTuple, Comma>::parse_terminated;
                         if let Ok(tuples) = syn::parse::Parser::parse2(parser, content) {
                             for tuple in tuples {
                                 if tuple.elems.len() == 3 {
-                                    let vals: Vec<String> = tuple.elems.iter().filter_map(|e| {
-                                        if let Expr::Lit(ExprLit { lit: Lit::Str(s), .. }) = e {
-                                            Some(s.value())
-                                        } else {
-                                            None
-                                        }
-                                    }).collect();
+                                    let vals: Vec<String> = tuple
+                                        .elems
+                                        .iter()
+                                        .filter_map(|e| {
+                                            if let Expr::Lit(ExprLit {
+                                                lit: Lit::Str(s), ..
+                                            }) = e
+                                            {
+                                                Some(s.value())
+                                            } else {
+                                                None
+                                            }
+                                        })
+                                        .collect();
                                     if vals.len() == 3 {
-                                        links.push((vals[0].clone(), vals[1].clone(), vals[2].clone()));
+                                        links.push((
+                                            vals[0].clone(),
+                                            vals[1].clone(),
+                                            vals[2].clone(),
+                                        ));
                                     }
                                 }
                             }
                         }
                     } else if name == "query_fields" {
                         let content = list.tokens.clone();
-                        let parser = syn::punctuated::Punctuated::<ExprTuple, Comma>::parse_terminated;
+                        let parser =
+                            syn::punctuated::Punctuated::<ExprTuple, Comma>::parse_terminated;
                         if let Ok(tuples) = syn::parse::Parser::parse2(parser, content) {
                             for tuple in tuples {
                                 if tuple.elems.len() == 2 {
-                                    let vals: Vec<String> = tuple.elems.iter().filter_map(|e| {
-                                        if let Expr::Lit(ExprLit { lit: Lit::Str(s), .. }) = e {
-                                            Some(s.value())
-                                        } else {
-                                            None
-                                        }
-                                    }).collect();
+                                    let vals: Vec<String> = tuple
+                                        .elems
+                                        .iter()
+                                        .filter_map(|e| {
+                                            if let Expr::Lit(ExprLit {
+                                                lit: Lit::Str(s), ..
+                                            }) = e
+                                            {
+                                                Some(s.value())
+                                            } else {
+                                                None
+                                            }
+                                        })
+                                        .collect();
                                     if vals.len() == 2 {
                                         query_fields.push((vals[0].clone(), vals[1].clone()));
                                     }
@@ -74,7 +100,11 @@ impl Parse for HateoasArgs {
             }
         }
 
-        Ok(HateoasArgs { args, links, query_fields })
+        Ok(HateoasArgs {
+            args,
+            links,
+            query_fields,
+        })
     }
 }
 
@@ -99,11 +129,35 @@ pub fn hateoas_simple(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(attr as HateoasArgs);
     let input_fn = parse_macro_input!(item as ItemFn);
 
-    let resource = args.args.iter().find(|(k, _)| k == "resource").map(|(_, v)| v).expect("resource parameter is required");
-    let id_field = args.args.iter().find(|(k, _)| k == "id_field").map(|(_, v)| v).expect("id_field parameter is required");
-    let id_to_string = args.args.iter().find(|(k, _)| k == "id_to_string").map(|(_, v)| v); // Optional
-    let self_methods = args.args.iter().find(|(k, _)| k == "self_methods").map(|(_, v)| v).expect("self_methods parameter is required");
-    let parent_methods = args.args.iter().find(|(k, _)| k == "parent_methods").map(|(_, v)| v).expect("parent_methods parameter is required");
+    let resource = args
+        .args
+        .iter()
+        .find(|(k, _)| k == "resource")
+        .map(|(_, v)| v)
+        .expect("resource parameter is required");
+    let id_field = args
+        .args
+        .iter()
+        .find(|(k, _)| k == "id_field")
+        .map(|(_, v)| v)
+        .expect("id_field parameter is required");
+    let id_to_string = args
+        .args
+        .iter()
+        .find(|(k, _)| k == "id_to_string")
+        .map(|(_, v)| v);
+    let self_methods = args
+        .args
+        .iter()
+        .find(|(k, _)| k == "self_methods")
+        .map(|(_, v)| v)
+        .expect("self_methods parameter is required");
+    let parent_methods = args
+        .args
+        .iter()
+        .find(|(k, _)| k == "parent_methods")
+        .map(|(_, v)| v)
+        .expect("parent_methods parameter is required");
 
     let fn_sig = &input_fn.sig;
     let fn_vis = &input_fn.vis;
@@ -116,7 +170,8 @@ pub fn hateoas_simple(attr: TokenStream, item: TokenStream) -> TokenStream {
     let id_field_ident = syn::Ident::new(&id_field, proc_macro2::Span::call_site());
 
     let id_extraction = if let Some(conversion) = id_to_string {
-        let conversion_tokens: proc_macro2::TokenStream = conversion.parse().expect("Invalid id_to_string");
+        let conversion_tokens: proc_macro2::TokenStream =
+            conversion.parse().expect("Invalid id_to_string");
         quote! {
             let id = #data_param.#id_field_ident.#conversion_tokens;
         }
@@ -169,12 +224,42 @@ pub fn hateoas_nested(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(attr as HateoasArgs);
     let input_fn = parse_macro_input!(item as ItemFn);
 
-    let parent_resource = args.args.iter().find(|(k, _)| k == "parent_resource").map(|(_, v)| v).expect("parent_resource parameter is required");
-    let parent_id_field = args.args.iter().find(|(k, _)| k == "parent_id_field").map(|(_, v)| v).expect("parent_id_field parameter is required");
-    let resource = args.args.iter().find(|(k, _)| k == "resource").map(|(_, v)| v).expect("resource parameter is required");
-    let id_field = args.args.iter().find(|(k, _)| k == "id_field").map(|(_, v)| v).expect("id_field parameter is required");
-    let self_methods = args.args.iter().find(|(k, _)| k == "self_methods").map(|(_, v)| v).expect("self_methods parameter is required");
-    let parent_methods = args.args.iter().find(|(k, _)| k == "parent_methods").map(|(_, v)| v).expect("parent_methods parameter is required");
+    let parent_resource = args
+        .args
+        .iter()
+        .find(|(k, _)| k == "parent_resource")
+        .map(|(_, v)| v)
+        .expect("parent_resource parameter is required");
+    let parent_id_field = args
+        .args
+        .iter()
+        .find(|(k, _)| k == "parent_id_field")
+        .map(|(_, v)| v)
+        .expect("parent_id_field parameter is required");
+    let resource = args
+        .args
+        .iter()
+        .find(|(k, _)| k == "resource")
+        .map(|(_, v)| v)
+        .expect("resource parameter is required");
+    let id_field = args
+        .args
+        .iter()
+        .find(|(k, _)| k == "id_field")
+        .map(|(_, v)| v)
+        .expect("id_field parameter is required");
+    let self_methods = args
+        .args
+        .iter()
+        .find(|(k, _)| k == "self_methods")
+        .map(|(_, v)| v)
+        .expect("self_methods parameter is required");
+    let parent_methods = args
+        .args
+        .iter()
+        .find(|(k, _)| k == "parent_methods")
+        .map(|(_, v)| v)
+        .expect("parent_methods parameter is required");
 
     let fn_sig = &input_fn.sig;
     let fn_vis = &input_fn.vis;
@@ -221,11 +306,36 @@ pub fn hateoas_collection(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(attr as HateoasArgs);
     let input_fn = parse_macro_input!(item as ItemFn);
 
-    let parent_resource = args.args.iter().find(|(k, _)| k == "parent_resource").map(|(_, v)| v).expect("parent_resource parameter is required");
-    let parent_id_field = args.args.iter().find(|(k, _)| k == "parent_id_field").map(|(_, v)| v).expect("parent_id_field parameter is required");
-    let resource = args.args.iter().find(|(k, _)| k == "resource").map(|(_, v)| v).expect("resource parameter is required");
-    let self_methods = args.args.iter().find(|(k, _)| k == "self_methods").map(|(_, v)| v).expect("self_methods parameter is required");
-    let parent_methods = args.args.iter().find(|(k, _)| k == "parent_methods").map(|(_, v)| v).expect("parent_methods parameter is required");
+    let parent_resource = args
+        .args
+        .iter()
+        .find(|(k, _)| k == "parent_resource")
+        .map(|(_, v)| v)
+        .expect("parent_resource parameter is required");
+    let parent_id_field = args
+        .args
+        .iter()
+        .find(|(k, _)| k == "parent_id_field")
+        .map(|(_, v)| v)
+        .expect("parent_id_field parameter is required");
+    let resource = args
+        .args
+        .iter()
+        .find(|(k, _)| k == "resource")
+        .map(|(_, v)| v)
+        .expect("resource parameter is required");
+    let self_methods = args
+        .args
+        .iter()
+        .find(|(k, _)| k == "self_methods")
+        .map(|(_, v)| v)
+        .expect("self_methods parameter is required");
+    let parent_methods = args
+        .args
+        .iter()
+        .find(|(k, _)| k == "parent_methods")
+        .map(|(_, v)| v)
+        .expect("parent_methods parameter is required");
 
     let fn_sig = &input_fn.sig;
     let fn_vis = &input_fn.vis;
@@ -274,9 +384,24 @@ pub fn hateoas_filtered(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(attr as HateoasArgs);
     let input_fn = parse_macro_input!(item as ItemFn);
 
-    let resource = args.args.iter().find(|(k, _)| k == "resource").map(|(_, v)| v).expect("resource parameter is required");
-    let self_methods = args.args.iter().find(|(k, _)| k == "self_methods").map(|(_, v)| v).expect("self_methods parameter is required");
-    let parent_methods = args.args.iter().find(|(k, _)| k == "parent_methods").map(|(_, v)| v).expect("parent_methods parameter is required");
+    let resource = args
+        .args
+        .iter()
+        .find(|(k, _)| k == "resource")
+        .map(|(_, v)| v)
+        .expect("resource parameter is required");
+    let self_methods = args
+        .args
+        .iter()
+        .find(|(k, _)| k == "self_methods")
+        .map(|(_, v)| v)
+        .expect("self_methods parameter is required");
+    let parent_methods = args
+        .args
+        .iter()
+        .find(|(k, _)| k == "parent_methods")
+        .map(|(_, v)| v)
+        .expect("parent_methods parameter is required");
 
     let fn_sig = &input_fn.sig;
     let fn_vis = &input_fn.vis;
@@ -361,34 +486,46 @@ pub fn hateoas_links(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(attr as HateoasArgs);
     let input_fn = parse_macro_input!(item as ItemFn);
 
-    let self_path = args.args.iter()
+    let self_path = args
+        .args
+        .iter()
         .find(|(k, _)| k == "self_path")
         .map(|(_, v)| v)
         .expect("self_path parameter is required");
 
-    let self_methods = args.args.iter()
+    let self_methods = args
+        .args
+        .iter()
         .find(|(k, _)| k == "self_methods")
         .map(|(_, v)| v);
 
-    let parent_path = args.args.iter()
+    let parent_path = args
+        .args
+        .iter()
         .find(|(k, _)| k == "parent_path")
         .map(|(_, v)| v);
 
-    let parent_methods = args.args.iter()
+    let parent_methods = args
+        .args
+        .iter()
         .find(|(k, _)| k == "parent_methods")
         .map(|(_, v)| v);
 
     let fn_sig = &input_fn.sig;
     let fn_vis = &input_fn.vis;
 
-    let param_names: Vec<_> = fn_sig.inputs.iter().filter_map(|arg| {
-        if let syn::FnArg::Typed(pat_type) = arg {
-            if let syn::Pat::Ident(pat_ident) = &*pat_type.pat {
-                return Some(pat_ident.ident.clone());
+    let param_names: Vec<_> = fn_sig
+        .inputs
+        .iter()
+        .filter_map(|arg| {
+            if let syn::FnArg::Typed(pat_type) = arg {
+                if let syn::Pat::Ident(pat_ident) = &*pat_type.pat {
+                    return Some(pat_ident.ident.clone());
+                }
             }
-        }
-        None
-    }).collect();
+            None
+        })
+        .collect();
 
     let count_placeholders = |s: &str| s.matches("{}").count();
 

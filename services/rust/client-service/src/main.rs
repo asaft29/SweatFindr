@@ -1,9 +1,14 @@
 use anyhow::Result;
+use axum::middleware;
 use axum::{Router, extract::State, routing::get};
+use client_service::handlers::auth::auth::AuthRequest;
+use client_service::handlers::auth::auth::auth_service_client::AuthServiceClient;
+use client_service::middleware::auth::auth_middleware;
 use client_service::services::event_manager::EventManagerClient;
 use client_service::{AppState, handlers, repositories::client_repo::ClientRepo};
 use mongodb::{Client, options::ClientOptions};
 use std::sync::Arc;
+use tower_http::cors::{Any, CorsLayer};
 use tower_http::trace::TraceLayer;
 use tracing::info;
 
@@ -40,9 +45,6 @@ async fn main() -> Result<()> {
 
     info!("{:<12} - Authenticating as service user...", "AUTH");
 
-    use client_service::handlers::auth::auth::AuthRequest;
-    use client_service::handlers::auth::auth::auth_service_client::AuthServiceClient;
-
     let mut auth_client = AuthServiceClient::connect(auth_service_url.clone())
         .await
         .expect("Failed to connect to auth service for service authentication");
@@ -77,8 +79,10 @@ async fn main() -> Result<()> {
         event_manager_client,
     });
 
-    use axum::middleware;
-    use client_service::middleware::auth::auth_middleware;
+    let cors = CorsLayer::new()
+        .allow_origin(Any)
+        .allow_methods(Any)
+        .allow_headers(Any);
 
     let app = Router::new()
         .route("/api", get(check_state))
@@ -98,6 +102,7 @@ async fn main() -> Result<()> {
             )),
         )
         .merge(handlers::swagger_router())
+        .layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(app_state);
 

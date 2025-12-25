@@ -18,6 +18,10 @@ lettre = { version = "0.11", features = [
 rand = "0.8"
 redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }
 maud = { version = "0.27.0", features = ["axum"] }
+chrono = "0.4"
+futures-util = "0.3"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [build-dependencies]
 tonic-build = "0.12"

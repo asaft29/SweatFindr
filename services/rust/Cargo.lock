@@ -865,7 +865,9 @@ name = "email-service"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "chrono",
  "dotenvy",
+ "futures-util",
  "lettre",
  "maud",
  "prost",
@@ -875,6 +877,8 @@ dependencies = [
  "tokio",
  "tonic",
  "tonic-build",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

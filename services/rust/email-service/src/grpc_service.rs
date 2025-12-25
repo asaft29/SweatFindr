@@ -1,11 +1,18 @@
 use crate::repository::verification_repository::VerificationRepository;
 use crate::services::email_service::EmailService;
+use std::sync::Arc;
 use tonic::{Request, Response, Status};
 
 pub mod email {
     tonic::include_proto!("email");
 }
 
+pub mod auth {
+    tonic::include_proto!("auth");
+}
+
+use auth::auth_service_client::AuthServiceClient;
+use auth::MarkEmailVerifiedRequest;
 use email::email_service_server::EmailService as EmailServiceTrait;
 use email::{
     ResendVerificationRequest, ResendVerificationResponse, SendVerificationRequest,
@@ -14,14 +21,20 @@ use email::{
 
 pub struct EmailServiceImpl {
     email_service: EmailService,
-    verification_repo: VerificationRepository,
+    verification_repo: Arc<VerificationRepository>,
+    auth_service_url: String,
 }
 
 impl EmailServiceImpl {
-    pub fn new(email_service: EmailService, verification_repo: VerificationRepository) -> Self {
+    pub fn new(
+        email_service: EmailService,
+        verification_repo: Arc<VerificationRepository>,
+        auth_service_url: String,
+    ) -> Self {
         Self {
             email_service,
             verification_repo,
+            auth_service_url,
         }
     }
 }
@@ -71,10 +84,26 @@ impl EmailServiceTrait for EmailServiceImpl {
             }));
         }
 
-        Ok(Response::new(VerifyCodeResponse {
-            success: true,
-            message: "Email verified successfully".to_string(),
-        }))
+        // Mark email as verified in auth-service
+        let mut auth_client = AuthServiceClient::connect(self.auth_service_url.clone())
+            .await
+            .map_err(|e| Status::internal(format!("Failed to connect to auth service: {}", e)))?;
+
+        match auth_client
+            .mark_email_verified(Request::new(MarkEmailVerifiedRequest {
+                user_id: req.user_id,
+            }))
+            .await
+        {
+            Ok(_) => Ok(Response::new(VerifyCodeResponse {
+                success: true,
+                message: "Email verified successfully".to_string(),
+            })),
+            Err(e) => Err(Status::internal(format!(
+                "Failed to mark email as verified: {}",
+                e
+            ))),
+        }
     }
 
     async fn resend_verification_code(
