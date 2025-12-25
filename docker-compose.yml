@@ -1,8 +1,9 @@
 include:
-  - services/rust/event-service/docker-compose.yml
-  - services/rust/client-service/docker-compose.yml
-  - services/rust/auth-service/docker-compose.yml
-  - services/rust/email-service/docker-compose.yml
+  - services/rust/event-service/docker-compose.yaml
+  - services/rust/client-service/docker-compose.yaml
+  - services/rust/auth-service/docker-compose.yaml
+  - services/rust/email-service/docker-compose.yaml
+  - services/rust/gateway/docker-compose.yaml
 
 networks:
   shared-network:
