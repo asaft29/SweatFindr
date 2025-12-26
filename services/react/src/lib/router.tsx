@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { Layout } from '../components/Layout';
+import { AnimatedPage } from '../components/AnimatedPage';
 import { ProtectedRoute } from '../components/ProtectedRoute';
 import { LoginForm } from '../components/LoginForm';
 import { RegisterForm } from '../components/RegisterForm';
@@ -14,27 +15,43 @@ export const router = createBrowserRouter([
     path: '/',
     element: (
       <Layout>
-        <HomePage />
+        <AnimatedPage>
+          <HomePage />
+        </AnimatedPage>
       </Layout>
     ),
   },
   {
     path: '/login',
-    element: <LoginForm />,
+    element: (
+      <AnimatedPage>
+        <LoginForm />
+      </AnimatedPage>
+    ),
   },
   {
     path: '/register',
-    element: <RegisterForm />,
+    element: (
+      <AnimatedPage>
+        <RegisterForm />
+      </AnimatedPage>
+    ),
   },
   {
     path: '/verify-email',
-    element: <VerifyEmailForm />,
+    element: (
+      <AnimatedPage>
+        <VerifyEmailForm />
+      </AnimatedPage>
+    ),
   },
   {
     path: '/unauthorized',
     element: (
       <Layout>
-        <UnauthorizedPage />
+        <AnimatedPage>
+          <UnauthorizedPage />
+        </AnimatedPage>
       </Layout>
     ),
   },
@@ -42,7 +59,9 @@ export const router = createBrowserRouter([
     path: '/events',
     element: (
       <Layout>
-        <EventsPage />
+        <AnimatedPage>
+          <EventsPage />
+        </AnimatedPage>
       </Layout>
     ),
   },
@@ -50,7 +69,9 @@ export const router = createBrowserRouter([
     path: '/packages',
     element: (
       <Layout>
-        <EventPackagesPage />
+        <AnimatedPage>
+          <EventPackagesPage />
+        </AnimatedPage>
       </Layout>
     ),
   },
@@ -58,12 +79,14 @@ export const router = createBrowserRouter([
     path: '/my-events',
     element: (
       <Layout>
-        <ProtectedRoute allowedRoles={['owner-event'] as any}>
-          <div>
-            <h1>My Events</h1>
-            <p>Manage your events (Event Owner only)</p>
-          </div>
-        </ProtectedRoute>
+        <AnimatedPage>
+          <ProtectedRoute allowedRoles={['owner-event'] as any}>
+            <div>
+              <h1>My Events</h1>
+              <p>Manage your events (Event Owner only)</p>
+            </div>
+          </ProtectedRoute>
+        </AnimatedPage>
       </Layout>
     ),
   },
@@ -71,12 +94,14 @@ export const router = createBrowserRouter([
     path: '/my-tickets',
     element: (
       <Layout>
-        <ProtectedRoute allowedRoles={['client'] as any}>
-          <div>
-            <h1>My Tickets</h1>
-            <p>View your purchased tickets (Client only)</p>
-          </div>
-        </ProtectedRoute>
+        <AnimatedPage>
+          <ProtectedRoute allowedRoles={['client'] as any}>
+            <div>
+              <h1>My Tickets</h1>
+              <p>View your purchased tickets (Client only)</p>
+            </div>
+          </ProtectedRoute>
+        </AnimatedPage>
       </Layout>
     ),
   },

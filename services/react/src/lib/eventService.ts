@@ -28,19 +28,17 @@ class EventService {
 
   async getEventPackages(filters?: {
     type?: string;
-    description?: string;
     availableTickets?: number;
     page?: number;
-    limit?: number;
+    itemsPerPage?: number;
   }): Promise<EventPackage[]> {
     const params = new URLSearchParams();
     if (filters?.type) params.append("type", filters.type);
-    if (filters?.description) params.append("description", filters.description);
     if (filters?.availableTickets !== undefined) {
-      params.append("availableTickets", filters.availableTickets.toString());
+      params.append("available_tickets", filters.availableTickets.toString());
     }
     if (filters?.page !== undefined) params.append("page", filters.page.toString());
-    if (filters?.limit !== undefined) params.append("limit", filters.limit.toString());
+    if (filters?.itemsPerPage !== undefined) params.append("items_per_page", filters.itemsPerPage.toString());
 
     const queryString = params.toString();
     const url = queryString

@@ -29,7 +29,7 @@ impl EventRepo {
 
         if let Some(location) = location {
             query_builder.push(" WHERE unaccent(locatie) ILIKE unaccent(");
-            query_builder.push_bind(format!("{}%", location));
+            query_builder.push_bind(format!("%{}%", location));
             query_builder.push(")");
             has_condition = true;
         }
