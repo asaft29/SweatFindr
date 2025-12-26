@@ -1,7 +1,8 @@
+use crate::middleware::auth::auth_middleware;
 use crate::models::auth::*;
 use crate::AppState;
 use crate::auth::auth_service_client::AuthServiceClient;
-use axum::{extract::State, http::StatusCode, Json, Router, routing::post};
+use axum::{extract::State, http::StatusCode, Json, Router, routing::post, middleware};
 use std::sync::Arc;
 use tracing::error;
 
@@ -9,13 +10,15 @@ pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/register", post(register))
         .route("/login", post(login))
-        .route("/logout", post(logout))
+        .route("/logout", post(logout).layer(middleware::from_fn(auth_middleware)))
 }
 
 async fn register(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<RegisterRequest>,
 ) -> Result<Json<RegisterResponse>, StatusCode> {
+
+
     let mut client = AuthServiceClient::connect(state.auth_service_url.clone())
         .await
         .map_err(|e| {

@@ -16,59 +16,67 @@ export const Layout = ({ children }: LayoutProps) => {
   };
 
   return (
-    <div className="layout">
-      <header className="header">
-        <div className="header-content">
-          <div className="header-left">
-            <h1 className="logo" onClick={() => navigate('/')}>
-              Event Platform
-            </h1>
-          </div>
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <header className="bg-gradient-to-r from-indigo-600 to-blue-600 shadow-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex-shrink-0">
+              <h1 className="text-2xl font-bold text-white cursor-pointer hover:text-indigo-100 transition" onClick={() => navigate('/')}>
+                SweatFindr
+              </h1>
+            </div>
 
-          <nav className="nav">
-            {isAuthenticated ? (
-              <>
-                <button onClick={() => navigate('/')} className="nav-link">
-                  Home
-                </button>
-                <button onClick={() => navigate('/events')} className="nav-link">
-                  Events
-                </button>
-                {user?.role === 'owner-event' && (
-                  <button onClick={() => navigate('/my-events')} className="nav-link">
-                    My Events
+            <nav className="flex items-center space-x-1 sm:space-x-2">
+              <button onClick={() => navigate('/')} className="px-3 py-2 rounded-md text-sm font-medium text-white hover:bg-indigo-700 hover:bg-opacity-75 transition">
+                Home
+              </button>
+              <button onClick={() => navigate('/events')} className="px-3 py-2 rounded-md text-sm font-medium text-white hover:bg-indigo-700 hover:bg-opacity-75 transition">
+                Events
+              </button>
+              <button onClick={() => navigate('/packages')} className="px-3 py-2 rounded-md text-sm font-medium text-white hover:bg-indigo-700 hover:bg-opacity-75 transition">
+                Packages
+              </button>
+
+              {isAuthenticated ? (
+                <>
+                  {user?.role === 'owner-event' && (
+                    <button onClick={() => navigate('/my-events')} className="px-3 py-2 rounded-md text-sm font-medium text-white hover:bg-indigo-700 hover:bg-opacity-75 transition">
+                      My Events
+                    </button>
+                  )}
+                  {user?.role === 'client' && (
+                    <button onClick={() => navigate('/my-tickets')} className="px-3 py-2 rounded-md text-sm font-medium text-white hover:bg-indigo-700 hover:bg-opacity-75 transition">
+                      My Tickets
+                    </button>
+                  )}
+                  <div className="flex items-center space-x-3 ml-4 pl-4 border-l border-indigo-400">
+                    <span className="text-sm text-indigo-100">{user?.email}</span>
+                    <button onClick={handleLogout} className="px-4 py-2 rounded-md text-sm font-medium text-indigo-600 bg-white hover:bg-indigo-50 transition">
+                      Logout
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => navigate('/login')} className="px-3 py-2 rounded-md text-sm font-medium text-white hover:bg-indigo-700 hover:bg-opacity-75 transition">
+                    Sign In
                   </button>
-                )}
-                {user?.role === 'client' && (
-                  <button onClick={() => navigate('/my-tickets')} className="nav-link">
-                    My Tickets
+                  <button onClick={() => navigate('/register')} className="ml-2 px-4 py-2 rounded-md text-sm font-medium text-indigo-600 bg-white hover:bg-indigo-50 transition">
+                    Sign Up
                   </button>
-                )}
-                <div className="user-menu">
-                  <span className="user-email">{user?.email}</span>
-                  <button onClick={handleLogout} className="logout-button">
-                    Logout
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <button onClick={() => navigate('/login')} className="nav-link">
-                  Sign In
-                </button>
-                <button onClick={() => navigate('/register')} className="register-button">
-                  Sign Up
-                </button>
-              </>
-            )}
-          </nav>
+                </>
+              )}
+            </nav>
+          </div>
         </div>
       </header>
 
-      <main className="main-content">{children}</main>
+      <main className="flex-grow">{children}</main>
 
-      <footer className="footer">
-        <p>&copy; 2025 Event Platform. All rights reserved.</p>
+      <footer className="bg-white border-t border-gray-200">
+        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+          <p className="text-center text-gray-500 text-sm">&copy; 2025 SweatFindr. All rights reserved.</p>
+        </div>
       </footer>
     </div>
   );

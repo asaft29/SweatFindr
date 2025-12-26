@@ -1,4 +1,5 @@
 mod handlers;
+mod middleware;
 mod models;
 
 use anyhow::Result;

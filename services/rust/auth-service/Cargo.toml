@@ -20,6 +20,7 @@ validator = { version = "0.18", features = ["derive"] }
 email_address = "0.2"
 tld = "2.14"
 tracing = "0.1"
+redis = { version = "0.27", features = ["tokio-comp", "connection-manager"] }
 
 [build-dependencies]
 tonic-build = "0.12"

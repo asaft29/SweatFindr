@@ -43,7 +43,15 @@ async fn main() -> Result<()> {
     let jwt_issuer =
         std::env::var("JWT_ISSUER").unwrap_or_else(|_| "http://localhost:50051".to_string());
     let jwt_service = JwtService::new(jwt_secret, jwt_issuer);
-    let blacklist = TokenBlacklist::default();
+
+    let redis_url = std::env::var("REDIS_URL")
+        .unwrap_or_else(|_| "redis://auth-redis:6379".to_string());
+    let redis_client = redis::Client::open(redis_url.as_str())
+        .expect("Failed to create Redis client");
+    let redis_conn = redis::aio::ConnectionManager::new(redis_client)
+        .await
+        .expect("Failed to connect to Redis");
+    let blacklist = TokenBlacklist::new(redis_conn);
 
     let email_service_url = std::env::var("EMAIL_SERVICE_URL")
         .unwrap_or_else(|_| "http://email-service:50052".to_string());

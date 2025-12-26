@@ -6,6 +6,8 @@ import { RegisterForm } from '../components/RegisterForm';
 import { VerifyEmailForm } from '../components/VerifyEmailForm';
 import { HomePage } from '../pages/HomePage';
 import { UnauthorizedPage } from '../pages/UnauthorizedPage';
+import { EventsPage } from '../pages/EventsPage';
+import { EventPackagesPage } from '../pages/EventPackagesPage';
 
 export const router = createBrowserRouter([
   {
@@ -40,12 +42,15 @@ export const router = createBrowserRouter([
     path: '/events',
     element: (
       <Layout>
-        <ProtectedRoute requireAuth={false}>
-          <div>
-            <h1>Events</h1>
-            <p>Public events listing (available to all users)</p>
-          </div>
-        </ProtectedRoute>
+        <EventsPage />
+      </Layout>
+    ),
+  },
+  {
+    path: '/packages',
+    element: (
+      <Layout>
+        <EventPackagesPage />
       </Layout>
     ),
   },

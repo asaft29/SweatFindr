@@ -74,28 +74,30 @@ export const VerifyEmailForm = () => {
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <h1 className="auth-title">Verify Your Email</h1>
-        <p className="auth-subtitle">
-          We sent a verification code to {email || 'your email'}
-        </p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-2xl">
+        <div>
+          <h1 className="text-center text-3xl font-extrabold text-gray-900">Verify Your Email</h1>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            We sent a verification code to {email || 'your email'}
+          </p>
+        </div>
 
         {error && (
-          <div className="auth-error" role="alert">
+          <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg" role="alert">
             {error}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="auth-form">
-          <div className="form-group">
-            <label htmlFor="code" className="form-label">
+        <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+          <div>
+            <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-1">
               Verification Code
             </label>
             <input
               id="code"
               type="text"
-              className="form-input"
+              className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm transition"
               value={verificationCode}
               onChange={(e) => setVerificationCode(e.target.value)}
               placeholder="Enter 6-digit code"
@@ -107,20 +109,20 @@ export const VerifyEmailForm = () => {
 
           <button
             type="submit"
-            className="auth-button"
+            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
             disabled={isLoading}
           >
             {isLoading ? 'Verifying...' : 'Verify Email'}
           </button>
         </form>
 
-        <div className="auth-footer">
-          <p>
+        <div className="text-center">
+          <p className="text-sm text-gray-600">
             Didn't receive the code?{' '}
             <button
               onClick={handleResend}
               disabled={isResending}
-              className="auth-link-button"
+              className="font-medium text-indigo-600 hover:text-indigo-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isResending ? 'Sending...' : 'Resend'}
             </button>

@@ -134,6 +134,7 @@ dependencies = [
  "email_address",
  "jsonwebtoken",
  "prost",
+ "redis",
  "serde",
  "serde_json",
  "tld",

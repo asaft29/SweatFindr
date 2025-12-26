@@ -70,3 +70,21 @@ export interface ResendVerificationResponse {
   success: boolean;
   message: string;
 }
+
+export interface Event {
+  id: number;
+  id_owner: number;
+  nume: string;
+  locatie: string | null;
+  descriere: string | null;
+  numarlocuri: number | null;
+}
+
+export interface EventPackage {
+  id: number;
+  id_owner: number;
+  nume: string;
+  locatie: string | null;
+  descriere: string | null;
+  numarlocuri: number | null;
+}

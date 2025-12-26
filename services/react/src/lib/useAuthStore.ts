@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { AuthState, User, UserRole } from "../lib/types";
 import { authService } from "./authService";
+import { isTokenExpired } from "./tokenUtils";
 
 interface AuthStore extends AuthState {
   login: (username: string, password: string) => Promise<void>;
@@ -14,6 +15,7 @@ interface AuthStore extends AuthState {
   setUser: (user: User | null) => void;
   setToken: (token: string | null) => void;
   clearAuth: () => void;
+  checkTokenExpiration: () => void;
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -128,6 +130,14 @@ export const useAuthStore = create<AuthStore>()(
         localStorage.removeItem("auth_token");
         localStorage.removeItem("user");
       },
+
+      checkTokenExpiration: () => {
+        const { token } = get();
+        if (token && isTokenExpired(token)) {
+          console.log("Token expired, logging out...");
+          get().clearAuth();
+        }
+      },
     }),
     {
       name: "auth-storage",
@@ -136,6 +146,11 @@ export const useAuthStore = create<AuthStore>()(
         token: state.token,
         isAuthenticated: state.isAuthenticated,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.checkTokenExpiration();
+        }
+      },
     }
   )
 );
