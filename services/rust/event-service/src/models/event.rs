@@ -104,4 +104,7 @@ pub struct EventQuery {
     #[validate(length(max = 50, message = "Name filter must be less than 50 characters"))]
     #[serde(rename = "name")]
     pub nume: Option<String>,
+    #[serde(flatten)]
+    #[validate(nested)]
+    pub paginare: crate::models::event_packets::PaginationParams,
 }

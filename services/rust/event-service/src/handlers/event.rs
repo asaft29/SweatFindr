@@ -67,7 +67,10 @@ pub async fn list_events(
 
     let events: Vec<Event> = state.event_repo.list_events(params.clone()).await?;
 
-    let has_filters = params.locatie.is_some() || params.nume.is_some();
+    let has_filters = params.locatie.is_some()
+        || params.nume.is_some()
+        || params.paginare.page.is_some()
+        || params.paginare.items_per_page.is_some();
 
     let response: Vec<Response<Event>> = if has_filters {
         build_filtered_event(events, &params, &state.base_url)

@@ -1,9 +1,9 @@
-use crate::models::email::*;
-use crate::AppState;
 use crate::email::email_service_client::EmailServiceClient;
+use crate::email::{ResendVerificationRequest, ResendVerificationResponse, VerifyCodeRequest, VerifyCodeResponse};
+use crate::gateway::map_grpc_error;
+use crate::AppState;
 use axum::{extract::State, http::StatusCode, Json, Router, routing::post};
 use std::sync::Arc;
-use tracing::error;
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
@@ -13,62 +13,24 @@ pub fn router() -> Router<Arc<AppState>> {
 
 async fn verify_email(
     State(state): State<Arc<AppState>>,
-    Json(payload): Json<VerifyEmailRequest>,
-) -> Result<Json<VerifyEmailResponse>, StatusCode> {
-    let mut client = EmailServiceClient::connect(state.email_service_url.clone())
-        .await
-        .map_err(|e| {
-            error!(error = %e, "Failed to connect to email service");
-            StatusCode::SERVICE_UNAVAILABLE
-        })?;
+    Json(request): Json<VerifyCodeRequest>,
+) -> Result<Json<VerifyCodeResponse>, StatusCode> {
+    let mut client = EmailServiceClient::new(state.email_channel.clone());
 
-    let grpc_request = crate::email::VerifyCodeRequest {
-        user_id: payload.user_id,
-        verification_code: payload.verification_code,
-    };
-
-    match client.verify_code(grpc_request).await {
-        Ok(response) => {
-            let res = response.into_inner();
-            Ok(Json(VerifyEmailResponse {
-                success: res.success,
-                message: res.message,
-            }))
-        }
-        Err(e) => {
-            error!(error = %e, "gRPC error during email verification");
-            Err(StatusCode::INTERNAL_SERVER_ERROR)
-        }
+    match client.verify_code(request).await {
+        Ok(response) => Ok(Json(response.into_inner())),
+        Err(e) => Err(map_grpc_error(e)),
     }
 }
 
 async fn resend_verification(
     State(state): State<Arc<AppState>>,
-    Json(payload): Json<ResendVerificationRequest>,
+    Json(request): Json<ResendVerificationRequest>,
 ) -> Result<Json<ResendVerificationResponse>, StatusCode> {
-    let mut client = EmailServiceClient::connect(state.email_service_url.clone())
-        .await
-        .map_err(|e| {
-            error!(error = %e, "Failed to connect to email service");
-            StatusCode::SERVICE_UNAVAILABLE
-        })?;
+    let mut client = EmailServiceClient::new(state.email_channel.clone());
 
-    let grpc_request = crate::email::ResendVerificationRequest {
-        user_id: payload.user_id,
-        email: payload.email,
-    };
-
-    match client.resend_verification_code(grpc_request).await {
-        Ok(response) => {
-            let res = response.into_inner();
-            Ok(Json(ResendVerificationResponse {
-                success: res.success,
-                message: res.message,
-            }))
-        }
-        Err(e) => {
-            error!(error = %e, "gRPC error during resend verification");
-            Err(StatusCode::INTERNAL_SERVER_ERROR)
-        }
+    match client.resend_verification_code(request).await {
+        Ok(response) => Ok(Json(response.into_inner())),
+        Err(e) => Err(map_grpc_error(e)),
     }
 }

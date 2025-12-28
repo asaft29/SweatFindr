@@ -416,47 +416,120 @@ pub fn hateoas_filtered(attr: TokenStream, item: TokenStream) -> TokenStream {
         _ => panic!("Second parameter must be the query params"),
     };
 
-    let query_checks = args.query_fields.iter().map(|(field, query_name)| {
-        let field_parts: Vec<&str> = field.split('.').collect();
-        let field_access = if field_parts.len() == 2 {
-            let first = syn::Ident::new(field_parts[0], proc_macro2::Span::call_site());
-            let second = syn::Ident::new(field_parts[1], proc_macro2::Span::call_site());
-            quote! { #query_param.#first.#second }
-        } else {
-            let field_ident = syn::Ident::new(field, proc_macro2::Span::call_site());
-            quote! { #query_param.#field_ident }
-        };
+    let query_checks: Vec<_> = args
+        .query_fields
+        .iter()
+        .map(|(field, query_name)| {
+            let field_parts: Vec<&str> = field.split('.').collect();
+            let field_access = if field_parts.len() == 2 {
+                let first = syn::Ident::new(field_parts[0], proc_macro2::Span::call_site());
+                let second = syn::Ident::new(field_parts[1], proc_macro2::Span::call_site());
+                quote! { #query_param.#first.#second }
+            } else {
+                let field_ident = syn::Ident::new(field, proc_macro2::Span::call_site());
+                quote! { #query_param.#field_ident }
+            };
 
-        quote! {
-            if let Some(val) = &#field_access {
-                query_parts.push(format!(concat!(#query_name, "={}"), val));
+            quote! {
+                if let Some(val) = &#field_access {
+                    query_parts.push(format!(concat!(#query_name, "={}"), val));
+                }
             }
-        }
-    });
+        })
+        .collect();
 
-    let expanded = quote! {
-        #fn_vis #fn_sig {
-            let mut responses = Vec::new();
+    let query_checks_clone = query_checks.clone();
 
-            for item in #data_param {
-                let mut self_href = format!("{}/{}", base_url, #resource);
-                let mut query_parts = vec![];
+    let has_pagination = args
+        .query_fields
+        .iter()
+        .any(|(field, _)| field == "paginare.page");
 
-                #(#query_checks)*
+    let expanded = if has_pagination {
+        quote! {
+            #fn_vis #fn_sig {
+                let mut responses = Vec::new();
 
-                if !query_parts.is_empty() {
-                    self_href = format!("{}?{}", self_href, query_parts.join("&"));
+                let has_page_field = #query_param.paginare.page.is_some();
+                let current_page = #query_param.paginare.page.unwrap_or(1);
+                let items_per_page = #query_param.paginare.items_per_page.unwrap_or(10);
+
+                for item in #data_param {
+                    let mut self_href = format!("{}/{}", base_url, #resource);
+                    let mut query_parts = vec![];
+
+                    #(#query_checks)*
+
+                    if !query_parts.is_empty() {
+                        self_href = format!("{}?{}", self_href, query_parts.join("&"));
+                    }
+
+                    let mut response_builder = ResponseBuilder::new(item, self_href)
+                        .self_types(&[#self_methods])
+                        .parent_with_types(format!("{}/{}", base_url, #resource), &[#parent_methods]);
+
+                    if has_page_field {
+                        let mut non_page_params = vec![];
+                        #(#query_checks_clone)*
+                        non_page_params.retain(|p: &String| !p.starts_with("page=") && !p.starts_with("items_per_page="));
+
+                        let base_with_params = if non_page_params.is_empty() {
+                            format!("{}/{}", base_url, #resource)
+                        } else {
+                            format!("{}/{}?{}", base_url, #resource, non_page_params.join("&"))
+                        };
+
+                        if current_page > 1 {
+                            let prev_page = current_page - 1;
+                            let prev_url = if non_page_params.is_empty() {
+                                format!("{}?page={}&items_per_page={}", base_with_params, prev_page, items_per_page)
+                            } else {
+                                format!("{}&page={}&items_per_page={}", base_with_params, prev_page, items_per_page)
+                            };
+                            response_builder = response_builder.link_with_types("prev", prev_url, &["GET"]);
+                        }
+
+                        let next_page = current_page + 1;
+                        let next_url = if non_page_params.is_empty() {
+                            format!("{}?page={}&items_per_page={}", base_with_params, next_page, items_per_page)
+                        } else {
+                            format!("{}&page={}&items_per_page={}", base_with_params, next_page, items_per_page)
+                        };
+                        response_builder = response_builder.link_with_types("next", next_url, &["GET"]);
+                    }
+
+                    responses.push(response_builder.build());
                 }
 
-                let response = ResponseBuilder::new(item, self_href)
-                    .self_types(&[#self_methods])
-                    .parent_with_types(format!("{}/{}", base_url, #resource), &[#parent_methods])
-                    .build();
-
-                responses.push(response);
+                responses
             }
+        }
+    } else {
+        // without pagination
+        quote! {
+            #fn_vis #fn_sig {
+                let mut responses = Vec::new();
 
-            responses
+                for item in #data_param {
+                    let mut self_href = format!("{}/{}", base_url, #resource);
+                    let mut query_parts = vec![];
+
+                    #(#query_checks)*
+
+                    if !query_parts.is_empty() {
+                        self_href = format!("{}?{}", self_href, query_parts.join("&"));
+                    }
+
+                    let response = ResponseBuilder::new(item, self_href)
+                        .self_types(&[#self_methods])
+                        .parent_with_types(format!("{}/{}", base_url, #resource), &[#parent_methods])
+                        .build();
+
+                    responses.push(response);
+                }
+
+                responses
+            }
         }
     };
 

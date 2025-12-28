@@ -46,12 +46,7 @@ pub async fn auth_middleware(mut request: Request, next: Next) -> Result<Respons
         }
     };
 
-    let mut client = AuthServiceClient::connect(state.auth_service_url.clone())
-        .await
-        .map_err(|e| {
-            error!("Failed to connect to auth service: {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+    let mut client = AuthServiceClient::new(state.auth_channel.clone());
 
     let grpc_request = crate::auth::ValidateRequest {
         token_value: token.to_string(),

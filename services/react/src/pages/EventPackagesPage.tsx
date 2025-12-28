@@ -14,10 +14,6 @@ export function EventPackagesPage() {
     availableTickets: "",
   });
 
-  useEffect(() => {
-    loadPackages();
-  }, []);
-
   const loadPackages = async () => {
     try {
       setLoading(true);
@@ -145,7 +141,6 @@ export function EventPackagesPage() {
                 } else {
                   setItemsPerPageInput(itemsPerPage.toString());
                 }
-                loadPackages();
               }}
               className="px-6 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition shadow-md hover:shadow-lg"
             >
@@ -196,31 +191,37 @@ export function EventPackagesPage() {
         </div>
 
         {!loading && !error && packages.length > 0 && (
-          <div className="flex items-center justify-center gap-4 mt-8">
+          <div className="w-full flex items-center justify-center gap-6 mt-8">
             <button
               onClick={handlePreviousPage}
               disabled={currentPage === 1}
-              className={`px-6 py-2.5 text-sm font-bold rounded-lg transition shadow-md hover:shadow-lg ${
+              className={`w-12 h-12 flex items-center justify-center rounded-full transition shadow-md hover:shadow-lg ${
                 currentPage === 1
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-indigo-600 text-white hover:bg-indigo-700'
               }`}
+              aria-label="Previous page"
             >
-              Previous
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
             </button>
-            <span className="text-lg font-semibold text-gray-700">
+            <span className="text-lg font-semibold text-gray-700 min-w-[100px] text-center">
               Page {currentPage}
             </span>
             <button
               onClick={handleNextPage}
               disabled={packages.length < itemsPerPage}
-              className={`px-6 py-2.5 text-sm font-bold rounded-lg transition shadow-md hover:shadow-lg ${
+              className={`w-12 h-12 flex items-center justify-center rounded-full transition shadow-md hover:shadow-lg ${
                 packages.length < itemsPerPage
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-indigo-600 text-white hover:bg-indigo-700'
               }`}
+              aria-label="Next page"
             >
-              Next
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
             </button>
           </div>
         )}

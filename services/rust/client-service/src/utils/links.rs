@@ -1,7 +1,7 @@
 use crate::models::client::{Client, ClientQuery, TicketRef};
 
 pub use common::links::{Link, Links, Response, ResponseBuilder};
-use hateoas_macros::{hateoas_simple, hateoas_nested, hateoas_filtered};
+use hateoas_macros::{hateoas_filtered, hateoas_nested, hateoas_simple};
 
 #[hateoas_simple(
     resource = "api/client-manager/clients",
@@ -29,7 +29,8 @@ pub fn build_filtered_client(
     clients: Vec<Client>,
     params: &ClientQuery,
     base_url: &str,
-) -> Vec<Response<Client>> {}
+) -> Vec<Response<Client>> {
+}
 
 #[hateoas_nested(
     parent_resource = "api/client-manager/clients",
@@ -39,4 +40,5 @@ pub fn build_filtered_client(
     self_methods = "[GET, PUT, DELETE]",
     parent_methods = "[GET, POST]"
 )]
-pub fn build_ticket_ref(ticket: TicketRef, client_id: &str, base_url: &str) -> Response<TicketRef> {}
+pub fn build_ticket_ref(ticket: TicketRef, client_id: &str, base_url: &str) -> Response<TicketRef> {
+}

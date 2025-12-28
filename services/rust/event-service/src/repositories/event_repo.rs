@@ -44,6 +44,16 @@ impl EventRepo {
             query_builder.push(")");
         }
 
+        // Add pagination
+        let page = params.paginare.page.unwrap_or(1);
+        let items_per_page = params.paginare.items_per_page.unwrap_or(10);
+        let offset = (page - 1) * items_per_page;
+
+        query_builder.push(" LIMIT ");
+        query_builder.push_bind(items_per_page);
+        query_builder.push(" OFFSET ");
+        query_builder.push_bind(offset);
+
         let query = query_builder.build_query_as::<Event>();
         let events = query
             .fetch_all(&self.pool)

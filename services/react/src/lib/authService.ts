@@ -17,7 +17,7 @@ class AuthService {
 
   async login(credentials: LoginRequest): Promise<LoginResponse> {
     const response = await this.gateway.post<LoginResponse>(
-      "/api/gateway/auth/login",
+      "/api/auth/login",
       credentials
     );
     return response.data;
@@ -25,7 +25,7 @@ class AuthService {
 
   async register(data: RegisterRequest): Promise<RegisterResponse> {
     const response = await this.gateway.post<RegisterResponse>(
-      "/api/gateway/auth/register",
+      "/api/auth/register",
       data
     );
     return response.data;
@@ -33,7 +33,7 @@ class AuthService {
 
   async logout(token: string): Promise<LogoutResponse> {
     const response = await this.gateway.post<LogoutResponse>(
-      "/api/gateway/auth/logout",
+      "/api/auth/logout",
       { token_value: token } as LogoutRequest
     );
     return response.data;
@@ -41,7 +41,7 @@ class AuthService {
 
   async verifyEmail(data: VerifyEmailRequest): Promise<VerifyEmailResponse> {
     const response = await this.gateway.post<VerifyEmailResponse>(
-      "/api/gateway/email/verify",
+      "/api/email/verify",
       data
     );
     return response.data;
@@ -51,7 +51,7 @@ class AuthService {
     data: ResendVerificationRequest
   ): Promise<ResendVerificationResponse> {
     const response = await this.gateway.post<ResendVerificationResponse>(
-      "/api/gateway/email/resend",
+      "/api/email/resend",
       data
     );
     return response.data;

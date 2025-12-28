@@ -31,7 +31,9 @@ pub fn build_simple_event(event: Event, base_url: &str) -> Response<Event> {}
     parent_methods = "[GET, POST]",
     query_fields(
         ("locatie", "location"),
-        ("nume", "name")
+        ("nume", "name"),
+        ("paginare.page", "page"),
+        ("paginare.items_per_page", "items_per_page")
     )
 )]
 pub fn build_filtered_event(
