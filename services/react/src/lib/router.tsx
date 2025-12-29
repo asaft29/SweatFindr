@@ -9,6 +9,8 @@ import { HomePage } from '../pages/HomePage';
 import { UnauthorizedPage } from '../pages/UnauthorizedPage';
 import { EventsPage } from '../pages/EventsPage';
 import { EventPackagesPage } from '../pages/EventPackagesPage';
+import { MyTicketsPage } from '../pages/MyTicketsPage';
+import { MyProfilePage } from '../pages/MyProfilePage';
 
 export const router = createBrowserRouter([
   {
@@ -96,10 +98,19 @@ export const router = createBrowserRouter([
       <Layout>
         <AnimatedPage>
           <ProtectedRoute allowedRoles={['client'] as any}>
-            <div>
-              <h1>My Tickets</h1>
-              <p>View your purchased tickets (Client only)</p>
-            </div>
+            <MyTicketsPage />
+          </ProtectedRoute>
+        </AnimatedPage>
+      </Layout>
+    ),
+  },
+  {
+    path: '/my-profile',
+    element: (
+      <Layout>
+        <AnimatedPage>
+          <ProtectedRoute allowedRoles={['client'] as any}>
+            <MyProfilePage />
           </ProtectedRoute>
         </AnimatedPage>
       </Layout>

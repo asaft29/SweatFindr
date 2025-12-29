@@ -21,6 +21,8 @@ services:
       - SERVER_HOST=0.0.0.0
       - SERVER_PORT=50051
       - REDIS_URL=redis://auth-redis:6379
+      - EMAIL_SERVICE_URL=http://email-service:50052
+      - CLIENT_SERVICE_URL=http://client-service:8080
     depends_on:
       auth-db:
         condition: service_healthy

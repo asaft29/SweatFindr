@@ -88,3 +88,26 @@ export interface EventPackage {
   descriere: string | null;
   numarlocuri: number | null;
 }
+
+export interface SocialMedia {
+  instagram?: string;
+  facebook?: string;
+  twitter?: string;
+}
+
+export interface TicketRef {
+  cod: string;
+  nume_eveniment?: string;
+  locatie?: string;
+  descriere?: string;
+}
+
+export interface Client {
+  _id: string;
+  email: string;
+  prenume: string;
+  nume: string;
+  public_info?: string;
+  social_media?: SocialMedia;
+  tickets?: TicketRef[];
+}

@@ -9,7 +9,7 @@ use validator::Validate;
 
 use crate::AppState;
 use crate::middleware::{Authorization, UserClaims};
-use crate::models::client::{AddTicket, Client, ClientQuery, TicketRef, UpdateClient};
+use crate::models::client::{AddTicket, Client, ClientQuery, CreateClient, TicketRef, UpdateClient};
 use crate::services::event_service;
 use crate::utils::error::{ClientApiError, map_authorization_error, map_event_service_error};
 use crate::utils::links::{Response, build_simple_client, build_filtered_client, build_ticket_ref};
@@ -21,17 +21,31 @@ pub mod auth {
 use auth::auth_service_client::AuthServiceClient;
 
 async fn get_user_email(state: &AppState, user_id: i32) -> Option<String> {
-    let mut auth_client = AuthServiceClient::connect(state.auth_service_url.clone())
-        .await
-        .ok()?;
+    tracing::info!("Getting email for user_id: {}", user_id);
+
+    let mut auth_client = match AuthServiceClient::connect(state.auth_service_url.clone()).await {
+        Ok(client) => client,
+        Err(e) => {
+            tracing::error!("Failed to connect to auth service: {}", e);
+            return None;
+        }
+    };
 
     let request = auth::GetUserEmailRequest { user_id };
 
-    let response = auth_client.get_user_email(request).await.ok()?.into_inner();
+    let response = match auth_client.get_user_email(request).await {
+        Ok(resp) => resp.into_inner(),
+        Err(e) => {
+            tracing::error!("Failed to get user email from auth service: {}", e);
+            return None;
+        }
+    };
 
     if response.success {
+        tracing::info!("Successfully got email: {}", response.email);
         Some(response.email)
     } else {
+        tracing::warn!("Auth service returned failure: {}", response.message);
         None
     }
 }
@@ -126,9 +140,39 @@ async fn add_ticket_with_rollback(
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/client-manager/clients",
+    request_body = CreateClient,
+    responses(
+        (status = 201, description = "Client created successfully", body = Response<Client>),
+        (status = 400, description = "Invalid request - Validation failed"),
+        (status = 401, description = "Unauthorized - Missing or invalid token"),
+        (status = 409, description = "Conflict - Client with this email already exists")
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
+async fn create_client(
+    State(state): State<Arc<AppState>>,
+    result: Result<Json<CreateClient>, JsonRejection>,
+) -> Result<(StatusCode, Json<Response<Client>>), ClientApiError> {
+    let Json(payload) = result?;
+    payload.validate()?;
+
+    let created_client = state.client_repo.create_client(payload).await?;
+
+    Ok((
+        StatusCode::CREATED,
+        Json(build_simple_client(created_client, &state.base_url)),
+    ))
+}
+
 pub fn client_manager_router() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/clients", get(list_clients))
+        .route("/clients", get(list_clients).post(create_client))
+        .route("/clients/me", get(get_my_client))
         .route(
             "/clients/{id}",
             get(get_client)
@@ -442,5 +486,52 @@ pub async fn remove_ticket_from_client(
         .remove_ticket_from_client(&id, &cod)
         .await?;
 
+    Ok(Json(build_simple_client(client, &state.base_url)))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/client-manager/clients/me",
+    responses(
+        (status = 200, description = "Current user's client profile", body = Response<Client>),
+        (status = 401, description = "Unauthorized - Missing or invalid token"),
+        (status = 404, description = "Client not found for this user"),
+        (status = 500, description = "Internal server error - Failed to get user email")
+    ),
+    security(
+        ("bearer_auth" = [])
+    ),
+    tag = "clients"
+)]
+pub async fn get_my_client(
+    State(state): State<Arc<AppState>>,
+    Extension(user_claims): Extension<UserClaims>,
+) -> Result<Json<Response<Client>>, ClientApiError> {
+    let user_email = get_user_email(&state, user_claims.user_id)
+        .await
+        .ok_or_else(|| {
+            ClientApiError::InternalError("Failed to get user email".to_string())
+        })?;
+
+    tracing::info!("Searching for client with email: {}", user_email);
+
+    let query = ClientQuery {
+        email: Some(user_email.clone()),
+        prenume: None,
+        nume: None,
+    };
+
+    let clients = state.client_repo.list_clients(query).await?;
+    tracing::info!("Found {} clients for email {}", clients.len(), user_email);
+
+    let client = clients
+        .into_iter()
+        .next()
+        .ok_or_else(|| {
+            tracing::error!("No client found for email: {}", user_email);
+            ClientApiError::NotFound("Client not found for this user".to_string())
+        })?;
+
+    tracing::info!("Successfully found client for email: {}", user_email);
     Ok(Json(build_simple_client(client, &state.base_url)))
 }

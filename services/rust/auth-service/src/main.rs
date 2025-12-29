@@ -56,11 +56,15 @@ async fn main() -> Result<()> {
     let email_service_url = std::env::var("EMAIL_SERVICE_URL")
         .unwrap_or_else(|_| "http://email-service:50052".to_string());
 
+    let client_service_url = std::env::var("CLIENT_SERVICE_URL")
+        .unwrap_or_else(|_| "http://client-service:8080".to_string());
+
     let auth_service = AuthServiceImpl {
         user_repo,
         jwt_service,
         blacklist,
         email_service_url,
+        client_service_url,
     };
 
     let addr = std::env::var("GRPC_ADDR")

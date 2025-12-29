@@ -129,6 +129,9 @@ export const useAuthStore = create<AuthStore>()(
         });
         localStorage.removeItem("auth_token");
         localStorage.removeItem("user");
+        import("./clientService").then(({ clientService }) => {
+          clientService.clearCache();
+        });
       },
 
       checkTokenExpiration: () => {

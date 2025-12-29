@@ -21,6 +21,7 @@ pub struct AuthServiceImpl {
     pub jwt_service: JwtService,
     pub blacklist: TokenBlacklist,
     pub email_service_url: String,
+    pub client_service_url: String,
 }
 
 #[tonic::async_trait]
@@ -247,6 +248,40 @@ impl AuthService for AuthServiceImpl {
                 return Err(Status::internal(format!("Token generation error: {}", e)));
             }
         };
+
+        // Create client profile in MongoDB
+        let client_service_url = self.client_service_url.clone();
+        let client_email = req.email.clone();
+        let service_token = token.clone();
+        tokio::spawn(async move {
+            let client = reqwest::Client::new();
+            let create_client_payload = serde_json::json!({
+                "email": client_email
+            });
+
+            match client
+                .post(format!("{}/api/client-manager/clients", client_service_url))
+                .header("Authorization", format!("Bearer {}", service_token))
+                .header("Content-Type", "application/json")
+                .json(&create_client_payload)
+                .send()
+                .await
+            {
+                Ok(response) => {
+                    if response.status().is_success() {
+                        tracing::info!("Client profile created for user {}", client_email);
+                    } else {
+                        tracing::error!(
+                            "Failed to create client profile: HTTP {}",
+                            response.status()
+                        );
+                    }
+                }
+                Err(e) => {
+                    tracing::error!("Failed to call client-service: {}", e);
+                }
+            }
+        });
 
         let email_service_url = self.email_service_url.clone();
         let user_email = req.email.clone();

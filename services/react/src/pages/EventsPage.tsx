@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
 import { eventService } from "../lib/eventService";
+import { clientService } from "../lib/clientService";
+import { useAuthStore } from "../lib/useAuthStore";
 import type { Event } from "../lib/types";
 
 export function EventsPage() {
+  const { user } = useAuthStore();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [purchasing, setPurchasing] = useState<number | null>(null);
   const [locatieFilter, setLocatieFilter] = useState("");
   const [numeFilter, setNumeFilter] = useState("");
 
@@ -38,6 +42,27 @@ export function EventsPage() {
     setLocatieFilter("");
     setNumeFilter("");
     loadEvents();
+  };
+
+  const handlePurchase = async (eventId: number) => {
+    if (user?.role !== 'client') {
+      setError("Only clients can purchase tickets");
+      return;
+    }
+
+    try {
+      setPurchasing(eventId);
+      setError(null);
+      await clientService.purchaseTicket({ evenimentid: eventId });
+      alert("Ticket purchased successfully!");
+      // Reload events to show updated seat count
+      await loadEvents();
+    } catch (err: any) {
+      setError(err.response?.data?.error || err.message || "Failed to purchase ticket");
+      console.error(err);
+    } finally {
+      setPurchasing(null);
+    }
   };
 
   return (
@@ -124,9 +149,18 @@ export function EventsPage() {
                   <h3 className="text-2xl font-bold text-gray-900 mb-3">{event.nume}</h3>
                   <p className="text-indigo-600 font-medium mb-2">{event.locatie || "Location not specified"}</p>
                   <p className="text-gray-700 mb-4">{event.descriere || "No description available"}</p>
-                  <p className="text-sm text-gray-500 font-medium">
+                  <p className="text-sm text-gray-500 font-medium mb-4">
                     Available seats: {event.numarlocuri !== null ? event.numarlocuri : "N/A"}
                   </p>
+                  {user?.role === 'client' && (
+                    <button
+                      onClick={() => handlePurchase(event.id)}
+                      disabled={purchasing === event.id}
+                      className="w-full px-4 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition disabled:bg-gray-400"
+                    >
+                      {purchasing === event.id ? "Purchasing..." : "Buy Ticket"}
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

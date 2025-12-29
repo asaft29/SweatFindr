@@ -5,7 +5,7 @@ use crate::models::auth::{
     ResendVerificationResponse, UpdateRoleRequest, UpdateRoleResponse, VerifyEmailRequest,
     VerifyEmailResponse,
 };
-use crate::models::client::{AddTicket, Client, SocialMedia, TicketRef, UpdateClient};
+use crate::models::client::{AddTicket, Client, CreateClient, SocialMedia, TicketRef, UpdateClient};
 use crate::services::event_service::{EventInfo, PacketInfo, TicketDetails, TicketInfo};
 use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};
 use utoipa::{Modify, OpenApi};
@@ -18,6 +18,8 @@ use utoipa::{Modify, OpenApi};
         verify_email,
         resend_verification,
         list_clients,
+        create_client,
+        get_my_client,
         get_client,
         update_client,
         patch_client,
@@ -29,6 +31,7 @@ use utoipa::{Modify, OpenApi};
     ),
     components(schemas(
         Client,
+        CreateClient,
         UpdateClient,
         AddTicket,
         TicketRef,
