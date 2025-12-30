@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { clientService } from "../lib/clientService";
 import type { Client } from "../lib/types";
+import { FaInstagram, FaFacebook, FaTwitter, FaLinkedin, FaGithub } from "react-icons/fa";
 
 export function MyProfilePage() {
   const [profile, setProfile] = useState<Client | null>(null);
@@ -10,10 +11,12 @@ export function MyProfilePage() {
   const [formData, setFormData] = useState({
     prenume: "",
     nume: "",
-    public_info: "",
+    public_info: false,
     instagram: "",
     facebook: "",
     twitter: "",
+    linkedin: "",
+    github: "",
   });
 
   const loadProfile = async () => {
@@ -23,12 +26,14 @@ export function MyProfilePage() {
       const data = await clientService.getMyProfile();
       setProfile(data);
       setFormData({
-        prenume: data.prenume,
-        nume: data.nume,
-        public_info: data.public_info || "",
+        prenume: data.prenume || "",
+        nume: data.nume || "",
+        public_info: data.public_info || false,
         instagram: data.social_media?.instagram || "",
         facebook: data.social_media?.facebook || "",
         twitter: data.social_media?.twitter || "",
+        linkedin: data.social_media?.linkedin || "",
+        github: data.social_media?.github || "",
       });
     } catch (err: any) {
       setError(err.response?.data?.error || err.message || "Failed to load profile");
@@ -44,13 +49,15 @@ export function MyProfilePage() {
       setLoading(true);
       setError(null);
       const updated = await clientService.updateMyProfile({
-        prenume: formData.prenume,
-        nume: formData.nume,
+        prenume: formData.prenume || undefined,
+        nume: formData.nume || undefined,
         public_info: formData.public_info,
         social_media: {
-          instagram: formData.instagram,
-          facebook: formData.facebook,
-          twitter: formData.twitter,
+          instagram: formData.instagram || undefined,
+          facebook: formData.facebook || undefined,
+          twitter: formData.twitter || undefined,
+          linkedin: formData.linkedin || undefined,
+          github: formData.github || undefined,
         },
       });
       setProfile(updated);
@@ -70,8 +77,6 @@ export function MyProfilePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
-        <h1 className="text-4xl font-extrabold text-gray-900 mb-8">My Profile</h1>
-
         {loading && !profile && (
           <div className="flex items-center justify-center py-12">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-indigo-600"></div>
@@ -101,24 +106,70 @@ export function MyProfilePage() {
                 <p className="text-sm text-gray-500">Last Name</p>
                 <p className="text-lg font-medium text-gray-900">{profile.nume}</p>
               </div>
-              {profile.public_info && (
-                <div>
-                  <p className="text-sm text-gray-500">Public Info</p>
-                  <p className="text-lg text-gray-900">{profile.public_info}</p>
-                </div>
-              )}
-              {profile.social_media && (
+              <div>
+                <p className="text-sm text-gray-500">Profile Visibility</p>
+                <p className="text-lg font-medium text-gray-900">
+                  {profile.public_info ? "Public" : "Private"}
+                </p>
+              </div>
+              {(profile.social_media?.instagram || profile.social_media?.facebook || profile.social_media?.twitter || profile.social_media?.linkedin || profile.social_media?.github) && (
                 <div>
                   <p className="text-sm text-gray-500 mb-2">Social Media</p>
-                  <div className="space-y-1">
+                  <div className="flex gap-4">
                     {profile.social_media.instagram && (
-                      <p className="text-gray-900">Instagram: {profile.social_media.instagram}</p>
+                      <a
+                        href={profile.social_media.instagram.startsWith('http') ? profile.social_media.instagram : `https://instagram.com/${profile.social_media.instagram.replace('@', '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-pink-500 hover:text-pink-600 hover:scale-110 transition-all"
+                        title="Instagram"
+                      >
+                        <FaInstagram size={32} />
+                      </a>
                     )}
                     {profile.social_media.facebook && (
-                      <p className="text-gray-900">Facebook: {profile.social_media.facebook}</p>
+                      <a
+                        href={profile.social_media.facebook.startsWith('http') ? profile.social_media.facebook : `https://facebook.com/${profile.social_media.facebook}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-700 hover:scale-110 transition-all"
+                        title="Facebook"
+                      >
+                        <FaFacebook size={32} />
+                      </a>
                     )}
                     {profile.social_media.twitter && (
-                      <p className="text-gray-900">Twitter: {profile.social_media.twitter}</p>
+                      <a
+                        href={profile.social_media.twitter.startsWith('http') ? profile.social_media.twitter : `https://twitter.com/${profile.social_media.twitter.replace('@', '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sky-500 hover:text-sky-600 hover:scale-110 transition-all"
+                        title="Twitter / X"
+                      >
+                        <FaTwitter size={32} />
+                      </a>
+                    )}
+                    {profile.social_media.linkedin && (
+                      <a
+                        href={profile.social_media.linkedin.startsWith('http') ? profile.social_media.linkedin : `https://linkedin.com/in/${profile.social_media.linkedin}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-700 hover:text-blue-800 hover:scale-110 transition-all"
+                        title="LinkedIn"
+                      >
+                        <FaLinkedin size={32} />
+                      </a>
+                    )}
+                    {profile.social_media.github && (
+                      <a
+                        href={profile.social_media.github.startsWith('http') ? profile.social_media.github : `https://github.com/${profile.social_media.github}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-gray-800 hover:text-gray-900 hover:scale-110 transition-all"
+                        title="GitHub"
+                      >
+                        <FaGithub size={32} />
+                      </a>
                     )}
                   </div>
                 </div>
@@ -171,49 +222,82 @@ export function MyProfilePage() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Public Info
-                </label>
-                <textarea
-                  value={formData.public_info}
-                  onChange={(e) => setFormData({ ...formData, public_info: e.target.value })}
-                  rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Instagram
-                </label>
+              <div className="flex items-center gap-3">
                 <input
-                  type="text"
-                  value={formData.instagram}
-                  onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                  type="checkbox"
+                  id="public_info"
+                  checked={formData.public_info}
+                  onChange={(e) => setFormData({ ...formData, public_info: e.target.checked })}
+                  className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Facebook
+                <label htmlFor="public_info" className="text-sm font-medium text-gray-700">
+                  Make profile public
                 </label>
-                <input
-                  type="text"
-                  value={formData.facebook}
-                  onChange={(e) => setFormData({ ...formData, facebook: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Twitter
-                </label>
-                <input
-                  type="text"
-                  value={formData.twitter}
-                  onChange={(e) => setFormData({ ...formData, twitter: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                />
+              <div className="border-t pt-4 mt-2">
+                <p className="text-sm font-medium text-gray-700 mb-3">Social Media Links</p>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Instagram
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.instagram}
+                      onChange={(e) => setFormData({ ...formData, instagram: e.target.value })}
+                      placeholder="@username or profile URL"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Facebook
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.facebook}
+                      onChange={(e) => setFormData({ ...formData, facebook: e.target.value })}
+                      placeholder="Profile URL"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Twitter / X
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.twitter}
+                      onChange={(e) => setFormData({ ...formData, twitter: e.target.value })}
+                      placeholder="@username or profile URL"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      LinkedIn
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.linkedin}
+                      onChange={(e) => setFormData({ ...formData, linkedin: e.target.value })}
+                      placeholder="Profile URL"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      GitHub
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.github}
+                      onChange={(e) => setFormData({ ...formData, github: e.target.value })}
+                      placeholder="Username or profile URL"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
             <div className="flex gap-3 mt-6">
@@ -229,12 +313,14 @@ export function MyProfilePage() {
                 onClick={() => {
                   setEditing(false);
                   setFormData({
-                    prenume: profile.prenume,
-                    nume: profile.nume,
-                    public_info: profile.public_info || "",
+                    prenume: profile.prenume || "",
+                    nume: profile.nume || "",
+                    public_info: profile.public_info || false,
                     instagram: profile.social_media?.instagram || "",
                     facebook: profile.social_media?.facebook || "",
                     twitter: profile.social_media?.twitter || "",
+                    linkedin: profile.social_media?.linkedin || "",
+                    github: profile.social_media?.github || "",
                   });
                 }}
                 className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition"

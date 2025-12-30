@@ -63,6 +63,8 @@ impl EventPacketRepo {
         query_builder: &mut QueryBuilder<Postgres>,
         pagination: PaginationParams,
     ) {
+        query_builder.push(" ORDER BY nume ASC");
+
         let page = pagination.page.unwrap_or(DEFAULT_PAGE).max(DEFAULT_PAGE);
 
         let items_per_page = pagination

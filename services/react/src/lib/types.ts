@@ -93,6 +93,9 @@ export interface SocialMedia {
   instagram?: string;
   facebook?: string;
   twitter?: string;
+  linkedin?: string;
+  github?: string;
+  public?: boolean;
 }
 
 export interface TicketRef {
@@ -107,7 +110,7 @@ export interface Client {
   email: string;
   prenume: string;
   nume: string;
-  public_info?: string;
+  public_info?: boolean;
   social_media?: SocialMedia;
-  tickets?: TicketRef[];
+  lista_bilete?: TicketRef[];
 }

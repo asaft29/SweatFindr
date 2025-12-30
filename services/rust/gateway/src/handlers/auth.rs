@@ -5,16 +5,22 @@ use crate::auth::{
 };
 use crate::gateway::map_grpc_error;
 use crate::middleware::auth::auth_middleware;
-use axum::{Json, Router, extract::State, http::StatusCode, middleware, routing::post};
+use axum::{
+    Json, Router,
+    extract::State,
+    http::{StatusCode, header::AUTHORIZATION, HeaderMap},
+    middleware,
+    routing::post,
+};
 use std::sync::Arc;
 
-pub fn router() -> Router<Arc<AppState>> {
+pub fn router(state: Arc<AppState>) -> Router<Arc<AppState>> {
     Router::new()
         .route("/register", post(register))
         .route("/login", post(login))
         .route(
             "/logout",
-            post(logout).layer(middleware::from_fn(auth_middleware)),
+            post(logout).layer(middleware::from_fn_with_state(state, auth_middleware)),
         )
 }
 
@@ -44,8 +50,18 @@ async fn login(
 
 async fn logout(
     State(state): State<Arc<AppState>>,
-    Json(request): Json<DestroyRequest>,
+    headers: HeaderMap,
 ) -> Result<Json<DestroyResponse>, StatusCode> {
+    let token = headers
+        .get(AUTHORIZATION)
+        .and_then(|h| h.to_str().ok())
+        .and_then(|h| h.strip_prefix("Bearer "))
+        .ok_or(StatusCode::UNAUTHORIZED)?;
+
+    let request = DestroyRequest {
+        token_value: token.to_string(),
+    };
+
     let mut client = AuthServiceClient::new(state.auth_channel.clone());
 
     match client.destroy_token(request).await {

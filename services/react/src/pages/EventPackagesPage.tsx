@@ -87,8 +87,6 @@ export function EventPackagesPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-extrabold text-gray-900 mb-8">Event Packages</h1>
-
         <div className="bg-white p-6 rounded-xl shadow-lg mb-8">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Filter Packages</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -200,22 +198,35 @@ export function EventPackagesPage() {
           ) : (
             <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in ${loading ? 'opacity-50' : ''}`}>
               {packages.map((pkg) => (
-                <div key={pkg.id} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-2xl transition-shadow duration-300">
+                <div key={pkg.id} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-2xl transition-shadow duration-300 flex flex-col h-full">
                   <h3 className="text-2xl font-bold text-gray-900 mb-3">{pkg.nume}</h3>
                   <p className="text-indigo-600 font-medium mb-2">{pkg.locatie || "Location not specified"}</p>
-                  <p className="text-gray-700 mb-4">{pkg.descriere || "No description available"}</p>
-                  <p className="text-sm text-gray-500 font-medium mb-4">
-                    Available seats: {pkg.numarlocuri !== null ? pkg.numarlocuri : "N/A"}
-                  </p>
-                  {user?.role === 'client' && (
-                    <button
-                      onClick={() => handlePurchase(pkg.id)}
-                      disabled={purchasing === pkg.id}
-                      className="w-full px-4 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition disabled:bg-gray-400"
-                    >
-                      {purchasing === pkg.id ? "Purchasing..." : "Buy Ticket"}
-                    </button>
-                  )}
+                  <p className="text-gray-700 mb-4 flex-grow">{pkg.descriere || "No description available"}</p>
+                  <div className="mt-auto">
+                    {pkg.numarlocuri !== null && pkg.numarlocuri > 0 && (
+                      <p className="text-sm text-gray-500 font-medium mb-4">
+                        Available seats: {pkg.numarlocuri}
+                      </p>
+                    )}
+                    {pkg.numarlocuri !== null && pkg.numarlocuri > 0 ? (
+                      user?.role === 'client' ? (
+                        <button
+                          onClick={() => handlePurchase(pkg.id)}
+                          disabled={purchasing === pkg.id}
+                          className="w-full px-4 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition disabled:bg-gray-400"
+                        >
+                          {purchasing === pkg.id ? "Purchasing..." : "Buy Ticket"}
+                        </button>
+                      ) : null
+                    ) : (
+                      <button
+                        disabled
+                        className="w-full px-4 py-2 text-sm font-bold text-white bg-red-500 rounded-lg cursor-not-allowed"
+                      >
+                        Sold Out
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

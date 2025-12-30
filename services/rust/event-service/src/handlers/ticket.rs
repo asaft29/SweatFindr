@@ -199,7 +199,6 @@ pub async fn delete_ticket(
 ) -> Result<impl IntoResponse, ApiError> {
     let existing_ticket = state.ticket_repo.get_ticket(&cod).await?;
 
-    // Check authorization: clients-service role OR admin OR event/packet owner
     if !user_claims.is_clients_service() {
         if let Some(event_id) = existing_ticket.id_event {
             let event = state.event_repo.get_event(event_id).await?;
@@ -243,7 +242,6 @@ pub async fn get_ticket_for_event(
         return Err(ApiError::BadRequest("ID cannot be negative".into()));
     }
 
-    // Check authorization: clients-service role OR admin OR event owner
     if !user_claims.is_clients_service() {
         let event = state.event_repo.get_event(event_id).await?;
         Authorization::can_access_resource(&user_claims, &event, None)
@@ -445,7 +443,6 @@ pub async fn get_ticket_for_packet(
         return Err(ApiError::BadRequest("ID cannot be negative".into()));
     }
 
-    // Check authorization: clients-service role OR admin OR packet owner
     if !user_claims.is_clients_service() {
         let packet = state.event_packet_repo.get_event_packet(packet_id).await?;
         Authorization::can_access_resource(&user_claims, &packet, None)

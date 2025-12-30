@@ -44,7 +44,8 @@ impl EventRepo {
             query_builder.push(")");
         }
 
-        // Add pagination
+        query_builder.push(" ORDER BY nume ASC");
+
         let page = params.paginare.page.unwrap_or(1);
         let items_per_page = params.paginare.items_per_page.unwrap_or(10);
         let offset = (page - 1) * items_per_page;
@@ -109,16 +110,19 @@ impl EventRepo {
         event_id: i32,
         payload: UpdateEvent,
     ) -> Result<Event, EventRepoError> {
-        let mut tx = self.pool.begin().await.map_err(EventRepoError::InternalError)?;
-
-        if let Some(new_seats) = payload.locuri {
-            let tickets_sold: i64 = sqlx::query_scalar(
-                "SELECT COUNT(*) FROM BILETE WHERE evenimentid = $1"
-            )
-            .bind(event_id)
-            .fetch_one(&mut *tx)
+        let mut tx = self
+            .pool
+            .begin()
             .await
             .map_err(EventRepoError::InternalError)?;
+
+        if let Some(new_seats) = payload.locuri {
+            let tickets_sold: i64 =
+                sqlx::query_scalar("SELECT COUNT(*) FROM BILETE WHERE evenimentid = $1")
+                    .bind(event_id)
+                    .fetch_one(&mut *tx)
+                    .await
+                    .map_err(EventRepoError::InternalError)?;
 
             if new_seats < tickets_sold as i32 {
                 return Err(EventRepoError::ConstraintViolation(format!(
@@ -157,7 +161,8 @@ impl EventRepo {
         };
 
         if payload.locuri.is_some() {
-            self.update_packet_seats_for_event(&mut tx, event_id).await?;
+            self.update_packet_seats_for_event(&mut tx, event_id)
+                .await?;
         }
 
         tx.commit().await.map_err(EventRepoError::InternalError)?;
@@ -170,16 +175,19 @@ impl EventRepo {
         event_id: i32,
         payload: crate::models::event::PatchEvent,
     ) -> Result<Event, EventRepoError> {
-        let mut tx = self.pool.begin().await.map_err(EventRepoError::InternalError)?;
-
-        if let Some(new_seats) = payload.locuri {
-            let tickets_sold: i64 = sqlx::query_scalar(
-                "SELECT COUNT(*) FROM BILETE WHERE evenimentid = $1"
-            )
-            .bind(event_id)
-            .fetch_one(&mut *tx)
+        let mut tx = self
+            .pool
+            .begin()
             .await
             .map_err(EventRepoError::InternalError)?;
+
+        if let Some(new_seats) = payload.locuri {
+            let tickets_sold: i64 =
+                sqlx::query_scalar("SELECT COUNT(*) FROM BILETE WHERE evenimentid = $1")
+                    .bind(event_id)
+                    .fetch_one(&mut *tx)
+                    .await
+                    .map_err(EventRepoError::InternalError)?;
 
             if new_seats < tickets_sold as i32 {
                 return Err(EventRepoError::ConstraintViolation(format!(
@@ -218,7 +226,8 @@ impl EventRepo {
         };
 
         if payload.locuri.is_some() {
-            self.update_packet_seats_for_event(&mut tx, event_id).await?;
+            self.update_packet_seats_for_event(&mut tx, event_id)
+                .await?;
         }
 
         tx.commit().await.map_err(EventRepoError::InternalError)?;
@@ -245,13 +254,12 @@ impl EventRepo {
         tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
         event_id: i32,
     ) -> Result<(), EventRepoError> {
-        let packet_ids: Vec<(i32,)> = sqlx::query_as(
-            "SELECT DISTINCT pachetid FROM JOIN_PE WHERE evenimentid = $1"
-        )
-        .bind(event_id)
-        .fetch_all(&mut **tx)
-        .await
-        .map_err(EventRepoError::InternalError)?;
+        let packet_ids: Vec<(i32,)> =
+            sqlx::query_as("SELECT DISTINCT pachetid FROM JOIN_PE WHERE evenimentid = $1")
+                .bind(event_id)
+                .fetch_all(&mut **tx)
+                .await
+                .map_err(EventRepoError::InternalError)?;
 
         for (packet_id,) in packet_ids {
             let min_seats: Option<i32> = sqlx::query_scalar(

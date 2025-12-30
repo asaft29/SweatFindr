@@ -33,6 +33,8 @@ pub struct SocialMedia {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub linkedin: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub github: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub public: Option<bool>,
 }
 

@@ -1,5 +1,5 @@
 use axum::{
-    extract::Request,
+    extract::{Request, State},
     http::{StatusCode, header},
     middleware::Next,
     response::Response,
@@ -16,16 +16,11 @@ pub struct AuthUser {
     pub role: String,
 }
 
-pub async fn auth_middleware(mut request: Request, next: Next) -> Result<Response, StatusCode> {
-    let state = request
-        .extensions()
-        .get::<Arc<AppState>>()
-        .ok_or_else(|| {
-            error!("AppState not found in request extensions");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?
-        .clone();
-
+pub async fn auth_middleware(
+    State(state): State<Arc<AppState>>,
+    mut request: Request,
+    next: Next,
+) -> Result<Response, StatusCode> {
     let auth_header = request
         .headers()
         .get(header::AUTHORIZATION)

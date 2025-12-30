@@ -55,8 +55,10 @@ async fn main() -> Result<()> {
         .allow_methods(Any)
         .allow_headers(Any);
 
+    let auth_state = Arc::clone(&app_state);
+
     let app = Router::new()
-        .nest("/api/auth", handlers::auth::router())
+        .nest("/api/auth", handlers::auth::router(auth_state))
         .nest("/api/email", handlers::email::router())
         .layer(cors)
         .layer(TraceLayer::new_for_http())

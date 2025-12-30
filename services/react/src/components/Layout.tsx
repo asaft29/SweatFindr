@@ -45,9 +45,14 @@ export const Layout = ({ children }: LayoutProps) => {
                     </button>
                   )}
                   {user?.role === 'client' && (
-                    <button onClick={() => navigate('/my-tickets')} className="px-4 py-2.5 rounded-lg text-base font-semibold text-white hover:bg-white/20 backdrop-blur-sm transition-all duration-200 shadow-lg hover:shadow-xl">
-                      My Tickets
-                    </button>
+                    <>
+                      <button onClick={() => navigate('/my-tickets')} className="px-4 py-2.5 rounded-lg text-base font-semibold text-white hover:bg-white/20 backdrop-blur-sm transition-all duration-200 shadow-lg hover:shadow-xl">
+                        Tickets
+                      </button>
+                      <button onClick={() => navigate('/my-profile')} className="px-4 py-2.5 rounded-lg text-base font-semibold text-white hover:bg-white/20 backdrop-blur-sm transition-all duration-200 shadow-lg hover:shadow-xl">
+                        Profile
+                      </button>
+                    </>
                   )}
                   <div className="flex items-center space-x-3 ml-4 pl-4 border-l-2 border-white/30">
                     <span className="text-sm font-medium text-white drop-shadow-md">{user?.email}</span>

@@ -135,6 +135,7 @@ dependencies = [
  "jsonwebtoken",
  "prost",
  "redis",
+ "reqwest",
  "serde",
  "serde_json",
  "tld",

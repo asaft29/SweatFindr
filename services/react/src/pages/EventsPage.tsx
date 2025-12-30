@@ -55,7 +55,6 @@ export function EventsPage() {
       setError(null);
       await clientService.purchaseTicket({ evenimentid: eventId });
       alert("Ticket purchased successfully!");
-      // Reload events to show updated seat count
       await loadEvents();
     } catch (err: any) {
       setError(err.response?.data?.error || err.message || "Failed to purchase ticket");
@@ -68,8 +67,6 @@ export function EventsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-extrabold text-gray-900 mb-8">Events</h1>
-
         <div className="bg-white p-6 rounded-xl shadow-lg mb-8">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Filter Events</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -145,22 +142,35 @@ export function EventsPage() {
           ) : (
             <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in ${loading ? 'opacity-50' : ''}`}>
               {events.map((event) => (
-                <div key={event.id} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-2xl transition-shadow duration-300">
+                <div key={event.id} className="bg-white rounded-xl shadow-lg p-6 hover:shadow-2xl transition-shadow duration-300 flex flex-col h-full">
                   <h3 className="text-2xl font-bold text-gray-900 mb-3">{event.nume}</h3>
                   <p className="text-indigo-600 font-medium mb-2">{event.locatie || "Location not specified"}</p>
-                  <p className="text-gray-700 mb-4">{event.descriere || "No description available"}</p>
-                  <p className="text-sm text-gray-500 font-medium mb-4">
-                    Available seats: {event.numarlocuri !== null ? event.numarlocuri : "N/A"}
-                  </p>
-                  {user?.role === 'client' && (
-                    <button
-                      onClick={() => handlePurchase(event.id)}
-                      disabled={purchasing === event.id}
-                      className="w-full px-4 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition disabled:bg-gray-400"
-                    >
-                      {purchasing === event.id ? "Purchasing..." : "Buy Ticket"}
-                    </button>
-                  )}
+                  <p className="text-gray-700 mb-4 flex-grow">{event.descriere || "No description available"}</p>
+                  <div className="mt-auto">
+                    {event.numarlocuri !== null && event.numarlocuri > 0 && (
+                      <p className="text-sm text-gray-500 font-medium mb-4">
+                        Available seats: {event.numarlocuri}
+                      </p>
+                    )}
+                    {event.numarlocuri !== null && event.numarlocuri > 0 ? (
+                      user?.role === 'client' ? (
+                        <button
+                          onClick={() => handlePurchase(event.id)}
+                          disabled={purchasing === event.id}
+                          className="w-full px-4 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition disabled:bg-gray-400"
+                        >
+                          {purchasing === event.id ? "Purchasing..." : "Buy Ticket"}
+                        </button>
+                      ) : null
+                    ) : (
+                      <button
+                        disabled
+                        className="w-full px-4 py-2 text-sm font-bold text-white bg-red-500 rounded-lg cursor-not-allowed"
+                      >
+                        Sold Out
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

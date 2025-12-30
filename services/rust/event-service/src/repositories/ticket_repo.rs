@@ -99,6 +99,36 @@ impl TicketRepo {
         .await
         .map_err(map_sqlx_ticket_error)?;
 
+        let package_ids: Vec<(i32,)> =
+            sqlx::query_as("SELECT DISTINCT pachetid FROM JOIN_PE WHERE evenimentid = $1")
+                .bind(event_id)
+                .fetch_all(&mut *tx)
+                .await
+                .map_err(TicketRepoError::InternalError)?;
+
+        for (packet_id,) in package_ids {
+            let min_seats: Option<i32> = sqlx::query_scalar(
+                r#"
+                SELECT MIN(e.numarlocuri)
+                FROM EVENIMENTE e
+                JOIN JOIN_PE j ON e.id = j.evenimentid
+                WHERE j.pachetid = $1
+                "#,
+            )
+            .bind(packet_id)
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(TicketRepoError::InternalError)?
+            .flatten();
+
+            sqlx::query("UPDATE PACHETE SET numarlocuri = $1 WHERE id = $2")
+                .bind(min_seats)
+                .bind(packet_id)
+                .execute(&mut *tx)
+                .await
+                .map_err(TicketRepoError::InternalError)?;
+        }
+
         tx.commit().await.map_err(TicketRepoError::InternalError)?;
 
         Ok(ticket)
@@ -115,7 +145,6 @@ impl TicketRepo {
         .bind(cod)
         .fetch_one(&self.pool)
         .await;
-
         result.map_err(map_sqlx_ticket_error)
     }
 
@@ -183,6 +212,36 @@ impl TicketRepo {
                 .execute(&mut *tx)
                 .await
                 .map_err(TicketRepoError::InternalError)?;
+
+            let package_ids: Vec<(i32,)> =
+                sqlx::query_as("SELECT DISTINCT pachetid FROM JOIN_PE WHERE evenimentid = $1")
+                    .bind(event_id)
+                    .fetch_all(&mut *tx)
+                    .await
+                    .map_err(TicketRepoError::InternalError)?;
+
+            for (packet_id,) in package_ids {
+                let min_seats: Option<i32> = sqlx::query_scalar(
+                    r#"
+                    SELECT MIN(e.numarlocuri)
+                    FROM EVENIMENTE e
+                    JOIN JOIN_PE j ON e.id = j.evenimentid
+                    WHERE j.pachetid = $1
+                    "#,
+                )
+                .bind(packet_id)
+                .fetch_optional(&mut *tx)
+                .await
+                .map_err(TicketRepoError::InternalError)?
+                .flatten();
+
+                sqlx::query("UPDATE PACHETE SET numarlocuri = $1 WHERE id = $2")
+                    .bind(min_seats)
+                    .bind(packet_id)
+                    .execute(&mut *tx)
+                    .await
+                    .map_err(TicketRepoError::InternalError)?;
+            }
         } else if let Some(packet_id) = ticket.id_pachet {
             let event_ids: Vec<(i32,)> =
                 sqlx::query_as("SELECT evenimentid FROM JOIN_PE WHERE pachetid = $1")
@@ -329,26 +388,41 @@ impl TicketRepo {
             }
         }
 
-        let min_seats: Option<i32> = sqlx::query_scalar(
+        let all_affected_packages: Vec<(i32,)> = sqlx::query_as(
             r#"
-            SELECT MIN(e.numarlocuri)
-            FROM EVENIMENTE e
-            JOIN JOIN_PE j ON e.id = j.evenimentid
-            WHERE j.pachetid = $1
+            SELECT DISTINCT j2.pachetid
+            FROM JOIN_PE j1
+            JOIN JOIN_PE j2 ON j1.evenimentid = j2.evenimentid
+            WHERE j1.pachetid = $1
             "#,
         )
         .bind(packet_id)
-        .fetch_optional(&mut *tx)
+        .fetch_all(&mut *tx)
         .await
-        .map_err(TicketRepoError::InternalError)?
-        .flatten();
+        .map_err(TicketRepoError::InternalError)?;
 
-        sqlx::query("UPDATE PACHETE SET numarlocuri = $1 WHERE id = $2")
-            .bind(min_seats)
-            .bind(packet_id)
-            .execute(&mut *tx)
+        for (affected_packet_id,) in all_affected_packages {
+            let min_seats: Option<i32> = sqlx::query_scalar(
+                r#"
+                SELECT MIN(e.numarlocuri)
+                FROM EVENIMENTE e
+                JOIN JOIN_PE j ON e.id = j.evenimentid
+                WHERE j.pachetid = $1
+                "#,
+            )
+            .bind(affected_packet_id)
+            .fetch_optional(&mut *tx)
             .await
-            .map_err(TicketRepoError::InternalError)?;
+            .map_err(TicketRepoError::InternalError)?
+            .flatten();
+
+            sqlx::query("UPDATE PACHETE SET numarlocuri = $1 WHERE id = $2")
+                .bind(min_seats)
+                .bind(affected_packet_id)
+                .execute(&mut *tx)
+                .await
+                .map_err(TicketRepoError::InternalError)?;
+        }
 
         let ticket = sqlx::query_as::<_, Ticket>(
             r#"
@@ -437,6 +511,36 @@ impl TicketRepo {
         .await
         .map_err(map_sqlx_ticket_error)?;
 
+        let package_ids: Vec<(i32,)> =
+            sqlx::query_as("SELECT DISTINCT pachetid FROM JOIN_PE WHERE evenimentid = $1")
+                .bind(event_id)
+                .fetch_all(&mut *tx)
+                .await
+                .map_err(TicketRepoError::InternalError)?;
+
+        for (packet_id,) in package_ids {
+            let min_seats: Option<i32> = sqlx::query_scalar(
+                r#"
+                SELECT MIN(e.numarlocuri)
+                FROM EVENIMENTE e
+                JOIN JOIN_PE j ON e.id = j.evenimentid
+                WHERE j.pachetid = $1
+                "#,
+            )
+            .bind(packet_id)
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(TicketRepoError::InternalError)?
+            .flatten();
+
+            sqlx::query("UPDATE PACHETE SET numarlocuri = $1 WHERE id = $2")
+                .bind(min_seats)
+                .bind(packet_id)
+                .execute(&mut *tx)
+                .await
+                .map_err(TicketRepoError::InternalError)?;
+        }
+
         tx.commit().await.map_err(TicketRepoError::InternalError)?;
 
         Ok(ticket)
@@ -487,26 +591,41 @@ impl TicketRepo {
             }
         }
 
-        let min_seats: Option<i32> = sqlx::query_scalar(
+        let all_affected_packages: Vec<(i32,)> = sqlx::query_as(
             r#"
-            SELECT MIN(e.numarlocuri)
-            FROM EVENIMENTE e
-            JOIN JOIN_PE j ON e.id = j.evenimentid
-            WHERE j.pachetid = $1
+            SELECT DISTINCT j2.pachetid
+            FROM JOIN_PE j1
+            JOIN JOIN_PE j2 ON j1.evenimentid = j2.evenimentid
+            WHERE j1.pachetid = $1
             "#,
         )
         .bind(packet_id)
-        .fetch_optional(&mut *tx)
+        .fetch_all(&mut *tx)
         .await
-        .map_err(TicketRepoError::InternalError)?
-        .flatten();
+        .map_err(TicketRepoError::InternalError)?;
 
-        sqlx::query("UPDATE PACHETE SET numarlocuri = $1 WHERE id = $2")
-            .bind(min_seats)
-            .bind(packet_id)
-            .execute(&mut *tx)
+        for (affected_packet_id,) in all_affected_packages {
+            let min_seats: Option<i32> = sqlx::query_scalar(
+                r#"
+                SELECT MIN(e.numarlocuri)
+                FROM EVENIMENTE e
+                JOIN JOIN_PE j ON e.id = j.evenimentid
+                WHERE j.pachetid = $1
+                "#,
+            )
+            .bind(affected_packet_id)
+            .fetch_optional(&mut *tx)
             .await
-            .map_err(TicketRepoError::InternalError)?;
+            .map_err(TicketRepoError::InternalError)?
+            .flatten();
+
+            sqlx::query("UPDATE PACHETE SET numarlocuri = $1 WHERE id = $2")
+                .bind(min_seats)
+                .bind(affected_packet_id)
+                .execute(&mut *tx)
+                .await
+                .map_err(TicketRepoError::InternalError)?;
+        }
 
         let ticket = sqlx::query_as::<_, Ticket>(
             r#"
