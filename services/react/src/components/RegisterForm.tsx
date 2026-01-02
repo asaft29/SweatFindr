@@ -1,5 +1,6 @@
 import { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AxiosError } from 'axios';
 import { useAuthStore } from '../lib/useAuthStore';
 import { UserRole } from '../lib/types';
 
@@ -51,7 +52,11 @@ export const RegisterForm = () => {
         navigate('/');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
+      if (err instanceof AxiosError && err.response?.status === 409) {
+        setError('Email already exists');
+      } else {
+        setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
+      }
     }
   };
 

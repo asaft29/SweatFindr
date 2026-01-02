@@ -31,6 +31,24 @@ impl TicketRepo {
         result.map_err(map_sqlx_ticket_error)
     }
 
+    pub async fn count_tickets_for_event(&self, event_id: i32) -> Result<i64, TicketRepoError> {
+        let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM BILETE WHERE evenimentid = $1")
+            .bind(event_id)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(TicketRepoError::InternalError)?;
+        Ok(count.0)
+    }
+
+    pub async fn count_tickets_for_packet(&self, packet_id: i32) -> Result<i64, TicketRepoError> {
+        let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM BILETE WHERE pachetid = $1")
+            .bind(packet_id)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(TicketRepoError::InternalError)?;
+        Ok(count.0)
+    }
+
     pub async fn get_ticket_for_event(
         &self,
         event_id: i32,

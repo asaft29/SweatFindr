@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { eventService } from "../lib/eventService";
 import { clientService } from "../lib/clientService";
 import { useAuthStore } from "../lib/useAuthStore";
+import { ConfirmModal } from "../components/ConfirmModal";
+import { SuccessModal } from "../components/SuccessModal";
 import type { Event } from "../lib/types";
 
 export function EventsPage() {
@@ -12,6 +14,8 @@ export function EventsPage() {
   const [purchasing, setPurchasing] = useState<number | null>(null);
   const [locatieFilter, setLocatieFilter] = useState("");
   const [numeFilter, setNumeFilter] = useState("");
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [purchaseConfirm, setPurchaseConfirm] = useState<Event | null>(null);
 
   useEffect(() => {
     loadEvents();
@@ -54,7 +58,7 @@ export function EventsPage() {
       setPurchasing(eventId);
       setError(null);
       await clientService.purchaseTicket({ evenimentid: eventId });
-      alert("Ticket purchased successfully!");
+      setShowSuccess(true);
       await loadEvents();
     } catch (err: any) {
       setError(err.response?.data?.error || err.message || "Failed to purchase ticket");
@@ -155,7 +159,7 @@ export function EventsPage() {
                     {event.numarlocuri !== null && event.numarlocuri > 0 ? (
                       user?.role === 'client' ? (
                         <button
-                          onClick={() => handlePurchase(event.id)}
+                          onClick={() => setPurchaseConfirm(event)}
                           disabled={purchasing === event.id}
                           className="w-full px-4 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition disabled:bg-gray-400"
                         >
@@ -176,6 +180,29 @@ export function EventsPage() {
             </div>
           )}
         </div>
+
+        <SuccessModal
+          isOpen={showSuccess}
+          title="Purchase Complete"
+          message="Your ticket has been purchased successfully!"
+          onClose={() => setShowSuccess(false)}
+        />
+
+        <ConfirmModal
+          isOpen={purchaseConfirm !== null}
+          title="Confirm Purchase"
+          message={`Are you sure you want to buy a ticket for "${purchaseConfirm?.nume}"?`}
+          confirmText="Buy Ticket"
+          cancelText="Cancel"
+          confirmButtonClass="bg-indigo-600 hover:bg-indigo-700"
+          onConfirm={() => {
+            if (purchaseConfirm) {
+              handlePurchase(purchaseConfirm.id);
+              setPurchaseConfirm(null);
+            }
+          }}
+          onCancel={() => setPurchaseConfirm(null)}
+        />
       </div>
     </div>
   );

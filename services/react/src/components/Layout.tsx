@@ -41,7 +41,7 @@ export const Layout = ({ children }: LayoutProps) => {
                 <>
                   {user?.role === 'owner-event' && (
                     <button onClick={() => navigate('/my-events')} className="px-4 py-2.5 rounded-lg text-base font-semibold text-white hover:bg-white/20 backdrop-blur-sm transition-all duration-200 shadow-lg hover:shadow-xl">
-                      My Events
+                      Tickets
                     </button>
                   )}
                   {user?.role === 'client' && (

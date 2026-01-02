@@ -186,12 +186,7 @@ impl ClientRepo {
 
         let client = self.get_client(id).await?;
 
-        // Idempotency check: prevent duplicate tickets
-        if client
-            .lista_bilete
-            .iter()
-            .any(|t| t.cod == ticket_ref.cod)
-        {
+        if client.lista_bilete.iter().any(|t| t.cod == ticket_ref.cod) {
             tracing::warn!(
                 "Ticket {} already exists in client {}. Skipping duplicate.",
                 ticket_ref.cod,
@@ -230,5 +225,18 @@ impl ClientRepo {
             .map_err(|e| ClientRepoError::DatabaseError(e.to_string()))?;
 
         self.get_client(id).await
+    }
+
+    pub async fn find_client_by_ticket_code(
+        &self,
+        ticket_code: &str,
+    ) -> Result<Option<Client>, ClientRepoError> {
+        let client = self
+            .collection
+            .find_one(doc! { "lista_bilete.cod": ticket_code })
+            .await
+            .map_err(|e| ClientRepoError::DatabaseError(e.to_string()))?;
+
+        Ok(client)
     }
 }

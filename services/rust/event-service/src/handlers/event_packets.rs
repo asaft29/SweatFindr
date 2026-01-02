@@ -128,7 +128,8 @@ pub async fn get_event_packet(
         (status = 200, description = "Update an existing event packet", body = Response<EventPackets>),
         (status = 401, description = "Missing or invalid authentication token"),
         (status = 403, description = "Forbidden - Only packet owner or admin can update"),
-        (status = 404, description = "Event packet not found")
+        (status = 404, description = "Event packet not found"),
+        (status = 409, description = "Cannot modify package with sold tickets")
     ),
     tag = "Event Packets",
     security(
@@ -148,6 +149,14 @@ pub async fn update_event_packet(
     let existing_packet = state.event_packet_repo.get_event_packet(id).await?;
     Authorization::can_modify_resource(&user_claims, &existing_packet, None)
         .map_err(map_authorization_error)?;
+
+    let ticket_count = state.ticket_repo.count_tickets_for_packet(id).await?;
+    if ticket_count > 0 {
+        return Err(ApiError::Conflict(format!(
+            "Cannot modify package with {} sold ticket(s).",
+            ticket_count
+        )));
+    }
 
     let Json(payload) = payload?;
     payload.validate()?;
@@ -171,7 +180,8 @@ pub async fn update_event_packet(
         (status = 200, description = "Event packet partially updated", body = Response<EventPackets>),
         (status = 401, description = "Missing or invalid authentication token"),
         (status = 403, description = "Forbidden - Only packet owner or admin can update"),
-        (status = 404, description = "Event packet not found")
+        (status = 404, description = "Event packet not found"),
+        (status = 409, description = "Cannot modify package with sold tickets")
     ),
     tag = "Event Packets",
     security(
@@ -191,6 +201,14 @@ pub async fn patch_event_packet(
     let existing_packet = state.event_packet_repo.get_event_packet(id).await?;
     Authorization::can_modify_resource(&user_claims, &existing_packet, None)
         .map_err(map_authorization_error)?;
+
+    let ticket_count = state.ticket_repo.count_tickets_for_packet(id).await?;
+    if ticket_count > 0 {
+        return Err(ApiError::Conflict(format!(
+            "Cannot modify package with {} sold ticket(s).",
+            ticket_count
+        )));
+    }
 
     let Json(payload) = payload?;
     payload.validate()?;
@@ -248,7 +266,8 @@ pub async fn create_event_packet(
         (status = 204, description = "Event packet deleted successfully"),
         (status = 401, description = "Missing or invalid authentication token"),
         (status = 403, description = "Forbidden - Only packet owner or admin can delete"),
-        (status = 404, description = "Event packet not found")
+        (status = 404, description = "Event packet not found"),
+        (status = 409, description = "Cannot delete package with sold tickets")
     ),
     tag = "Event Packets",
     security(
@@ -267,6 +286,14 @@ pub async fn delete_event_packet(
     let existing_packet = state.event_packet_repo.get_event_packet(id).await?;
     Authorization::can_modify_resource(&user_claims, &existing_packet, None)
         .map_err(map_authorization_error)?;
+
+    let ticket_count = state.ticket_repo.count_tickets_for_packet(id).await?;
+    if ticket_count > 0 {
+        return Err(ApiError::Conflict(format!(
+            "Cannot delete package with {} sold ticket(s). Please cancel the tickets first.",
+            ticket_count
+        )));
+    }
 
     state.event_packet_repo.delete_event_packet(id).await?;
     Ok(StatusCode::NO_CONTENT)

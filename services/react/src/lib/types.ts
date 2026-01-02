@@ -89,6 +89,32 @@ export interface EventPackage {
   numarlocuri: number | null;
 }
 
+export interface CreateEventRequest {
+  nume: string;
+  locatie?: string;
+  descriere?: string;
+  numarlocuri?: number;
+}
+
+export interface UpdateEventRequest {
+  nume: string;
+  locatie?: string;
+  descriere?: string;
+  numarlocuri?: number;
+}
+
+export interface CreatePackageRequest {
+  nume: string;
+  locatie?: string;
+  descriere?: string;
+}
+
+export interface UpdatePackageRequest {
+  nume: string;
+  locatie?: string;
+  descriere?: string;
+}
+
 export interface SocialMedia {
   instagram?: string;
   facebook?: string;
@@ -113,4 +139,11 @@ export interface Client {
   public_info?: boolean;
   social_media?: SocialMedia;
   lista_bilete?: TicketRef[];
+}
+
+export interface TicketBuyerInfo {
+  email: string;
+  prenume?: string;
+  nume?: string;
+  public_info: boolean;
 }

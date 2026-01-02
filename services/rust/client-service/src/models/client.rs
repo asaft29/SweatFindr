@@ -151,6 +151,28 @@ fn validate_add_ticket(ticket: &AddTicket) -> Result<(), validator::ValidationEr
     }
 }
 
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct TicketBuyerInfo {
+    pub email: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prenume: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub nume: Option<String>,
+    pub public_info: bool,
+}
+
+impl From<Client> for TicketBuyerInfo {
+    fn from(client: Client) -> Self {
+        let is_public = client.public_info.unwrap_or(false);
+        Self {
+            email: client.email,
+            prenume: if is_public { client.prenume } else { None },
+            nume: if is_public { client.nume } else { None },
+            public_info: is_public,
+        }
+    }
+}
+
 impl ResourceOwnership for Client {
     fn is_owned_by(&self, claims: &UserClaims, user_email: Option<&str>) -> bool {
         if let Some(email) = user_email {

@@ -18,6 +18,7 @@ pub enum ApiError {
     Join(JoinPeRepoError),
     Unauthorized(String),
     Forbidden(String),
+    Conflict(String),
 }
 
 #[derive(Debug)]
@@ -302,6 +303,14 @@ impl IntoResponse for ApiError {
                 StatusCode::FORBIDDEN,
                 ApiErrorResponse {
                     error: "Forbidden".to_string(),
+                    details: vec![msg],
+                },
+            ),
+
+            ApiError::Conflict(msg) => (
+                StatusCode::CONFLICT,
+                ApiErrorResponse {
+                    error: "Conflict".to_string(),
                     details: vec![msg],
                 },
             ),

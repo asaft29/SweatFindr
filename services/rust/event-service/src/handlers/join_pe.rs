@@ -108,6 +108,7 @@ pub async fn list_events_for_packet(
         (status = 401, description = "Missing or invalid authentication token"),
         (status = 403, description = "Forbidden - Must own both event and packet, or be admin"),
         (status = 404, description = "Event or packet not found"),
+        (status = 409, description = "Cannot modify package with sold tickets"),
         (status = 500, description = "Internal server error")
     ),
     tag = "JoinPE",
@@ -135,6 +136,14 @@ pub async fn add_event_to_packet(
     Authorization::can_modify_resource(&user_claims, &packet, None)
         .map_err(map_authorization_error)?;
 
+    let ticket_count = state.ticket_repo.count_tickets_for_packet(packet_id).await?;
+    if ticket_count > 0 {
+        return Err(ApiError::Conflict(format!(
+            "Cannot add events to package with {} sold ticket(s).",
+            ticket_count
+        )));
+    }
+
     let _ = state
         .join_repo
         .add_event_to_packet(packet_id, event_id)
@@ -154,6 +163,7 @@ pub async fn add_event_to_packet(
         (status = 401, description = "Missing or invalid authentication token"),
         (status = 403, description = "Forbidden - Must own both event and packet, or be admin"),
         (status = 404, description = "Relationship not found"),
+        (status = 409, description = "Cannot modify package with sold tickets"),
         (status = 500, description = "Internal server error")
     ),
     tag = "JoinPE",
@@ -180,6 +190,14 @@ pub async fn remove_event_from_packet(
         .map_err(map_authorization_error)?;
     Authorization::can_modify_resource(&user_claims, &packet, None)
         .map_err(map_authorization_error)?;
+
+    let ticket_count = state.ticket_repo.count_tickets_for_packet(packet_id).await?;
+    if ticket_count > 0 {
+        return Err(ApiError::Conflict(format!(
+            "Cannot remove events from package with {} sold ticket(s).",
+            ticket_count
+        )));
+    }
 
     state
         .join_repo

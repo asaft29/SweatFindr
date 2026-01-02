@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { eventService } from "../lib/eventService";
 import { clientService } from "../lib/clientService";
 import { useAuthStore } from "../lib/useAuthStore";
+import { ConfirmModal } from "../components/ConfirmModal";
+import { SuccessModal } from "../components/SuccessModal";
 import type { EventPackage } from "../lib/types";
 
 export function EventPackagesPage() {
@@ -17,6 +19,9 @@ export function EventPackagesPage() {
     type: "",
     availableTickets: "",
   });
+  const [hasMorePages, setHasMorePages] = useState(true);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [purchaseConfirm, setPurchaseConfirm] = useState<EventPackage | null>(null);
 
   const loadPackages = async () => {
     try {
@@ -37,7 +42,14 @@ export function EventPackagesPage() {
       filterParams.page = currentPage;
       filterParams.itemsPerPage = itemsPerPage;
       const data = await eventService.getEventPackages(filterParams);
+
+      if (data.length === 0 && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+        return;
+      }
+
       setPackages(data);
+      setHasMorePages(data.length === itemsPerPage);
     } catch (err: any) {
       if (err.response?.status === 422) {
         setError("Invalid filter values. Items per page must be between 1 and 100.");
@@ -70,7 +82,7 @@ export function EventPackagesPage() {
       setPurchasing(packageId);
       setError(null);
       await clientService.purchaseTicket({ pachetid: packageId });
-      alert("Ticket purchased successfully!");
+      setShowSuccess(true);
       await loadPackages();
     } catch (err: any) {
       setError(err.response?.data?.error || err.message || "Failed to purchase ticket");
@@ -211,7 +223,7 @@ export function EventPackagesPage() {
                     {pkg.numarlocuri !== null && pkg.numarlocuri > 0 ? (
                       user?.role === 'client' ? (
                         <button
-                          onClick={() => handlePurchase(pkg.id)}
+                          onClick={() => setPurchaseConfirm(pkg)}
                           disabled={purchasing === pkg.id}
                           className="w-full px-4 py-2 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition disabled:bg-gray-400"
                         >
@@ -233,7 +245,7 @@ export function EventPackagesPage() {
           )}
         </div>
 
-        {!loading && !error && packages.length > 0 && (
+        {!loading && !error && (packages.length > 0 || currentPage > 1) && (
           <div className="w-full flex items-center justify-center gap-6 mt-8">
             <button
               onClick={handlePreviousPage}
@@ -254,9 +266,9 @@ export function EventPackagesPage() {
             </span>
             <button
               onClick={handleNextPage}
-              disabled={packages.length < itemsPerPage}
+              disabled={!hasMorePages}
               className={`w-12 h-12 flex items-center justify-center rounded-full transition shadow-md hover:shadow-lg ${
-                packages.length < itemsPerPage
+                !hasMorePages
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-indigo-600 text-white hover:bg-indigo-700'
               }`}
@@ -268,6 +280,29 @@ export function EventPackagesPage() {
             </button>
           </div>
         )}
+
+        <SuccessModal
+          isOpen={showSuccess}
+          title="Purchase Complete"
+          message="Your ticket has been purchased successfully!"
+          onClose={() => setShowSuccess(false)}
+        />
+
+        <ConfirmModal
+          isOpen={purchaseConfirm !== null}
+          title="Confirm Purchase"
+          message={`Are you sure you want to buy a ticket for "${purchaseConfirm?.nume}"?`}
+          confirmText="Buy Ticket"
+          cancelText="Cancel"
+          confirmButtonClass="bg-indigo-600 hover:bg-indigo-700"
+          onConfirm={() => {
+            if (purchaseConfirm) {
+              handlePurchase(purchaseConfirm.id);
+              setPurchaseConfirm(null);
+            }
+          }}
+          onCancel={() => setPurchaseConfirm(null)}
+        />
       </div>
     </div>
   );

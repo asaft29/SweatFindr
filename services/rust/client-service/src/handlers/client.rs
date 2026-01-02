@@ -9,7 +9,7 @@ use validator::Validate;
 
 use crate::AppState;
 use crate::middleware::{Authorization, UserClaims};
-use crate::models::client::{AddTicket, Client, ClientQuery, CreateClient, TicketRef, UpdateClient};
+use crate::models::client::{AddTicket, Client, ClientQuery, CreateClient, TicketBuyerInfo, TicketRef, UpdateClient};
 use crate::services::event_service;
 use crate::utils::error::{ClientApiError, map_authorization_error, map_event_service_error};
 use crate::utils::links::{Response, build_simple_client, build_filtered_client, build_ticket_ref};
@@ -173,6 +173,7 @@ pub fn client_manager_router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/clients", get(list_clients).post(create_client))
         .route("/clients/me", get(get_my_client))
+        .route("/clients/data/{ticket_code}", get(get_client_by_ticket))
         .route(
             "/clients/{id}",
             get(get_client)
@@ -477,6 +478,14 @@ pub async fn remove_ticket_from_client(
     Authorization::can_modify_resource(&user_claims, &client, user_email.as_deref())
         .map_err(map_authorization_error)?;
 
+    let ticket_belongs_to_client = client.lista_bilete.iter().any(|t| t.cod == cod);
+    if !ticket_belongs_to_client {
+        return Err(ClientApiError::NotFound(format!(
+            "Ticket with code '{}' not found in this client's tickets",
+            cod
+        )));
+    }
+
     event_service::delete_ticket(&state.event_manager_client, &cod, &state.service_token)
         .await
         .map_err(map_event_service_error)?;
@@ -534,4 +543,43 @@ pub async fn get_my_client(
 
     tracing::info!("Successfully found client for email: {}", user_email);
     Ok(Json(build_simple_client(client, &state.base_url)))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/client-manager/clients/data/{ticket_code}",
+    params(
+        ("ticket_code" = String, Path, description = "Ticket code to find the buyer for")
+    ),
+    responses(
+        (status = 200, description = "Buyer info found", body = TicketBuyerInfo),
+        (status = 401, description = "Unauthorized - Missing or invalid token"),
+        (status = 403, description = "Forbidden - Only event owners can access this endpoint"),
+        (status = 404, description = "No client found with this ticket")
+    ),
+    security(
+        ("bearer_auth" = [])
+    ),
+    tag = "clients"
+)]
+pub async fn get_client_by_ticket(
+    State(state): State<Arc<AppState>>,
+    Extension(user_claims): Extension<UserClaims>,
+    Path(ticket_code): Path<String>,
+) -> Result<Json<TicketBuyerInfo>, ClientApiError> {
+    if !user_claims.is_owner_event() && !user_claims.is_admin() {
+        return Err(ClientApiError::Forbidden(
+            "Only event owners can access buyer information".to_string(),
+        ));
+    }
+
+    let client = state
+        .client_repo
+        .find_client_by_ticket_code(&ticket_code)
+        .await?
+        .ok_or_else(|| {
+            ClientApiError::NotFound(format!("No client found with ticket code {}", ticket_code))
+        })?;
+
+    Ok(Json(TicketBuyerInfo::from(client)))
 }

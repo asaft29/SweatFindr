@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { AuthState, User, UserRole } from "../lib/types";
 import { authService } from "./authService";
-import { isTokenExpired } from "./tokenUtils";
+import { isTokenExpired, decodeJwt } from "./tokenUtils";
 
 interface AuthStore extends AuthState {
   login: (username: string, password: string) => Promise<void>;
@@ -33,12 +33,13 @@ export const useAuthStore = create<AuthStore>()(
 
           if (response.success && response.token_value) {
             const token = response.token_value;
+            const decoded = decodeJwt(token);
 
             const user: User = {
-              id: 0,
+              id: Number(decoded?.sub) || 0,
               email: username,
-              role: "client" as UserRole,
-              emailVerified: false,
+              role: (decoded?.role ?? "client") as UserRole,
+              emailVerified: true,
             };
 
             set({

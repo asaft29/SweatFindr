@@ -1,5 +1,5 @@
 import { apiClient } from "./api";
-import type { Client, TicketRef } from "./types";
+import type { Client, TicketRef, TicketBuyerInfo } from "./types";
 
 interface PurchaseTicketRequest {
   evenimentid?: number;
@@ -61,6 +61,13 @@ class ClientService {
     const response = await this.clientService.post<Client>(
       `/api/client-manager/clients/${clientId}/tickets`,
       request
+    );
+    return response.data;
+  }
+
+  async getBuyerByTicketCode(ticketCode: string): Promise<TicketBuyerInfo> {
+    const response = await this.clientService.get<TicketBuyerInfo>(
+      `/api/client-manager/clients/data/${ticketCode}`
     );
     return response.data;
   }

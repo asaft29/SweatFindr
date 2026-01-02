@@ -240,7 +240,8 @@ pub async fn create_event(
         (status = 204, description = "Event deleted successfully"),
         (status = 401, description = "Missing or invalid authentication token"),
         (status = 403, description = "Forbidden - Only event owner or admin can delete"),
-        (status = 404, description = "Event not found")
+        (status = 404, description = "Event not found"),
+        (status = 409, description = "Cannot delete event with sold tickets")
     ),
     tag = "Events",
     security(
@@ -257,6 +258,14 @@ pub async fn delete_event(
         .map_err(map_authorization_error)?;
     if id < 0 {
         return Err(ApiError::BadRequest("ID cannot be negative".into()));
+    }
+
+    let ticket_count = state.ticket_repo.count_tickets_for_event(id).await?;
+    if ticket_count > 0 {
+        return Err(ApiError::Conflict(format!(
+            "Cannot delete event with {} sold ticket(s). Please cancel the tickets first.",
+            ticket_count
+        )));
     }
 
     state

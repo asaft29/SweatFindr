@@ -11,6 +11,7 @@ import { EventsPage } from '../pages/EventsPage';
 import { EventPackagesPage } from '../pages/EventPackagesPage';
 import { MyTicketsPage } from '../pages/MyTicketsPage';
 import { MyProfilePage } from '../pages/MyProfilePage';
+import { MyEventsPage } from '../pages/MyEventsPage';
 
 export const router = createBrowserRouter([
   {
@@ -83,10 +84,7 @@ export const router = createBrowserRouter([
       <Layout>
         <AnimatedPage>
           <ProtectedRoute allowedRoles={['owner-event'] as any}>
-            <div>
-              <h1>My Events</h1>
-              <p>Manage your events (Event Owner only)</p>
-            </div>
+            <MyEventsPage />
           </ProtectedRoute>
         </AnimatedPage>
       </Layout>

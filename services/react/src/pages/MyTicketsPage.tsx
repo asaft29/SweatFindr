@@ -1,6 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { clientService } from "../lib/clientService";
 import type { TicketRef } from "../lib/types";
+
+interface GroupedTickets {
+  name: string;
+  locatie?: string;
+  descriere?: string;
+  tickets: TicketRef[];
+}
 
 export function MyTicketsPage() {
   const [tickets, setTickets] = useState<TicketRef[]>([]);
@@ -25,6 +32,27 @@ export function MyTicketsPage() {
     loadTickets();
   }, []);
 
+  const groupedTickets = useMemo(() => {
+    const groups: Map<string, GroupedTickets> = new Map();
+
+    for (const ticket of tickets) {
+      const key = ticket.nume_eveniment || "Unknown Event";
+
+      if (!groups.has(key)) {
+        groups.set(key, {
+          name: key,
+          locatie: ticket.locatie,
+          descriere: ticket.descriere,
+          tickets: [],
+        });
+      }
+
+      groups.get(key)!.tickets.push(ticket);
+    }
+
+    return Array.from(groups.values());
+  }, [tickets]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
@@ -48,50 +76,49 @@ export function MyTicketsPage() {
           </div>
         )}
 
-        {!loading && !error && tickets.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tickets.map((ticket) => (
-              <div key={ticket.cod} className="relative bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300">
-                <div className="absolute left-0 top-0 bottom-0 w-3 bg-gradient-to-b from-indigo-500 to-indigo-700"></div>
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-full -ml-2"></div>
-
-                <div className="pl-6 pr-6 py-6">
-                  <div className="flex items-center justify-between mb-4 pb-4 border-b border-dashed border-gray-300">
+        {!loading && !error && groupedTickets.length > 0 && (
+          <div className="space-y-8">
+            {groupedTickets.map((group) => (
+              <div key={group.name} className="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-4">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs text-gray-500 uppercase tracking-wider">Ticket Code</p>
-                      <p className="text-lg font-mono font-bold text-indigo-600">{ticket.cod}</p>
+                      <h3 className="text-xl font-bold text-white">{group.name}</h3>
+                      {group.locatie && (
+                        <div className="flex items-center text-indigo-100 mt-1">
+                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          <span className="text-sm">{group.locatie}</span>
+                        </div>
+                      )}
                     </div>
-                    <div className="text-right">
-                      <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
-                        <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-                        </svg>
-                      </div>
+                    <div className="bg-white bg-opacity-20 rounded-lg px-3 py-1">
+                      <span className="text-white font-bold">{group.tickets.length} ticket{group.tickets.length !== 1 ? 's' : ''}</span>
                     </div>
                   </div>
-
-                  {ticket.nume_eveniment && (
-                    <h3 className="text-xl font-bold text-gray-900 mb-3">{ticket.nume_eveniment}</h3>
+                  {group.descriere && (
+                    <p className="text-indigo-100 text-sm mt-2">{group.descriere}</p>
                   )}
+                </div>
 
-                  <div className="space-y-2">
-                    {ticket.locatie && (
-                      <div className="flex items-center text-gray-600">
-                        <svg className="w-4 h-4 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        <span className="text-sm">{ticket.locatie}</span>
-                      </div>
-                    )}
-                    {ticket.descriere && (
-                      <div className="flex items-start text-gray-600">
-                        <svg className="w-4 h-4 mr-2 mt-0.5 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span className="text-sm">{ticket.descriere}</span>
-                      </div>
-                    )}
+                <div className="p-4">
+                  <div className="overflow-x-auto pb-2">
+                    <div className="flex gap-3 min-w-min">
+                      {group.tickets.map((ticket) => (
+                        <div
+                          key={ticket.cod}
+                          className="relative bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-indigo-300 hover:shadow-md transition-all duration-200 flex-shrink-0 w-64"
+                        >
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500 rounded-l-lg"></div>
+                          <div className="pl-2">
+                            <p className="text-xs text-gray-500 uppercase tracking-wider">Ticket Code</p>
+                            <p className="text-sm font-mono font-bold text-indigo-600 break-all">{ticket.cod}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
