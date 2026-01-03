@@ -50,6 +50,21 @@ class ApiClient {
         localStorage.removeItem("user");
         window.location.href = "/login";
       }
+      if (error.response?.status === 429) {
+        const headers = error.response.headers;
+        const retryAfter =
+          headers["retry-after"] ||
+          headers["x-ratelimit-after"] ||
+          headers["Retry-After"] ||
+          headers["X-Ratelimit-After"];
+        const waitTime = retryAfter ? parseInt(String(retryAfter), 10) : 60;
+        const rateLimitError = new Error(
+          `Too many requests. Please try again in ${waitTime} seconds.`
+        ) as AxiosError;
+        rateLimitError.response = error.response;
+        rateLimitError.name = "RateLimitError";
+        return Promise.reject(rateLimitError);
+      }
       return Promise.reject(error);
     };
 

@@ -1,5 +1,5 @@
 import { apiClient } from "./api";
-import type { Event, EventPackage, CreateEventRequest, UpdateEventRequest, CreatePackageRequest, UpdatePackageRequest } from "./types";
+import type { Event, EventPackage, EventPackageWithLinks, CreateEventRequest, UpdateEventRequest, CreatePackageRequest, UpdatePackageRequest } from "./types";
 
 const ENDPOINTS = {
   EVENTS: "/api/event-manager/events",
@@ -31,7 +31,7 @@ class EventService {
     availableTickets?: number;
     page?: number;
     itemsPerPage?: number;
-  }): Promise<EventPackage[]> {
+  }): Promise<EventPackageWithLinks[]> {
     const params = new URLSearchParams();
     if (filters?.type) params.append("type", filters.type);
     if (filters?.availableTickets !== undefined) {
@@ -42,7 +42,12 @@ class EventService {
 
     const url = `${ENDPOINTS.EVENT_PACKETS}?${params.toString()}`;
 
-    const response = await this.eventService.get<EventPackage[]>(url);
+    const response = await this.eventService.get<EventPackageWithLinks[]>(url);
+    return response.data;
+  }
+
+  async getEventPackagesByUrl(url: string): Promise<EventPackageWithLinks[]> {
+    const response = await this.eventService.get<EventPackageWithLinks[]>(url);
     return response.data;
   }
 

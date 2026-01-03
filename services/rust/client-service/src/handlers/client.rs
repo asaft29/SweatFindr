@@ -12,7 +12,7 @@ use crate::middleware::{Authorization, UserClaims};
 use crate::models::client::{AddTicket, Client, ClientQuery, CreateClient, TicketBuyerInfo, TicketRef, UpdateClient};
 use crate::services::event_service;
 use crate::utils::error::{ClientApiError, map_authorization_error, map_event_service_error};
-use crate::utils::links::{Response, build_simple_client, build_filtered_client, build_ticket_ref};
+use crate::utils::links::{Response, build_simple_client, build_filtered_client, build_ticket_ref, build_ticket_buyer_info};
 
 pub mod auth {
     tonic::include_proto!("auth");
@@ -552,7 +552,7 @@ pub async fn get_my_client(
         ("ticket_code" = String, Path, description = "Ticket code to find the buyer for")
     ),
     responses(
-        (status = 200, description = "Buyer info found", body = TicketBuyerInfo),
+        (status = 200, description = "Buyer info found", body = Response<TicketBuyerInfo>),
         (status = 401, description = "Unauthorized - Missing or invalid token"),
         (status = 403, description = "Forbidden - Only event owners can access this endpoint"),
         (status = 404, description = "No client found with this ticket")
@@ -566,7 +566,7 @@ pub async fn get_client_by_ticket(
     State(state): State<Arc<AppState>>,
     Extension(user_claims): Extension<UserClaims>,
     Path(ticket_code): Path<String>,
-) -> Result<Json<TicketBuyerInfo>, ClientApiError> {
+) -> Result<Json<Response<TicketBuyerInfo>>, ClientApiError> {
     if !user_claims.is_owner_event() && !user_claims.is_admin() {
         return Err(ClientApiError::Forbidden(
             "Only event owners can access buyer information".to_string(),
@@ -581,5 +581,6 @@ pub async fn get_client_by_ticket(
             ClientApiError::NotFound(format!("No client found with ticket code {}", ticket_code))
         })?;
 
-    Ok(Json(TicketBuyerInfo::from(client)))
+    let buyer_info = TicketBuyerInfo::from(client);
+    Ok(Json(build_ticket_buyer_info(buyer_info, &ticket_code, &state.base_url)))
 }

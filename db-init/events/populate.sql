@@ -226,63 +226,39 @@ VALUES
         'Multi-city Tour',
         'Complete systems programming experience with RustConf and CppCon - learn low-level optimization and memory safety',
         0
-    ),
-    (
-        3,
-        'Test Package - Min Seats',
-        'Multi-city Test',
-        'Test package with 3 events: Clojure/conj (2 seats), Django Con (3 seats), JavaScript World (4 seats)',
-        999
     );
 
 INSERT INTO
     JOIN_PE (PachetID, EvenimentID)
 VALUES
-    -- Systems Programming Track
-    (1, 1),  -- RustConf
-    (1, 2),  -- CppCon
-    -- Backend Development Bundle
-    (2, 3),  -- GoLab
-    (2, 7),  -- Elixir Forum
-    (2, 12), -- Django Con
-    -- Modern Web Stack Package
-    (3, 5),  -- JavaScript World
-    (3, 13), -- Vue.js Amsterdam
-    (3, 16), -- React Summit
-    -- Data Science & ML Package
-    (4, 4),  -- PyData Summit
-    (4, 18), -- Machine Learning Conference
-    -- Mobile Development Suite
-    (5, 6),  -- Kotlin/Everywhere
-    (5, 8),  -- Swift Summit
-    -- Functional Programming Path
-    (6, 7),  -- Elixir Forum
-    (6, 14), -- Scala Days
-    (6, 15), -- Clojure/conj
-    -- Cloud Native Complete
-    (7, 10), -- KubeCon
-    (7, 9),  -- WebAssembly Summit
-    (7, 17), -- DevOps Enterprise Summit
-    -- Microsoft Stack Package
-    (8, 11), -- dotNet Conf
-    -- Python Developer Path
-    (9, 4),  -- PyData Summit
-    (9, 12), -- Django Con
-    -- React Ecosystem Bundle
-    (10, 13), -- Vue.js Amsterdam
-    (10, 16), -- React Summit
-    (10, 5),  -- JavaScript World
-    -- Enterprise DevOps Track
-    (11, 17), -- DevOps Enterprise Summit
-    (11, 10), -- KubeCon
-    -- AI & WebAssembly Future
-    (12, 9),  -- WebAssembly Summit
-    (12, 18), -- Machine Learning Conference
-    -- Full Stack JavaScript Pro
-    (13, 5),  -- JavaScript World
-    (13, 16), -- React Summit
-    (13, 13), -- Vue.js Amsterdam
-    -- Test Package - Min Seats
-    (14, 1),  -- Clojure/conj (2 seats)
-    (14, 4),  -- Django Con (3 seats)
-    (14, 8); -- JavaScript World (4 seats)
+    (1, 1),
+    (1, 2),
+    (2, 3),
+    (2, 7),
+    (2, 12),
+    (3, 5),
+    (3, 13),
+    (3, 16),
+    (4, 4),
+    (4, 18),
+    (5, 6),
+    (5, 8),
+    (6, 7),
+    (6, 14),
+    (6, 15),
+    (7, 10),
+    (7, 9),
+    (7, 17),
+    (8, 11),
+    (9, 4),
+    (9, 12),
+    (10, 13),
+    (10, 16),
+    (10, 5),
+    (11, 17),
+    (11, 10),
+    (12, 9),
+    (12, 18),
+    (13, 5),
+    (13, 16),
+    (13, 13);

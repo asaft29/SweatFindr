@@ -4,6 +4,7 @@ mod middleware;
 
 use anyhow::Result;
 use axum::Router;
+use middleware::rate_limit::{create_auth_rate_limit_layer, create_email_rate_limit_layer};
 use std::sync::Arc;
 use tonic::transport::Channel;
 use tower_http::cors::{Any, CorsLayer};
@@ -53,13 +54,28 @@ async fn main() -> Result<()> {
     let cors = CorsLayer::new()
         .allow_origin(Any)
         .allow_methods(Any)
-        .allow_headers(Any);
+        .allow_headers(Any)
+        .expose_headers([
+            "retry-after".parse().unwrap(),
+            "x-ratelimit-after".parse().unwrap(),
+            "x-ratelimit-limit".parse().unwrap(),
+            "x-ratelimit-remaining".parse().unwrap(),
+        ]);
 
     let auth_state = Arc::clone(&app_state);
 
+    let auth_rate_limit = create_auth_rate_limit_layer();
+    let email_rate_limit = create_email_rate_limit_layer();
+
     let app = Router::new()
-        .nest("/api/auth", handlers::auth::router(auth_state))
-        .nest("/api/email", handlers::email::router())
+        .nest(
+            "/api/auth",
+            handlers::auth::router(auth_state).layer(auth_rate_limit),
+        )
+        .nest(
+            "/api/email",
+            handlers::email::router().layer(email_rate_limit),
+        )
         .layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(app_state);

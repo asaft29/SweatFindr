@@ -16,6 +16,10 @@ use crate::models::auth::{
     VerifyEmailResponse,
 };
 use crate::models::client::CreateClient;
+use crate::utils::auth_links::{
+    Response, build_login_response, build_register_response, build_resend_verification_response,
+    build_update_role_response, build_verify_email_response,
+};
 use crate::utils::error::ClientApiError;
 use common::authorization::UserClaims;
 
@@ -51,7 +55,7 @@ pub fn auth_protected_router() -> Router<Arc<AppState>> {
     path = "/api/auth/register",
     request_body = RegisterRequest,
     responses(
-        (status = 201, description = "User registered successfully", body = RegisterResponse),
+        (status = 201, description = "User registered successfully", body = Response<RegisterResponse>),
         (status = 400, description = "Invalid input"),
         (status = 409, description = "Email already exists"),
         (status = 422, description = "Validation error"),
@@ -62,7 +66,7 @@ pub fn auth_protected_router() -> Router<Arc<AppState>> {
 pub async fn register(
     State(state): State<Arc<AppState>>,
     payload: Result<Json<RegisterRequest>, JsonRejection>,
-) -> Result<(StatusCode, Json<RegisterResponse>), ClientApiError> {
+) -> Result<(StatusCode, Json<Response<RegisterResponse>>), ClientApiError> {
     let Json(payload) = payload?;
 
     let mut auth_client = AuthServiceClient::connect(state.auth_service_url.clone())
@@ -134,15 +138,17 @@ pub async fn register(
         }
     });
 
+    let register_response = RegisterResponse {
+        success: true,
+        token: response.token_value,
+        message: "User registered successfully. Please check your email for verification code."
+            .to_string(),
+        client_id: Some(created_client.id.to_hex()),
+    };
+
     Ok((
         StatusCode::CREATED,
-        Json(RegisterResponse {
-            success: true,
-            token: response.token_value,
-            message: "User registered successfully. Please check your email for verification code."
-                .to_string(),
-            client_id: Some(created_client.id.to_hex()),
-        }),
+        Json(build_register_response(register_response, &state.base_url)),
     ))
 }
 
@@ -151,7 +157,7 @@ pub async fn register(
     path = "/api/auth/login",
     request_body = LoginRequest,
     responses(
-        (status = 200, description = "Login successful", body = LoginResponse),
+        (status = 200, description = "Login successful", body = Response<LoginResponse>),
         (status = 400, description = "Invalid input"),
         (status = 401, description = "Invalid credentials"),
         (status = 500, description = "Internal server error"),
@@ -161,7 +167,7 @@ pub async fn register(
 pub async fn login(
     State(state): State<Arc<AppState>>,
     payload: Result<Json<LoginRequest>, JsonRejection>,
-) -> Result<Json<LoginResponse>, ClientApiError> {
+) -> Result<Json<Response<LoginResponse>>, ClientApiError> {
     let Json(payload) = payload?;
 
     let mut auth_client = AuthServiceClient::connect(state.auth_service_url.clone())
@@ -194,11 +200,13 @@ pub async fn login(
         return Err(ClientApiError::Unauthorized(response.message));
     }
 
-    Ok(Json(LoginResponse {
+    let login_response = LoginResponse {
         success: true,
         token: response.token_value,
         message: "Login successful".to_string(),
-    }))
+    };
+
+    Ok(Json(build_login_response(login_response, &state.base_url)))
 }
 
 #[utoipa::path(
@@ -209,7 +217,7 @@ pub async fn login(
     ),
     request_body = UpdateRoleRequest,
     responses(
-        (status = 200, description = "Role updated successfully", body = UpdateRoleResponse),
+        (status = 200, description = "Role updated successfully", body = Response<UpdateRoleResponse>),
         (status = 400, description = "Invalid input"),
         (status = 401, description = "Unauthorized - admin only"),
         (status = 404, description = "User not found"),
@@ -225,7 +233,7 @@ pub async fn update_user_role(
     Extension(user_claims): Extension<UserClaims>,
     Path(id): Path<i32>,
     payload: Result<Json<UpdateRoleRequest>, JsonRejection>,
-) -> Result<Json<UpdateRoleResponse>, ClientApiError> {
+) -> Result<Json<Response<UpdateRoleResponse>>, ClientApiError> {
     let Json(payload) = payload?;
 
     if user_claims.role != "admin" {
@@ -266,10 +274,12 @@ pub async fn update_user_role(
         return Err(ClientApiError::InternalError(response.message));
     }
 
-    Ok(Json(UpdateRoleResponse {
+    let update_role_response = UpdateRoleResponse {
         success: true,
         message: response.message,
-    }))
+    };
+
+    Ok(Json(build_update_role_response(update_role_response, id, &state.base_url)))
 }
 
 #[utoipa::path(
@@ -277,7 +287,7 @@ pub async fn update_user_role(
     path = "/api/auth/verify",
     request_body = VerifyEmailRequest,
     responses(
-        (status = 200, description = "Email verified successfully", body = VerifyEmailResponse),
+        (status = 200, description = "Email verified successfully", body = Response<VerifyEmailResponse>),
         (status = 400, description = "Invalid or expired verification code"),
         (status = 404, description = "User not found"),
         (status = 500, description = "Internal server error"),
@@ -287,7 +297,7 @@ pub async fn update_user_role(
 pub async fn verify_email(
     State(state): State<Arc<AppState>>,
     payload: Result<Json<VerifyEmailRequest>, JsonRejection>,
-) -> Result<Json<VerifyEmailResponse>, ClientApiError> {
+) -> Result<Json<Response<VerifyEmailResponse>>, ClientApiError> {
     let Json(payload) = payload?;
 
     let mut auth_client = AuthServiceClient::connect(state.auth_service_url.clone())
@@ -349,10 +359,12 @@ pub async fn verify_email(
         }
     }
 
-    Ok(Json(VerifyEmailResponse {
+    let verify_response = VerifyEmailResponse {
         success: true,
         message: "Email verified successfully".to_string(),
-    }))
+    };
+
+    Ok(Json(build_verify_email_response(verify_response, &state.base_url)))
 }
 
 #[utoipa::path(
@@ -360,7 +372,7 @@ pub async fn verify_email(
     path = "/api/auth/resend",
     request_body = ResendVerificationRequest,
     responses(
-        (status = 200, description = "Verification code resent", body = ResendVerificationResponse),
+        (status = 200, description = "Verification code resent", body = Response<ResendVerificationResponse>),
         (status = 404, description = "User not found"),
         (status = 500, description = "Internal server error"),
     ),
@@ -369,7 +381,7 @@ pub async fn verify_email(
 pub async fn resend_verification(
     State(state): State<Arc<AppState>>,
     payload: Result<Json<ResendVerificationRequest>, JsonRejection>,
-) -> Result<Json<ResendVerificationResponse>, ClientApiError> {
+) -> Result<Json<Response<ResendVerificationResponse>>, ClientApiError> {
     let Json(payload) = payload?;
 
     let mut auth_client = AuthServiceClient::connect(state.auth_service_url.clone())
@@ -413,8 +425,10 @@ pub async fn resend_verification(
         }
     };
 
-    Ok(Json(ResendVerificationResponse {
+    let resend_response = ResendVerificationResponse {
         success: response.success,
         message: response.message,
-    }))
+    };
+
+    Ok(Json(build_resend_verification_response(resend_response, &state.base_url)))
 }

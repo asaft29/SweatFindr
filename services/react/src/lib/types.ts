@@ -147,3 +147,20 @@ export interface TicketBuyerInfo {
   nume?: string;
   public_info: boolean;
 }
+
+export interface HateoasLink {
+  href: string;
+  type?: string;
+}
+
+export interface HateoasLinks {
+  self: HateoasLink;
+  parent?: HateoasLink;
+  next?: HateoasLink;
+  prev?: HateoasLink;
+  [key: string]: HateoasLink | undefined;
+}
+
+export interface EventPackageWithLinks extends EventPackage {
+  _links?: HateoasLinks;
+}

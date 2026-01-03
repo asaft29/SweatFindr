@@ -4,11 +4,11 @@ import { clientService } from "../lib/clientService";
 import { useAuthStore } from "../lib/useAuthStore";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { SuccessModal } from "../components/SuccessModal";
-import type { EventPackage } from "../lib/types";
+import type { EventPackageWithLinks } from "../lib/types";
 
 export function EventPackagesPage() {
   const { user } = useAuthStore();
-  const [packages, setPackages] = useState<EventPackage[]>([]);
+  const [packages, setPackages] = useState<EventPackageWithLinks[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [purchasing, setPurchasing] = useState<number | null>(null);
@@ -19,9 +19,10 @@ export function EventPackagesPage() {
     type: "",
     availableTickets: "",
   });
-  const [hasMorePages, setHasMorePages] = useState(true);
+  const [nextLink, setNextLink] = useState<string | null>(null);
+  const [prevLink, setPrevLink] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [purchaseConfirm, setPurchaseConfirm] = useState<EventPackage | null>(null);
+  const [purchaseConfirm, setPurchaseConfirm] = useState<EventPackageWithLinks | null>(null);
 
   const loadPackages = async () => {
     try {
@@ -49,7 +50,14 @@ export function EventPackagesPage() {
       }
 
       setPackages(data);
-      setHasMorePages(data.length === itemsPerPage);
+
+      if (data.length > 0 && data[0]._links) {
+        setNextLink(data[0]._links.next?.href || null);
+        setPrevLink(data[0]._links.prev?.href || null);
+      } else {
+        setNextLink(null);
+        setPrevLink(null);
+      }
     } catch (err: any) {
       if (err.response?.status === 422) {
         setError("Invalid filter values. Items per page must be between 1 and 100.");
@@ -62,14 +70,45 @@ export function EventPackagesPage() {
     }
   };
 
+  const loadPackagesByUrl = async (url: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await eventService.getEventPackagesByUrl(url);
+
+      setPackages(data);
+
+      if (data.length > 0 && data[0]._links) {
+        setNextLink(data[0]._links.next?.href || null);
+        setPrevLink(data[0]._links.prev?.href || null);
+      } else {
+        setNextLink(null);
+        setPrevLink(null);
+      }
+
+      const urlObj = new URL(url, window.location.origin);
+      const pageParam = urlObj.searchParams.get('page');
+      if (pageParam) {
+        setCurrentPage(parseInt(pageParam));
+      }
+    } catch (err: any) {
+      setError("Failed to load event packages");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handlePreviousPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
+    if (prevLink) {
+      loadPackagesByUrl(prevLink);
     }
   };
 
   const handleNextPage = () => {
-    setCurrentPage(currentPage + 1);
+    if (nextLink) {
+      loadPackagesByUrl(nextLink);
+    }
   };
 
   const handlePurchase = async (packageId: number) => {
@@ -249,9 +288,9 @@ export function EventPackagesPage() {
           <div className="w-full flex items-center justify-center gap-6 mt-8">
             <button
               onClick={handlePreviousPage}
-              disabled={currentPage === 1}
+              disabled={!prevLink}
               className={`w-12 h-12 flex items-center justify-center rounded-full transition shadow-md hover:shadow-lg ${
-                currentPage === 1
+                !prevLink
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-indigo-600 text-white hover:bg-indigo-700'
               }`}
@@ -266,9 +305,9 @@ export function EventPackagesPage() {
             </span>
             <button
               onClick={handleNextPage}
-              disabled={!hasMorePages}
+              disabled={!nextLink}
               className={`w-12 h-12 flex items-center justify-center rounded-full transition shadow-md hover:shadow-lg ${
-                !hasMorePages
+                !nextLink
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-indigo-600 text-white hover:bg-indigo-700'
               }`}

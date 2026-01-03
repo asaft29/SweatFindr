@@ -453,6 +453,7 @@ pub fn hateoas_filtered(attr: TokenStream, item: TokenStream) -> TokenStream {
                 let has_page_field = #query_param.paginare.page.is_some();
                 let current_page = #query_param.paginare.page.unwrap_or(1);
                 let items_per_page = #query_param.paginare.items_per_page.unwrap_or(10);
+                let item_count = #data_param.len();
 
                 for item in #data_param {
                     let mut self_href = format!("{}/{}", base_url, #resource);
@@ -489,13 +490,16 @@ pub fn hateoas_filtered(attr: TokenStream, item: TokenStream) -> TokenStream {
                             response_builder = response_builder.link_with_types("prev", prev_url, &["GET"]);
                         }
 
-                        let next_page = current_page + 1;
-                        let next_url = if non_page_params.is_empty() {
-                            format!("{}?page={}&items_per_page={}", base_with_params, next_page, items_per_page)
-                        } else {
-                            format!("{}&page={}&items_per_page={}", base_with_params, next_page, items_per_page)
-                        };
-                        response_builder = response_builder.link_with_types("next", next_url, &["GET"]);
+                        // Only add next link if we got a full page of results (indicating more pages exist)
+                        if item_count == items_per_page as usize {
+                            let next_page = current_page + 1;
+                            let next_url = if non_page_params.is_empty() {
+                                format!("{}?page={}&items_per_page={}", base_with_params, next_page, items_per_page)
+                            } else {
+                                format!("{}&page={}&items_per_page={}", base_with_params, next_page, items_per_page)
+                            };
+                            response_builder = response_builder.link_with_types("next", next_url, &["GET"]);
+                        }
                     }
 
                     responses.push(response_builder.build());
@@ -654,6 +658,189 @@ pub fn hateoas_links(attr: TokenStream, item: TokenStream) -> TokenStream {
                 link: #self_link,
                 others: #others_map,
             }
+        }
+    };
+
+    TokenStream::from(expanded)
+}
+
+/// Macro for building HATEOAS responses for action endpoints (login, register, etc.)
+///
+/// This macro is designed for endpoints where the self URL is a fixed action path,
+/// not based on an ID field in the response data. It supports optional parent links
+/// and additional related links.
+///
+/// Usage:
+/// ```
+/// #[hateoas_action(
+///     resource = "api/auth/login",
+///     self_methods = "POST",
+///     links(
+///         ("register", "api/auth/register", "POST"),
+///         ("my-client", "api/client-manager/clients/me", "GET")
+///     )
+/// )]
+/// pub fn build_login_response(response: LoginResponse, base_url: &str) -> Response<LoginResponse> {}
+/// ```
+#[proc_macro_attribute]
+pub fn hateoas_action(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(attr as HateoasArgs);
+    let input_fn = parse_macro_input!(item as ItemFn);
+
+    let resource = args
+        .args
+        .iter()
+        .find(|(k, _)| k == "resource")
+        .map(|(_, v)| v)
+        .expect("resource parameter is required");
+
+    let self_methods = args
+        .args
+        .iter()
+        .find(|(k, _)| k == "self_methods")
+        .map(|(_, v)| v)
+        .expect("self_methods parameter is required");
+
+    let parent_resource = args
+        .args
+        .iter()
+        .find(|(k, _)| k == "parent_resource")
+        .map(|(_, v)| v);
+
+    let parent_methods = args
+        .args
+        .iter()
+        .find(|(k, _)| k == "parent_methods")
+        .map(|(_, v)| v);
+
+    let fn_sig = &input_fn.sig;
+    let fn_vis = &input_fn.vis;
+
+    let data_param = match fn_sig.inputs.iter().next() {
+        Some(syn::FnArg::Typed(pat_type)) => &pat_type.pat,
+        _ => panic!("First parameter must be the data object"),
+    };
+
+    let link_calls = args.links.iter().map(|(name, path, methods)| {
+        quote! {
+            .link_with_types(
+                #name,
+                format!("{}/{}", base_url, #path),
+                &[#methods]
+            )
+        }
+    });
+
+    let parent_call = if let (Some(pr), Some(pm)) = (parent_resource, parent_methods) {
+        quote! {
+            .parent_with_types(format!("{}/{}", base_url, #pr), &[#pm])
+        }
+    } else {
+        quote! {}
+    };
+
+    let expanded = quote! {
+        #fn_vis #fn_sig {
+            ResponseBuilder::new(#data_param, format!("{}/{}", base_url, #resource))
+                .self_types(&[#self_methods])
+                #parent_call
+                #(#link_calls)*
+                .build()
+        }
+    };
+
+    TokenStream::from(expanded)
+}
+
+/// Macro for building HATEOAS responses for data lookup endpoints
+///
+/// This macro is for endpoints where the self URL includes a lookup parameter
+/// passed as a separate function argument (not from the data object).
+///
+/// Usage:
+/// ```
+/// #[hateoas_lookup(
+///     resource = "api/client-manager/clients/data",
+///     lookup_param = "ticket_code",
+///     self_methods = "GET",
+///     parent_resource = "api/client-manager/clients",
+///     parent_methods = "[GET, POST]"
+/// )]
+/// pub fn build_ticket_buyer_info(buyer_info: TicketBuyerInfo, ticket_code: &str, base_url: &str) -> Response<TicketBuyerInfo> {}
+/// ```
+#[proc_macro_attribute]
+pub fn hateoas_lookup(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(attr as HateoasArgs);
+    let input_fn = parse_macro_input!(item as ItemFn);
+
+    let resource = args
+        .args
+        .iter()
+        .find(|(k, _)| k == "resource")
+        .map(|(_, v)| v)
+        .expect("resource parameter is required");
+
+    let lookup_param = args
+        .args
+        .iter()
+        .find(|(k, _)| k == "lookup_param")
+        .map(|(_, v)| v)
+        .expect("lookup_param parameter is required");
+
+    let self_methods = args
+        .args
+        .iter()
+        .find(|(k, _)| k == "self_methods")
+        .map(|(_, v)| v)
+        .expect("self_methods parameter is required");
+
+    let parent_resource = args
+        .args
+        .iter()
+        .find(|(k, _)| k == "parent_resource")
+        .map(|(_, v)| v);
+
+    let parent_methods = args
+        .args
+        .iter()
+        .find(|(k, _)| k == "parent_methods")
+        .map(|(_, v)| v);
+
+    let fn_sig = &input_fn.sig;
+    let fn_vis = &input_fn.vis;
+
+    let data_param = match fn_sig.inputs.iter().next() {
+        Some(syn::FnArg::Typed(pat_type)) => &pat_type.pat,
+        _ => panic!("First parameter must be the data object"),
+    };
+
+    let lookup_param_ident = syn::Ident::new(&lookup_param, proc_macro2::Span::call_site());
+
+    let link_calls = args.links.iter().map(|(name, path, methods)| {
+        quote! {
+            .link_with_types(
+                #name,
+                format!("{}/{}", base_url, #path),
+                &[#methods]
+            )
+        }
+    });
+
+    let parent_call = if let (Some(pr), Some(pm)) = (parent_resource, parent_methods) {
+        quote! {
+            .parent_with_types(format!("{}/{}", base_url, #pr), &[#pm])
+        }
+    } else {
+        quote! {}
+    };
+
+    let expanded = quote! {
+        #fn_vis #fn_sig {
+            ResponseBuilder::new(#data_param, format!("{}/{}/{}", base_url, #resource, #lookup_param_ident))
+                .self_types(&[#self_methods])
+                #parent_call
+                #(#link_calls)*
+                .build()
         }
     };
 
