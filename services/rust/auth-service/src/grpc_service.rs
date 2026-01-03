@@ -433,4 +433,23 @@ impl AuthService for AuthServiceImpl {
             Err(e) => Err(Status::internal(format!("Database error: {}", e))),
         }
     }
+
+    async fn delete_user(
+        &self,
+        request: Request<DeleteUserRequest>,
+    ) -> Result<Response<DeleteUserResponse>, Status> {
+        let req = request.into_inner();
+
+        match self.user_repo.delete_user(req.user_id).await {
+            Ok(true) => {
+                self.blacklist.invalidate_user(req.user_id).await;
+                Ok(Response::new(DeleteUserResponse {
+                    success: true,
+                    message: format!("User {} deleted successfully", req.user_id),
+                }))
+            }
+            Ok(false) => Err(Status::not_found("User not found")),
+            Err(e) => Err(Status::internal(format!("Database error: {}", e))),
+        }
+    }
 }

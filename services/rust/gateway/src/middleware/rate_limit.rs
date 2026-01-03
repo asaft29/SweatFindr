@@ -34,10 +34,10 @@ impl KeyExtractor for IpKeyExtractor {
     }
 }
 
-/// - 5 requests per 60 seconds for login/register
+/// - 5 requests per 30 seconds for login/register
 pub fn create_auth_rate_limit_layer() -> GovernorLayer<IpKeyExtractor, NoOpMiddleware, Body> {
     let config = GovernorConfigBuilder::default()
-        .per_second(60)
+        .per_second(30)
         .burst_size(5)
         .key_extractor(IpKeyExtractor)
         .finish()
@@ -47,10 +47,10 @@ pub fn create_auth_rate_limit_layer() -> GovernorLayer<IpKeyExtractor, NoOpMiddl
 }
 
 
-/// - 3 requests per 60 seconds (to prevent email spam pretty much)
+/// - 3 requests per 30 seconds (to prevent email spam pretty much)
 pub fn create_email_rate_limit_layer() -> GovernorLayer<IpKeyExtractor, NoOpMiddleware, Body> {
     let config = GovernorConfigBuilder::default()
-        .per_second(60)
+        .per_second(30)
         .burst_size(3)
         .key_extractor(IpKeyExtractor)
         .finish()

@@ -172,7 +172,7 @@ async fn create_client(
 pub fn client_manager_router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/clients", get(list_clients).post(create_client))
-        .route("/clients/me", get(get_my_client))
+        .route("/clients/me", get(get_my_client).delete(delete_my_account))
         .route("/clients/data/{ticket_code}", get(get_client_by_ticket))
         .route(
             "/clients/{id}",
@@ -543,6 +543,76 @@ pub async fn get_my_client(
 
     tracing::info!("Successfully found client for email: {}", user_email);
     Ok(Json(build_simple_client(client, &state.base_url)))
+}
+
+#[utoipa::path(
+    delete,
+    path = "/api/client-manager/clients/me",
+    responses(
+        (status = 204, description = "Account deleted successfully"),
+        (status = 401, description = "Unauthorized - Missing or invalid token"),
+        (status = 403, description = "Forbidden - Cannot delete account with active tickets"),
+        (status = 404, description = "Client not found for this user"),
+        (status = 500, description = "Internal server error")
+    ),
+    security(
+        ("bearer_auth" = [])
+    ),
+    tag = "clients"
+)]
+pub async fn delete_my_account(
+    State(state): State<Arc<AppState>>,
+    Extension(user_claims): Extension<UserClaims>,
+) -> Result<StatusCode, ClientApiError> {
+    let user_email = get_user_email(&state, user_claims.user_id)
+        .await
+        .ok_or_else(|| {
+            ClientApiError::InternalError("Failed to get user email".to_string())
+        })?;
+
+    let query = ClientQuery {
+        email: Some(user_email.clone()),
+        prenume: None,
+        nume: None,
+    };
+
+    let clients = state.client_repo.list_clients(query).await?;
+    let client = clients
+        .into_iter()
+        .next()
+        .ok_or_else(|| {
+            ClientApiError::NotFound("Client not found for this user".to_string())
+        })?;
+
+    // Check if user has any tickets
+    if !client.lista_bilete.is_empty() {
+        return Err(ClientApiError::Forbidden(
+            "Cannot delete account while you have active tickets. Please cancel or transfer your tickets first.".to_string()
+        ));
+    }
+
+    // Get client ID for deletion
+    let client_id = client.id.to_hex();
+
+    // Delete client from MongoDB
+    state.client_repo.delete_client(&client_id).await?;
+
+    // Delete user from auth service
+    let mut auth_client = AuthServiceClient::connect(state.auth_service_url.clone())
+        .await
+        .map_err(|e| ClientApiError::InternalError(format!("Failed to connect to auth service: {}", e)))?;
+
+    let delete_request = auth::DeleteUserRequest {
+        user_id: user_claims.user_id,
+    };
+
+    auth_client
+        .delete_user(delete_request)
+        .await
+        .map_err(|e| ClientApiError::InternalError(format!("Failed to delete user from auth service: {}", e)))?;
+
+    tracing::info!("Account deleted for user: {}", user_email);
+    Ok(StatusCode::NO_CONTENT)
 }
 
 #[utoipa::path(

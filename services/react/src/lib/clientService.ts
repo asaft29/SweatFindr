@@ -71,6 +71,11 @@ class ClientService {
     );
     return response.data;
   }
+
+  async deleteMyAccount(): Promise<void> {
+    await this.clientService.delete(`/api/client-manager/clients/me`);
+    this.clearCache();
+  }
 }
 
 export const clientService = new ClientService();

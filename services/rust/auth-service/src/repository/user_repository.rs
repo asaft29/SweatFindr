@@ -114,4 +114,16 @@ impl UserRepository {
             Err(e) => Err(format!("Failed to delete unverified user: {}", e)),
         }
     }
+
+    pub async fn delete_user(&self, user_id: i32) -> Result<bool, String> {
+        let query = "DELETE FROM UTILIZATORI WHERE id = $1";
+
+        match self.client.execute(query, &[&user_id]).await {
+            Ok(rows_affected) => match rows_affected {
+                0 => Ok(false),
+                _ => Ok(true),
+            },
+            Err(e) => Err(format!("Failed to delete user: {}", e)),
+        }
+    }
 }

@@ -11,6 +11,7 @@ service AuthService {
   rpc GetUserIdByEmail(GetUserIdByEmailRequest) returns (GetUserIdByEmailResponse);
   rpc UpdateRole(UpdateRoleRequest) returns (UpdateRoleResponse);
   rpc MarkEmailVerified(MarkEmailVerifiedRequest) returns (MarkEmailVerifiedResponse);
+  rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse);
 }
 
 message AuthRequest {
@@ -89,6 +90,15 @@ message MarkEmailVerifiedRequest {
 }
 
 message MarkEmailVerifiedResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message DeleteUserRequest {
+  int32 user_id = 1;
+}
+
+message DeleteUserResponse {
   bool success = 1;
   string message = 2;
 }

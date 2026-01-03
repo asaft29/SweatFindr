@@ -1,13 +1,21 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { clientService } from "../lib/clientService";
+import { useAuthStore } from "../lib/useAuthStore";
 import type { Client } from "../lib/types";
 import { FaInstagram, FaFacebook, FaTwitter, FaLinkedin, FaGithub } from "react-icons/fa";
 
 export function MyProfilePage() {
+  const navigate = useNavigate();
+  const { logout } = useAuthStore();
   const [profile, setProfile] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmEmail, setDeleteConfirmEmail] = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     prenume: "",
     nume: "",
@@ -68,6 +76,36 @@ export function MyProfilePage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmEmail !== profile?.email) {
+      setDeleteError("Email does not match");
+      return;
+    }
+
+    try {
+      setDeleteLoading(true);
+      setDeleteError(null);
+      await clientService.deleteMyAccount();
+      logout();
+      navigate("/login");
+    } catch (err: any) {
+      if (err.response?.status === 403) {
+        setDeleteError("You still have active tickets!");
+      } else {
+        const errorMessage = err.response?.data?.error || err.message || "Failed to delete account";
+        setDeleteError(errorMessage);
+      }
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const closeDeleteModal = () => {
+    setShowDeleteModal(false);
+    setDeleteConfirmEmail("");
+    setDeleteError(null);
   };
 
   useEffect(() => {
@@ -175,12 +213,20 @@ export function MyProfilePage() {
                 </div>
               )}
             </div>
-            <button
-              onClick={() => setEditing(true)}
-              className="mt-6 px-6 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition"
-            >
-              Edit Profile
-            </button>
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setEditing(true)}
+                className="px-6 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition"
+              >
+                Edit Profile
+              </button>
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className="px-6 py-2.5 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition"
+              >
+                Delete Account
+              </button>
+            </div>
           </div>
         )}
 
@@ -329,6 +375,52 @@ export function MyProfilePage() {
               </button>
             </div>
           </form>
+        )}
+
+        {showDeleteModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+              <h2 className="text-xl font-bold text-red-600 mb-4">Delete Account</h2>
+              <p className="text-gray-600 mb-4">
+                This action is permanent and cannot be undone. All your data will be deleted.
+              </p>
+              <p className="text-gray-600 mb-4">
+                To confirm, please type your email: <strong>{profile?.email}</strong>
+              </p>
+
+              {deleteError && (
+                <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-4">
+                  {deleteError}
+                </div>
+              )}
+
+              <input
+                type="email"
+                value={deleteConfirmEmail}
+                onChange={(e) => setDeleteConfirmEmail(e.target.value)}
+                placeholder="Enter your email to confirm"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 mb-4"
+                disabled={deleteLoading}
+              />
+
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={closeDeleteModal}
+                  disabled={deleteLoading}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deleteLoading || deleteConfirmEmail !== profile?.email}
+                  className="px-4 py-2 text-sm font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {deleteLoading ? "Deleting..." : "Delete My Account"}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
