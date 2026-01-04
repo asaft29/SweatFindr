@@ -1,0 +1,21 @@
+services:
+  gateway:
+    build:
+      context: ../../../
+      dockerfile: services/backend/gateway/Dockerfile
+    image: gateway:latest
+    container_name: gateway
+    ports:
+      - "10000:10000"
+    environment:
+      - AUTH_SERVICE_URL=http://auth-service:50051
+      - EMAIL_SERVICE_URL=http://email-service:50052
+      - RUST_LOG=info,gateway=info
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=10000
+    depends_on:
+      - auth-service
+      - email-service
+    networks:
+      - shared-network
+    restart: unless-stopped

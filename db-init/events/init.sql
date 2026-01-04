@@ -51,3 +51,19 @@ CREATE TABLE
             )
         )
     );
+
+CREATE TABLE
+    REFUND_REQUESTS (
+        id SERIAL PRIMARY KEY,
+        ticket_cod VARCHAR(50) NOT NULL,
+        requester_id INTEGER NOT NULL,
+        requester_email VARCHAR(255) NOT NULL,
+        event_id INTEGER REFERENCES EVENIMENTE (ID) ON DELETE SET NULL,
+        packet_id INTEGER REFERENCES PACHETE (ID) ON DELETE SET NULL,
+        event_owner_id INTEGER NOT NULL,
+        status VARCHAR(20) DEFAULT 'PENDING' NOT NULL,
+        reason TEXT,
+        rejection_message TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        resolved_at TIMESTAMP
+    );

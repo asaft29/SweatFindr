@@ -1,10 +1,11 @@
 include:
-  - services/rust/event-service/docker-compose.yaml
-  - services/rust/client-service/docker-compose.yaml
-  - services/rust/auth-service/docker-compose.yaml
-  - services/rust/email-service/docker-compose.yaml
-  - services/rust/gateway/docker-compose.yaml
-  - services/react/docker-compose.yaml
+  - services/backend/event-service/docker-compose.yaml
+  - services/backend/client-service/docker-compose.yaml
+  - services/backend/auth-service/docker-compose.yaml
+  - services/backend/email-service/docker-compose.yaml
+  - services/backend/gateway/docker-compose.yaml
+  - rabbitmq/docker-compose.yaml
+  - services/frontend/docker-compose.yaml
 
 networks:
   shared-network:
