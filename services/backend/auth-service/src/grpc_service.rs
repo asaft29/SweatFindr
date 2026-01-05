@@ -36,11 +36,7 @@ impl AuthService for AuthServiceImpl {
         let user = match self.user_repo.find_by_email(&req.username).await {
             Ok(Some(user)) => user,
             Ok(_) => {
-                return Ok(Response::new(AuthResponse {
-                    success: false,
-                    token_value: String::new(),
-                    message: "Invalid credentials".to_string(),
-                }));
+                return Err(Status::unauthenticated("Invalid credentials"));
             }
             Err(e) => {
                 return Err(Status::internal(format!("Database error: {}", e)));
@@ -50,11 +46,7 @@ impl AuthService for AuthServiceImpl {
         match bcrypt::verify(&req.password, &user.parola) {
             Ok(true) => {}
             Ok(false) => {
-                return Ok(Response::new(AuthResponse {
-                    success: false,
-                    token_value: String::new(),
-                    message: "Invalid credentials".to_string(),
-                }));
+                return Err(Status::unauthenticated("Invalid credentials"));
             }
             Err(e) => {
                 return Err(Status::internal(format!(

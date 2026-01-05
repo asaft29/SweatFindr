@@ -46,9 +46,14 @@ class ApiClient {
 
     const responseErrorInterceptor = (error: AxiosError) => {
       if (error.response?.status === 401) {
-        localStorage.removeItem("auth_token");
-        localStorage.removeItem("user");
-        window.location.href = "/login";
+        const requestUrl = error.config?.url || "";
+        const isLoginRequest = requestUrl.includes("/api/auth/login");
+
+        if (!isLoginRequest) {
+          localStorage.removeItem("auth_token");
+          localStorage.removeItem("user");
+          window.location.href = "/login";
+        }
       }
       if (error.response?.status === 429) {
         const headers = error.response.headers;

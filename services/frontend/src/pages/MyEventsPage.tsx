@@ -225,9 +225,13 @@ export function MyEventsPage() {
       setEventForm({ nume: "", locatie: "", descriere: "", numarlocuri: 0 });
       await loadData();
     } catch (err: any) {
+      const details = err.response?.data?.details;
+      const message = Array.isArray(details) && details.length > 0
+        ? details[0]
+        : err.response?.data?.error || err.message || "Failed to create event";
       setErrorModal({
         title: "Failed to Create Event",
-        message: err.response?.data?.error || err.message || "Failed to create event"
+        message
       });
     }
   };
@@ -250,9 +254,13 @@ export function MyEventsPage() {
       setEventForm({ nume: "", locatie: "", descriere: "", numarlocuri: 0 });
       await loadData();
     } catch (err: any) {
+      const details = err.response?.data?.details;
+      const message = Array.isArray(details) && details.length > 0
+        ? details[0]
+        : err.response?.data?.error || err.message || "Failed to update event";
       setErrorModal({
         title: "Failed to Update Event",
-        message: err.response?.data?.error || err.message || "Failed to update event"
+        message
       });
     }
   };
@@ -298,9 +306,13 @@ export function MyEventsPage() {
       setPackageForm({ nume: "", locatie: "", descriere: "" });
       await loadData();
     } catch (err: any) {
+      const details = err.response?.data?.details;
+      const message = Array.isArray(details) && details.length > 0
+        ? details[0]
+        : err.response?.data?.error || err.message || "Failed to create package";
       setErrorModal({
         title: "Failed to Create Package",
-        message: err.response?.data?.error || err.message || "Failed to create package"
+        message
       });
     }
   };
@@ -529,9 +541,8 @@ export function MyEventsPage() {
             onBlur={() => setTimeout(() => setShowLocationSuggestions(false), 200)}
             maxLength={255}
             placeholder="Start typing to search locations..."
-            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-              errors.locatie ? "border-red-500" : "border-gray-300"
-            }`}
+            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${errors.locatie ? "border-red-500" : "border-gray-300"
+              }`}
           />
           {locationLoading && locationInputFocused === target && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -564,21 +575,19 @@ export function MyEventsPage() {
         <div className="flex gap-4 mb-8">
           <button
             onClick={() => setActiveTab("events")}
-            className={`px-6 py-2.5 text-sm font-bold rounded-lg transition ${
-              activeTab === "events"
-                ? "bg-indigo-600 text-white"
-                : "bg-white text-indigo-600 hover:bg-indigo-50"
-            }`}
+            className={`px-6 py-2.5 text-sm font-bold rounded-lg transition ${activeTab === "events"
+              ? "bg-indigo-600 text-white"
+              : "bg-white text-indigo-600 hover:bg-indigo-50"
+              }`}
           >
             Events
           </button>
           <button
             onClick={() => setActiveTab("packages")}
-            className={`px-6 py-2.5 text-sm font-bold rounded-lg transition ${
-              activeTab === "packages"
-                ? "bg-indigo-600 text-white"
-                : "bg-white text-indigo-600 hover:bg-indigo-50"
-            }`}
+            className={`px-6 py-2.5 text-sm font-bold rounded-lg transition ${activeTab === "packages"
+              ? "bg-indigo-600 text-white"
+              : "bg-white text-indigo-600 hover:bg-indigo-50"
+              }`}
           >
             Packages
           </button>
@@ -716,9 +725,8 @@ export function MyEventsPage() {
                     value={eventForm.nume}
                     onChange={(e) => setEventForm({ ...eventForm, nume: e.target.value })}
                     maxLength={100}
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                      eventErrors.nume ? "border-red-500" : "border-gray-300"
-                    }`}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${eventErrors.nume ? "border-red-500" : "border-gray-300"
+                      }`}
                   />
                   {renderValidationMessage(eventErrors.nume, eventForm.nume.length, 100)}
                 </div>
@@ -731,9 +739,8 @@ export function MyEventsPage() {
                     rows={3}
                     maxLength={500}
                     placeholder="Min 10 characters if provided"
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                      eventErrors.descriere ? "border-red-500" : "border-gray-300"
-                    }`}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${eventErrors.descriere ? "border-red-500" : "border-gray-300"
+                      }`}
                   />
                   {renderValidationMessage(eventErrors.descriere, eventForm.descriere?.length, 500)}
                 </div>
@@ -746,9 +753,8 @@ export function MyEventsPage() {
                     min={0}
                     max={50000}
                     placeholder="1 - 50,000"
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                      eventErrors.numarlocuri ? "border-red-500" : "border-gray-300"
-                    }`}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${eventErrors.numarlocuri ? "border-red-500" : "border-gray-300"
+                      }`}
                   />
                   {renderValidationMessage(eventErrors.numarlocuri)}
                 </div>
@@ -792,9 +798,8 @@ export function MyEventsPage() {
                     value={packageForm.nume}
                     onChange={(e) => setPackageForm({ ...packageForm, nume: e.target.value })}
                     maxLength={100}
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                      packageErrors.nume ? "border-red-500" : "border-gray-300"
-                    }`}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${packageErrors.nume ? "border-red-500" : "border-gray-300"
+                      }`}
                   />
                   {renderValidationMessage(packageErrors.nume, packageForm.nume.length, 100)}
                 </div>
@@ -807,9 +812,8 @@ export function MyEventsPage() {
                     rows={3}
                     maxLength={500}
                     placeholder="Min 10 characters if provided"
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${
-                      packageErrors.descriere ? "border-red-500" : "border-gray-300"
-                    }`}
+                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 ${packageErrors.descriere ? "border-red-500" : "border-gray-300"
+                      }`}
                   />
                   {renderValidationMessage(packageErrors.descriere, packageForm.descriere?.length, 500)}
                 </div>
@@ -862,9 +866,8 @@ export function MyEventsPage() {
                         return (
                           <div
                             key={event.id}
-                            className={`rounded-lg p-4 border flex items-center justify-between ${
-                              isBound ? "bg-purple-50 border-purple-200" : "bg-gray-50 border-gray-200"
-                            }`}
+                            className={`rounded-lg p-4 border flex items-center justify-between ${isBound ? "bg-purple-50 border-purple-200" : "bg-gray-50 border-gray-200"
+                              }`}
                           >
                             <div>
                               <p className="font-bold text-gray-900">{event.nume}</p>
@@ -874,11 +877,10 @@ export function MyEventsPage() {
                             <button
                               onClick={() => isBound ? handleUnbindEvent(event.id) : handleBindEvent(event.id)}
                               disabled={bindingLoading}
-                              className={`px-4 py-2 text-sm font-bold rounded-lg transition ${
-                                isBound
-                                  ? "text-red-600 bg-red-50 hover:bg-red-100"
-                                  : "text-green-600 bg-green-50 hover:bg-green-100"
-                              } disabled:opacity-50`}
+                              className={`px-4 py-2 text-sm font-bold rounded-lg transition ${isBound
+                                ? "text-red-600 bg-red-50 hover:bg-red-100"
+                                : "text-green-600 bg-green-50 hover:bg-green-100"
+                                } disabled:opacity-50`}
                             >
                               {isBound ? "Remove" : "Add"}
                             </button>

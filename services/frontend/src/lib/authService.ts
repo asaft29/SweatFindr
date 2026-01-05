@@ -16,11 +16,18 @@ class AuthService {
   private gateway = apiClient.getGateway();
 
   async login(credentials: LoginRequest): Promise<LoginResponse> {
-    const response = await this.gateway.post<LoginResponse>(
-      "/api/auth/login",
-      credentials
-    );
-    return response.data;
+    try {
+      const response = await this.gateway.post<LoginResponse>(
+        "/api/auth/login",
+        credentials
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        throw new Error("Invalid credentials");
+      }
+      throw error;
+    }
   }
 
   async register(data: RegisterRequest): Promise<RegisterResponse> {

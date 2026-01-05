@@ -116,22 +116,6 @@ impl EventRepo {
             .await
             .map_err(EventRepoError::InternalError)?;
 
-        if let Some(new_seats) = payload.locuri {
-            let tickets_sold: i64 =
-                sqlx::query_scalar("SELECT COUNT(*) FROM BILETE WHERE evenimentid = $1")
-                    .bind(event_id)
-                    .fetch_one(&mut *tx)
-                    .await
-                    .map_err(EventRepoError::InternalError)?;
-
-            if new_seats < tickets_sold as i32 {
-                return Err(EventRepoError::ConstraintViolation(format!(
-                    "Cannot reduce seats to {} when {} tickets are already sold",
-                    new_seats, tickets_sold
-                )));
-            }
-        }
-
         let result = sqlx::query_as::<_, Event>(
             r#"
         UPDATE EVENIMENTE
@@ -180,22 +164,6 @@ impl EventRepo {
             .begin()
             .await
             .map_err(EventRepoError::InternalError)?;
-
-        if let Some(new_seats) = payload.locuri {
-            let tickets_sold: i64 =
-                sqlx::query_scalar("SELECT COUNT(*) FROM BILETE WHERE evenimentid = $1")
-                    .bind(event_id)
-                    .fetch_one(&mut *tx)
-                    .await
-                    .map_err(EventRepoError::InternalError)?;
-
-            if new_seats < tickets_sold as i32 {
-                return Err(EventRepoError::ConstraintViolation(format!(
-                    "Cannot reduce seats to {} when {} tickets are already sold",
-                    new_seats, tickets_sold
-                )));
-            }
-        }
 
         let result = sqlx::query_as::<_, Event>(
             r#"
