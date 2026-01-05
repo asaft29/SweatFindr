@@ -8,10 +8,15 @@ use crate::repository::verification_repository::VerificationRepository;
 use crate::services::email_service::EmailService;
 use crate::services::refund_consumer::RefundConsumer;
 use anyhow::Result;
+use axum::{routing::get, Router};
 use common::rabbitmq::RabbitMQ;
 use std::sync::Arc;
 use tonic::transport::Server;
 use tracing::{error, info, warn};
+
+async fn metrics_handler() -> String {
+    tonic_prometheus_layer::metrics::encode_to_string().unwrap_or_default()
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -22,7 +27,7 @@ async fn main() -> Result<()> {
             tracing_subscriber::EnvFilter::try_from_default_env()
                 .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
         )
-        .compact()
+        .json()
         .init();
 
     let server_host = std::env::var("SERVER_HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
@@ -30,7 +35,7 @@ async fn main() -> Result<()> {
         .unwrap_or_else(|_| "50052".to_string())
         .parse::<u16>()?;
 
-    let addr = format!("{}:{}", server_host, server_port).parse()?;
+    let grpc_addr = format!("{}:{}", server_host, server_port).parse()?;
 
     let redis_url =
         std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://localhost:6379".to_string());
@@ -74,17 +79,31 @@ async fn main() -> Result<()> {
         auth_service_url,
     );
 
-    info!("Email service listening on {}", addr);
+    let metrics_app = Router::new().route("/metrics", get(metrics_handler));
+    let metrics_listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await?;
+    info!("Prometheus metrics server listening on 0.0.0.0:8080");
+
+    let metrics_task = tokio::spawn(async move {
+        axum::serve(metrics_listener, metrics_app).await.unwrap();
+    });
+
+    let metrics_layer = tonic_prometheus_layer::MetricsLayer::new();
+
+    info!("Email service listening on {}", grpc_addr);
     info!("RabbitMQ refund consumer started");
 
     tokio::select! {
         result = Server::builder()
+            .layer(metrics_layer)
             .add_service(EmailServiceServer::new(service))
-            .serve(addr) => {
+            .serve(grpc_addr) => {
                 result?;
             }
         _ = refund_consumer_task => {
             warn!("Refund consumer ended");
+        }
+        _ = metrics_task => {
+            error!("Metrics server ended unexpectedly");
         }
     }
 

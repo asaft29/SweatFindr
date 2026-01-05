@@ -4,6 +4,7 @@ mod repository;
 mod services;
 
 use anyhow::Result;
+use axum::{routing::get, Router};
 use grpc_service::auth::auth_service_server::AuthServiceServer;
 use grpc_service::AuthServiceImpl;
 use repository::UserRepository;
@@ -11,6 +12,10 @@ use services::{ExpirationListener, JwtService, TokenBlacklist};
 use std::sync::Arc;
 use tonic::transport::Server;
 use tracing::{error, info};
+
+async fn metrics_handler() -> String {
+    tonic_prometheus_layer::metrics::encode_to_string().unwrap_or_default()
+}
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -90,17 +95,31 @@ async fn main() -> Result<()> {
         .parse()
         .expect("Invalid GRPC_ADDR");
 
+    let metrics_app = Router::new().route("/metrics", get(metrics_handler));
+    let metrics_listener = tokio::net::TcpListener::bind("0.0.0.0:8080").await?;
+    info!("Prometheus metrics server listening on 0.0.0.0:8080");
+
+    let metrics_task = tokio::spawn(async move {
+        axum::serve(metrics_listener, metrics_app).await.unwrap();
+    });
+
+    let metrics_layer = tonic_prometheus_layer::MetricsLayer::new();
+
     info!("gRPC Auth Service listening on {}", addr);
     info!("Redis expiration listener started");
 
     tokio::select! {
         result = Server::builder()
+            .layer(metrics_layer)
             .add_service(AuthServiceServer::new(auth_service))
             .serve(addr) => {
                 result?;
             }
         _ = expiration_task => {
             error!("Expiration listener ended unexpectedly");
+        }
+        _ = metrics_task => {
+            error!("Metrics server ended unexpectedly");
         }
     }
 

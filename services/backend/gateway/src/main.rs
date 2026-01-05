@@ -3,7 +3,8 @@ mod handlers;
 mod middleware;
 
 use anyhow::Result;
-use axum::Router;
+use axum::{Router, routing::get};
+use axum_prometheus::PrometheusMetricLayer;
 use middleware::rate_limit::{create_auth_rate_limit_layer, create_email_rate_limit_layer};
 use std::sync::Arc;
 use tonic::transport::Channel;
@@ -67,7 +68,10 @@ async fn main() -> Result<()> {
     let auth_rate_limit = create_auth_rate_limit_layer();
     let email_rate_limit = create_email_rate_limit_layer();
 
+    let (prometheus_layer, metric_handle) = PrometheusMetricLayer::pair();
+
     let app = Router::new()
+        .route("/metrics", get(|| async move { metric_handle.render() }))
         .nest(
             "/api/auth",
             handlers::auth::router(auth_state).layer(auth_rate_limit),
@@ -76,6 +80,7 @@ async fn main() -> Result<()> {
             "/api/email",
             handlers::email::router().layer(email_rate_limit),
         )
+        .layer(prometheus_layer)
         .layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(app_state);

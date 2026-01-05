@@ -583,20 +583,16 @@ pub async fn delete_my_account(
         .next()
         .ok_or_else(|| ClientApiError::NotFound("Client not found for this user".to_string()))?;
 
-    // Check if user has any tickets
     if !client.lista_bilete.is_empty() {
         return Err(ClientApiError::Forbidden(
             "Cannot delete account while you have active tickets. Please cancel or transfer your tickets first.".to_string()
         ));
     }
 
-    // Get client ID for deletion
     let client_id = client.id.to_hex();
 
-    // Delete client from MongoDB
     state.client_repo.delete_client(&client_id).await?;
 
-    // Delete user from auth service
     let mut auth_client = AuthServiceClient::connect(state.auth_service_url.clone())
         .await
         .map_err(|e| {

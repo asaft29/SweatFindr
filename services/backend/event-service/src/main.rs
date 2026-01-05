@@ -1,6 +1,7 @@
 use anyhow::Result;
 use axum::middleware;
 use axum::{Router, extract::State, routing::get};
+use axum_prometheus::PrometheusMetricLayer;
 use common::rabbitmq::RabbitMQ;
 use event_service::middleware::auth::auth_middleware;
 use event_service::services::refund_consumer::RefundRequestConsumer;
@@ -24,7 +25,7 @@ async fn main() -> Result<()> {
             tracing_subscriber::EnvFilter::try_from_default_env()
                 .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info")),
         )
-        .compact()
+        .json()
         .init();
 
     let db_url = std::env::var("DATABASE_URL").expect("DATABASE_URL env var is not set!");
@@ -79,7 +80,10 @@ async fn main() -> Result<()> {
         .allow_methods(Any)
         .allow_headers(Any);
 
+    let (prometheus_layer, metric_handle) = PrometheusMetricLayer::pair();
+
     let app = Router::new()
+        .route("/metrics", get(|| async move { metric_handle.render() }))
         .route("/api", get(check_state))
         .nest(
             "/api/event-manager",
@@ -90,6 +94,7 @@ async fn main() -> Result<()> {
         )
         .nest("/api/event-manager", handlers::public_api_router())
         .merge(handlers::swagger_router())
+        .layer(prometheus_layer)
         .layer(cors)
         .layer(TraceLayer::new_for_http())
         .with_state(app_state);
