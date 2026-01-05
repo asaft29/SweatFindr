@@ -5,6 +5,8 @@ import { ProtectedRoute } from '../components/ProtectedRoute';
 import { LoginForm } from '../components/LoginForm';
 import { RegisterForm } from '../components/RegisterForm';
 import { VerifyEmailForm } from '../components/VerifyEmailForm';
+import { ForgotPasswordForm } from '../components/ForgotPasswordForm';
+import { ResetPasswordForm } from '../components/ResetPasswordForm';
 import { HomePage } from '../pages/HomePage';
 import { UnauthorizedPage } from '../pages/UnauthorizedPage';
 import { EventsPage } from '../pages/EventsPage';
@@ -46,6 +48,22 @@ export const router = createBrowserRouter([
     element: (
       <AnimatedPage>
         <VerifyEmailForm />
+      </AnimatedPage>
+    ),
+  },
+  {
+    path: '/forgot-password',
+    element: (
+      <AnimatedPage>
+        <ForgotPasswordForm />
+      </AnimatedPage>
+    ),
+  },
+  {
+    path: '/reset-password',
+    element: (
+      <AnimatedPage>
+        <ResetPasswordForm />
       </AnimatedPage>
     ),
   },

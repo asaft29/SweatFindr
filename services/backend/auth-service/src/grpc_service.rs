@@ -14,6 +14,8 @@ pub mod email {
     tonic::include_proto!("email");
 }
 
+use email::email_service_client::EmailServiceClient as EmailClient;
+
 use auth::auth_service_server::AuthService;
 use auth::*;
 
@@ -438,6 +440,66 @@ impl AuthService for AuthServiceImpl {
                 Ok(Response::new(DeleteUserResponse {
                     success: true,
                     message: format!("User {} deleted successfully", req.user_id),
+                }))
+            }
+            Ok(false) => Err(Status::not_found("User not found")),
+            Err(e) => Err(Status::internal(format!("Database error: {}", e))),
+        }
+    }
+
+    async fn reset_password(
+        &self,
+        request: Request<ResetPasswordRequest>,
+    ) -> Result<Response<ResetPasswordResponse>, Status> {
+        let req = request.into_inner();
+
+        let mut email_client = EmailClient::connect(self.email_service_url.clone())
+            .await
+            .map_err(|e| Status::internal(format!("Failed to connect to email service: {}", e)))?;
+
+        let token_response = email_client
+            .validate_reset_token(email::ValidateResetTokenRequest {
+                email: req.email.clone(),
+                reset_token: req.reset_token.clone(),
+            })
+            .await
+            .map_err(|e| Status::internal(format!("Failed to validate reset token: {}", e)))?;
+
+        if !token_response.into_inner().valid {
+            return Err(Status::permission_denied(
+                "Invalid or expired reset token. Please verify your code again.",
+            ));
+        }
+
+        let user = match self.user_repo.find_by_email(&req.email).await {
+            Ok(Some(user)) => user,
+            Ok(_) => {
+                return Err(Status::not_found("User not found"));
+            }
+            Err(e) => {
+                return Err(Status::internal(format!("Database error: {}", e)));
+            }
+        };
+
+        let hashed_password = match bcrypt::hash(&req.new_password, bcrypt::DEFAULT_COST) {
+            Ok(hash) => hash,
+            Err(e) => {
+                return Err(Status::internal(format!("Password hashing error: {}", e)));
+            }
+        };
+
+        match self
+            .user_repo
+            .update_password(user.id, &hashed_password)
+            .await
+        {
+            Ok(true) => {
+                self.blacklist.invalidate_user(user.id).await;
+
+                Ok(Response::new(ResetPasswordResponse {
+                    success: true,
+                    message: "Password reset successfully. Please login with your new password."
+                        .to_string(),
                 }))
             }
             Ok(false) => Err(Status::not_found("User not found")),

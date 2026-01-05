@@ -209,6 +209,52 @@ impl EmailService {
             .await
     }
 
+    pub async fn send_password_reset_email(&self, to_email: &str, reset_code: &str) -> Result<()> {
+        let html_body = html! {
+            (DOCTYPE)
+            html {
+                head {
+                    style {
+                        r#"
+                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                        .header { background-color: #4F46E5; color: white; padding: 20px; text-align: center; }
+                        .content { background-color: #f9f9f9; padding: 20px; }
+                        .code { font-size: 32px; font-weight: bold; color: #4F46E5; text-align: center; padding: 20px; background-color: white; border: 2px dashed #4F46E5; margin: 20px 0; letter-spacing: 5px; }
+                        .footer { text-align: center; padding: 20px; color: #777; font-size: 12px; }
+                        .warning { background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 10px; margin: 15px 0; }
+                        "#
+                    }
+                }
+                body {
+                    div.container {
+                        div.header {
+                            h1 { "Password Reset" }
+                        }
+                        div.content {
+                            p { "Hello," }
+                            p { "We received a request to reset your password. Use the following code to reset your password:" }
+
+                            div.code { (reset_code) }
+
+                            p { "This code will expire in 15 minutes." }
+
+                            div.warning {
+                                p { strong { "Security Notice: " } "If you didn't request this password reset, please ignore this email. Your password will remain unchanged." }
+                            }
+                        }
+                        div.footer {
+                            p { "This is an automated message, please do not reply." }
+                        }
+                    }
+                }
+            }
+        };
+
+        self.send_html_email(to_email, "Password Reset Code", html_body.into_string())
+            .await
+    }
+
     async fn send_html_email(
         &self,
         to_email: &str,

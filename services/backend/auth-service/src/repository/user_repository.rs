@@ -126,4 +126,16 @@ impl UserRepository {
             Err(e) => Err(format!("Failed to delete user: {}", e)),
         }
     }
+
+    pub async fn update_password(&self, user_id: i32, hashed_password: &str) -> Result<bool, String> {
+        let query = "UPDATE UTILIZATORI SET parola = $1 WHERE id = $2";
+
+        match self.client.execute(query, &[&hashed_password, &user_id]).await {
+            Ok(rows_affected) => match rows_affected {
+                0 => Ok(false),
+                _ => Ok(true),
+            },
+            Err(e) => Err(format!("Failed to update password: {}", e)),
+        }
+    }
 }

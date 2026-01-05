@@ -3,9 +3,11 @@ syntax = "proto3";
 package email;
 
 service EmailService {
-  rpc SendVerificationEmail(SendVerificationRequest) returns (SendVerificationResponse);
+  rpc SendVerificationEmail(SendVerificationRequest)
+      returns (SendVerificationResponse);
   rpc VerifyCode(VerifyCodeRequest) returns (VerifyCodeResponse);
-  rpc ResendVerificationCode(ResendVerificationRequest) returns (ResendVerificationResponse);
+  rpc ResendVerificationCode(ResendVerificationRequest)
+      returns (ResendVerificationResponse);
 }
 
 message SendVerificationRequest {
@@ -37,3 +39,7 @@ message ResendVerificationResponse {
   bool success = 1;
   string message = 2;
 }
+
+message SendPasswordResetRequest { string email = 1; }
+
+message SendPasswordResetResponse { bool success = 1; }

@@ -89,7 +89,13 @@ export const LoginForm = () => {
           </button>
         </form>
 
-        <div className="text-center">
+        <div className="text-center space-y-2">
+          <a
+            href="/forgot-password"
+            className="text-sm font-medium text-indigo-600 hover:text-indigo-500 transition"
+          >
+            Forgot password?
+          </a>
           <p className="text-sm text-gray-600">
             Don't have an account?{' '}
             <a href="/register" className="font-medium text-indigo-600 hover:text-indigo-500 transition">

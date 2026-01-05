@@ -13,6 +13,7 @@ service AuthService {
   rpc MarkEmailVerified(MarkEmailVerifiedRequest) returns (MarkEmailVerifiedResponse);
   rpc DeleteUnverifiedUser(DeleteUnverifiedUserRequest) returns (DeleteUnverifiedUserResponse);
   rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse);
+  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
 }
 
 message AuthRequest {
@@ -109,6 +110,17 @@ message DeleteUserRequest {
 }
 
 message DeleteUserResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message ResetPasswordRequest {
+  string email = 1;
+  string new_password = 2;
+  string reset_token = 3;
+}
+
+message ResetPasswordResponse {
   bool success = 1;
   string message = 2;
 }
