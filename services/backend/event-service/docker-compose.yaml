@@ -12,8 +12,11 @@ services:
       - RUST_LOG=info,event_service=info
       - SERVER_HOST=0.0.0.0
       - SERVER_PORT=8080
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
     depends_on:
       event-db:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     networks:
       - event-network

@@ -18,9 +18,12 @@ services:
       - SMTP_PASSWORD=${SMTP_PASSWORD}
       - SMTP_FROM_NAME=${SMTP_FROM_NAME}
       - SMTP_FROM_EMAIL=${SMTP_USERNAME}
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
     depends_on:
       email-redis:
         condition: service_started
+      rabbitmq:
+        condition: service_healthy
     networks:
       - email-network
       - shared-network
