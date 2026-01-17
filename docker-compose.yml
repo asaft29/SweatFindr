@@ -4,6 +4,7 @@ include:
   - services/backend/auth-service/docker-compose.yaml
   - services/backend/email-service/docker-compose.yaml
   - services/backend/gateway/docker-compose.yaml
+  - services/backend/notification-service/docker-compose.yaml
   - rabbitmq/docker-compose.yaml
   - services/frontend/docker-compose.yaml
   - grafana/docker-compose.yaml

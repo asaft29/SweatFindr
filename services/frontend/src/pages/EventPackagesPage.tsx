@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { eventService } from "../lib/eventService";
 import { clientService } from "../lib/clientService";
 import { useAuthStore } from "../lib/useAuthStore";
 import { ConfirmModal } from "../components/ConfirmModal";
 import { SuccessModal } from "../components/SuccessModal";
 import type { EventPackageWithLinks } from "../lib/types";
+
+const MAX_AVAILABLE_TICKETS = 50000;
 
 export function EventPackagesPage() {
   const { user } = useAuthStore();
@@ -23,6 +25,8 @@ export function EventPackagesPage() {
   const [prevLink, setPrevLink] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [purchaseConfirm, setPurchaseConfirm] = useState<EventPackageWithLinks | null>(null);
+  const isHateoasNavigation = useRef(false);
+  const [searchTrigger, setSearchTrigger] = useState(0);
 
   const loadPackages = async () => {
     try {
@@ -89,6 +93,7 @@ export function EventPackagesPage() {
       const urlObj = new URL(url, window.location.origin);
       const pageParam = urlObj.searchParams.get('page');
       if (pageParam) {
+        isHateoasNavigation.current = true;
         setCurrentPage(parseInt(pageParam));
       }
     } catch (err: any) {
@@ -132,8 +137,12 @@ export function EventPackagesPage() {
   };
 
   useEffect(() => {
+    if (isHateoasNavigation.current) {
+      isHateoasNavigation.current = false;
+      return;
+    }
     loadPackages();
-  }, [currentPage, itemsPerPage]);
+  }, [currentPage, itemsPerPage, searchTrigger]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
@@ -176,7 +185,7 @@ export function EventPackagesPage() {
                     setFilters({ ...filters, availableTickets: value });
                   }
                 }}
-                placeholder="Min tickets..."
+                placeholder={`Min tickets (max ${MAX_AVAILABLE_TICKETS.toLocaleString()})...`}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
@@ -204,15 +213,21 @@ export function EventPackagesPage() {
           <div className="flex gap-3 mt-4">
             <button
               onClick={() => {
-                const value = parseInt(itemsPerPageInput);
-                if (!isNaN(value) && value >= 1) {
-                  const cappedValue = Math.min(value, 100);
-                  setItemsPerPage(cappedValue);
-                  setItemsPerPageInput(cappedValue.toString());
-                  setCurrentPage(1);
-                } else {
-                  setItemsPerPageInput(itemsPerPage.toString());
+                const itemsValue = parseInt(itemsPerPageInput);
+                if (!isNaN(itemsValue) && itemsValue >= 1) {
+                  const cappedItemsValue = Math.min(itemsValue, 100);
+                  setItemsPerPage(cappedItemsValue);
+                  setItemsPerPageInput(cappedItemsValue.toString());
                 }
+                // Cap available tickets filter if it exceeds the max
+                if (filters.availableTickets) {
+                  const ticketsValue = parseInt(filters.availableTickets);
+                  if (!isNaN(ticketsValue) && ticketsValue > MAX_AVAILABLE_TICKETS) {
+                    setFilters({ ...filters, availableTickets: MAX_AVAILABLE_TICKETS.toString() });
+                  }
+                }
+                setCurrentPage(1);
+                setSearchTrigger(prev => prev + 1);
               }}
               className="px-6 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition shadow-md hover:shadow-lg"
             >
@@ -289,11 +304,10 @@ export function EventPackagesPage() {
             <button
               onClick={handlePreviousPage}
               disabled={!prevLink}
-              className={`w-12 h-12 flex items-center justify-center rounded-full transition shadow-md hover:shadow-lg ${
-                !prevLink
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-indigo-600 text-white hover:bg-indigo-700'
-              }`}
+              className={`w-12 h-12 flex items-center justify-center rounded-full transition shadow-md hover:shadow-lg ${!prevLink
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                }`}
               aria-label="Previous page"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -306,11 +320,10 @@ export function EventPackagesPage() {
             <button
               onClick={handleNextPage}
               disabled={!nextLink}
-              className={`w-12 h-12 flex items-center justify-center rounded-full transition shadow-md hover:shadow-lg ${
-                !nextLink
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-indigo-600 text-white hover:bg-indigo-700'
-              }`}
+              className={`w-12 h-12 flex items-center justify-center rounded-full transition shadow-md hover:shadow-lg ${!nextLink
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                }`}
               aria-label="Next page"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -1,33 +1,32 @@
 [package]
-name = "event-service"
+name = "notification-service"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+# Workspace dependencies
 anyhow = { workspace = true }
-axum = { workspace = true }
+axum = { workspace = true, features = ["ws"] }
 axum-prometheus = { workspace = true }
+dotenvy = { workspace = true }
 futures = { workspace = true }
 lapin = { workspace = true }
 prost = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-sqlx = { workspace = true }
 tokio = { workspace = true }
 tonic = { workspace = true }
-tower-http = { workspace = true, features = ["catch-panic", "trace", "cors"] }
+tower-http = { workspace = true, features = ["cors", "trace"] }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
-utoipa = { workspace = true }
-utoipa-swagger-ui = { workspace = true }
 uuid = { workspace = true }
-validator = { workspace = true, features = ["derive"] }
 
+# Path dependencies
 common = { path = "../common" }
-hateoas-macros = { path = "../hateoas-macros" }
 
-rayon = "1.11.0"
-serde_with = "3.15"
+# Service-specific dependencies
+dashmap = "6.0"
 
 [build-dependencies]
+anyhow = "1.0"
 tonic-build = "0.12"

@@ -4,30 +4,30 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-anyhow = "1.0"
-axum = "0.8"
-bson = { version = "2.13", features = ["serde_with"] }
+anyhow = { workspace = true }
+axum = { workspace = true }
+axum-prometheus = { workspace = true }
+futures = { workspace = true }
+lapin = { workspace = true }
+mongodb = { workspace = true }
+prost = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tonic = { workspace = true }
+tower-http = { workspace = true, features = ["catch-panic", "trace", "cors"] }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+utoipa = { workspace = true }
+utoipa-swagger-ui = { workspace = true }
+uuid = { workspace = true }
+validator = { workspace = true, features = ["derive"] }
+
 common = { path = "../common" }
 hateoas-macros = { path = "../hateoas-macros" }
-futures = "0.3"
-lapin = "2.5"
-mongodb = "3.1"
-prost = "0.13"
-reqwest = { version = "0.12", features = ["json"] }
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-serde_with = "3.15"
-tokio = { version = "1.48", features = ["full"] }
-tonic = "0.12"
-tower = "0.5"
-tower-http = { version = "0.6", features = ["catch-panic", "trace", "cors"] }
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
-axum-prometheus = "0.7"
-utoipa = { version = "5.4", features = ["axum_extras"] }
-utoipa-swagger-ui = { version = "9.0", features = ["axum", "reqwest"] }
-uuid = { version = "1.18.1", features = ["serde", "v7"] }
-validator = { version = "0.20.0", features = ["derive"] }
+
+bson = { version = "2.13", features = ["serde_with"] }
 
 [build-dependencies]
 tonic-build = "0.12"

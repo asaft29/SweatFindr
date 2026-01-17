@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '../lib/useAuthStore';
 import { RefundRequest, UserRole } from '../lib/types';
 import { getOwnerRefundRequests, approveRefund, rejectRefund, getClientRefunds } from '../lib/refundService';
@@ -6,6 +6,7 @@ import { AnimatedPage } from '../components/AnimatedPage';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { ErrorModal } from '../components/ErrorModal';
 import { SuccessModal } from '../components/SuccessModal';
+import { useRefundNotifications } from '../hooks/useRefundNotifications';
 
 export const InboxPage = () => {
     const { user } = useAuthStore();
@@ -19,14 +20,10 @@ export const InboxPage = () => {
     const isOwner = user?.role === UserRole.OWNER_EVENT;
     const isClient = user?.role === UserRole.CLIENT;
 
-    useEffect(() => {
-        loadRefunds();
-    }, [user]);
-
-    const loadRefunds = async () => {
+    const loadRefunds = useCallback(async (showLoading = true) => {
         if (!user) return;
 
-        setLoading(true);
+        if (showLoading) setLoading(true);
         setError(null);
 
         try {
@@ -41,9 +38,22 @@ export const InboxPage = () => {
             console.error('Failed to load refunds:', err);
             setError('Failed to load refund requests');
         } finally {
-            setLoading(false);
+            if (showLoading) setLoading(false);
         }
-    };
+    }, [user, isOwner, isClient]);
+
+    useEffect(() => {
+        loadRefunds();
+    }, [loadRefunds]);
+
+    useRefundNotifications({
+        onRefundStatusChanged: useCallback(() => {
+            if (isClient) loadRefunds(false);
+        }, [isClient, loadRefunds]),
+        onNewRefundRequest: useCallback(() => {
+            if (isOwner) loadRefunds(false);
+        }, [isOwner, loadRefunds]),
+    });
 
     const handleApprove = async (id: number) => {
         try {

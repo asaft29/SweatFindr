@@ -1,9 +1,9 @@
+use common::authorization::{ResourceOwnership, UserClaims};
 use serde::{Deserialize, Serialize};
 use serde_with::{DisplayFromStr, serde_as};
 use sqlx::prelude::FromRow;
 use utoipa::ToSchema;
 use validator::Validate;
-use common::authorization::{ResourceOwnership, UserClaims};
 
 #[derive(Debug, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct EventPackets {
@@ -99,7 +99,11 @@ pub struct EventPacketQuery {
         message = "Description filter must be between 3 and 50 characters"
     ))]
     pub descriere: Option<String>,
-    #[validate(range(min = 1, message = "Available tickets must be at least 1"))]
+    #[validate(range(
+        min = 1,
+        max = 50000,
+        message = "Available tickets must be between 1 and 50,000"
+    ))]
     #[serde(rename = "available_tickets")]
     pub bilete: Option<i32>,
     #[serde(flatten)]

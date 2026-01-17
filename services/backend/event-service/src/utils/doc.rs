@@ -6,7 +6,7 @@ use utoipa::{Modify, OpenApi};
 #[derive(OpenApi)]
 #[openapi(
     paths(
-        // Event
+
         create_event,
         get_event,
         update_event,
@@ -14,7 +14,7 @@ use utoipa::{Modify, OpenApi};
         delete_event,
         list_events,
 
-        // EventPackets
+
         create_event_packet,
         get_event_packet,
         update_event_packet,
@@ -22,7 +22,7 @@ use utoipa::{Modify, OpenApi};
         delete_event_packet,
         list_event_packets,
 
-        // Tickets
+
         get_ticket,
         update_ticket,
         delete_ticket,
@@ -35,7 +35,7 @@ use utoipa::{Modify, OpenApi};
         get_ticket_for_packet,
         delete_ticket_for_packet,
 
-        // Join PE
+
         add_event_to_packet,
         remove_event_from_packet,
         list_events_for_packet,

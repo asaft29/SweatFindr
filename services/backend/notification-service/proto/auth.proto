@@ -1,0 +1,126 @@
+syntax = "proto3";
+
+package auth;
+
+service AuthService {
+  rpc Authenticate(AuthRequest) returns (AuthResponse);
+  rpc ValidateToken(ValidateRequest) returns (ValidateResponse);
+  rpc DestroyToken(DestroyRequest) returns (DestroyResponse);
+  rpc RegisterUser(RegisterRequest) returns (RegisterResponse);
+  rpc GetUserEmail(GetUserEmailRequest) returns (GetUserEmailResponse);
+  rpc GetUserIdByEmail(GetUserIdByEmailRequest) returns (GetUserIdByEmailResponse);
+  rpc UpdateRole(UpdateRoleRequest) returns (UpdateRoleResponse);
+  rpc MarkEmailVerified(MarkEmailVerifiedRequest) returns (MarkEmailVerifiedResponse);
+  rpc DeleteUnverifiedUser(DeleteUnverifiedUserRequest) returns (DeleteUnverifiedUserResponse);
+  rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse);
+  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
+}
+
+message AuthRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message AuthResponse {
+  bool success = 1;
+  string token_value = 2;
+  string message = 3;
+}
+
+message ValidateRequest { string token_value = 1; }
+
+message ValidateResponse {
+  bool success = 1;
+  bool valid = 2;
+  int32 user_id = 3;
+  string role = 4;
+  string message = 5;
+}
+
+message DestroyRequest { string token_value = 1; }
+
+message DestroyResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message RegisterRequest {
+  string email = 1;
+  string password = 2;
+  string role = 3;
+}
+
+message RegisterResponse {
+  bool success = 1;
+  int32 user_id = 2;
+  string token_value = 3;
+  string message = 4;
+}
+
+message GetUserEmailRequest {
+  int32 user_id = 1;
+}
+
+message GetUserEmailResponse {
+  bool success = 1;
+  string email = 2;
+  string message = 3;
+}
+
+message UpdateRoleRequest {
+  int32 user_id = 1;
+  string role = 2;
+}
+
+message GetUserIdByEmailRequest {
+  string email = 1;
+}
+
+message GetUserIdByEmailResponse {
+  bool success = 1;
+  int32 user_id = 2;
+  string message = 3;
+}
+
+message UpdateRoleResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message MarkEmailVerifiedRequest {
+  int32 user_id = 1;
+}
+
+message MarkEmailVerifiedResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message DeleteUnverifiedUserRequest {
+  int32 user_id = 1;
+}
+
+message DeleteUnverifiedUserResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message DeleteUserRequest {
+  int32 user_id = 1;
+}
+
+message DeleteUserResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+message ResetPasswordRequest {
+  string email = 1;
+  string new_password = 2;
+  string reset_token = 3;
+}
+
+message ResetPasswordResponse {
+  bool success = 1;
+  string message = 2;
+}

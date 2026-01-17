@@ -10,6 +10,7 @@ use axum::{
     routing::{get, post},
 };
 use common::rabbitmq::messages::{ROUTING_KEY_REFUND_RESOLVED, RefundResolved, RefundStatus};
+use common::websocket::messages::{ROUTING_KEY_WS_BROADCAST, RefundStatusChanged, WebSocketMessage};
 use std::sync::Arc;
 use tracing::{error, info, warn};
 use validator::Validate;
@@ -219,6 +220,28 @@ pub async fn approve_refund(
         }
     }
 
+
+    let ws_message = WebSocketMessage::RefundStatusChanged(RefundStatusChanged {
+        request_id: refund.id,
+        ticket_cod: refund.ticket_cod.clone(),
+        status: "APPROVED".to_string(),
+        event_name: state.refund_repo.get_event_name_for_refund(&refund).await,
+        message: Some("Your refund has been approved".to_string()),
+        user_id: refund.requester_id,
+    });
+
+    if let Ok(json) = serde_json::to_vec(&ws_message) {
+        if let Err(e) = state
+            .rabbitmq
+            .publish(ROUTING_KEY_WS_BROADCAST, &json)
+            .await
+        {
+            error!("Failed to publish WebSocket message: {:?}", e);
+        } else {
+            info!("Published WebSocket notification for refund approval {}", refund.id);
+        }
+    }
+
     Ok(Json(refund))
 }
 
@@ -256,6 +279,8 @@ pub async fn reject_refund(
     let Json(payload) = payload?;
     payload.validate()?;
 
+    let rejection_message = payload.message.clone();
+
     let refund = state
         .refund_repo
         .reject_refund(id, user_claims.user_id, &payload.message)
@@ -269,8 +294,8 @@ pub async fn reject_refund(
         ticket_cod: refund.ticket_cod.clone(),
         requester_email: refund.requester_email.clone(),
         status: RefundStatus::Rejected,
-        event_name,
-        message: Some(payload.message),
+        event_name: event_name.clone(),
+        message: Some(rejection_message.clone()),
     };
 
     if let Ok(json) = serde_json::to_vec(&message) {
@@ -285,6 +310,28 @@ pub async fn reject_refund(
                 "Published refund.resolved (rejected) for request {}",
                 refund.id
             );
+        }
+    }
+
+
+    let ws_message = WebSocketMessage::RefundStatusChanged(RefundStatusChanged {
+        request_id: refund.id,
+        ticket_cod: refund.ticket_cod.clone(),
+        status: "REJECTED".to_string(),
+        event_name,
+        message: Some(rejection_message),
+        user_id: refund.requester_id,
+    });
+
+    if let Ok(json) = serde_json::to_vec(&ws_message) {
+        if let Err(e) = state
+            .rabbitmq
+            .publish(ROUTING_KEY_WS_BROADCAST, &json)
+            .await
+        {
+            error!("Failed to publish WebSocket message: {:?}", e);
+        } else {
+            info!("Published WebSocket notification for refund rejection {}", refund.id);
         }
     }
 
