@@ -14,6 +14,7 @@ export function EventsPage() {
   const [purchasing, setPurchasing] = useState<number | null>(null);
   const [locatieFilter, setLocatieFilter] = useState("");
   const [numeFilter, setNumeFilter] = useState("");
+  const [appliedFilters, setAppliedFilters] = useState<{ locatie?: string; nume?: string }>({});
   const [showSuccess, setShowSuccess] = useState(false);
   const [purchaseConfirm, setPurchaseConfirm] = useState<Event | null>(null);
 
@@ -39,12 +40,14 @@ export function EventsPage() {
     const filters: { locatie?: string; nume?: string } = {};
     if (locatieFilter) filters.locatie = locatieFilter;
     if (numeFilter) filters.nume = numeFilter;
+    setAppliedFilters(filters);
     loadEvents(filters);
   };
 
   const handleClearFilters = () => {
     setLocatieFilter("");
     setNumeFilter("");
+    setAppliedFilters({});
     loadEvents();
   };
 
@@ -59,7 +62,7 @@ export function EventsPage() {
       setError(null);
       await clientService.purchaseTicket({ evenimentid: eventId });
       setShowSuccess(true);
-      await loadEvents();
+      await loadEvents(appliedFilters);
     } catch (err: any) {
       setError(err.response?.data?.error || err.message || "Failed to purchase ticket");
       console.error(err);

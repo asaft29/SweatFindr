@@ -23,6 +23,7 @@ export function EventPackagesPage() {
   });
   const [nextLink, setNextLink] = useState<string | null>(null);
   const [prevLink, setPrevLink] = useState<string | null>(null);
+  const [currentLink, setCurrentLink] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [purchaseConfirm, setPurchaseConfirm] = useState<EventPackageWithLinks | null>(null);
   const isHateoasNavigation = useRef(false);
@@ -54,6 +55,7 @@ export function EventPackagesPage() {
       }
 
       setPackages(data);
+      setCurrentLink(null);
 
       if (data.length > 0 && data[0]._links) {
         setNextLink(data[0]._links.next?.href || null);
@@ -81,6 +83,7 @@ export function EventPackagesPage() {
       const data = await eventService.getEventPackagesByUrl(url);
 
       setPackages(data);
+      setCurrentLink(url);
 
       if (data.length > 0 && data[0]._links) {
         setNextLink(data[0]._links.next?.href || null);
@@ -127,7 +130,12 @@ export function EventPackagesPage() {
       setError(null);
       await clientService.purchaseTicket({ pachetid: packageId });
       setShowSuccess(true);
-      await loadPackages();
+
+      if (currentLink) {
+        await loadPackagesByUrl(currentLink);
+      } else {
+        await loadPackages();
+      }
     } catch (err: any) {
       setError(err.response?.data?.error || err.message || "Failed to purchase ticket");
       console.error(err);
