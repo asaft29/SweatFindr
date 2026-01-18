@@ -365,9 +365,11 @@ pub async fn delete_ticket_for_event(
         return Err(ApiError::BadRequest("ID cannot be negative".into()));
     }
 
-    let event = state.event_repo.get_event(event_id).await?;
-    Authorization::can_modify_resource(&user_claims, &event, None)
-        .map_err(map_authorization_error)?;
+    if !user_claims.is_clients_service() {
+        let event = state.event_repo.get_event(event_id).await?;
+        Authorization::can_modify_resource(&user_claims, &event, None)
+            .map_err(map_authorization_error)?;
+    }
 
     state
         .ticket_repo
@@ -528,9 +530,11 @@ pub async fn delete_ticket_for_packet(
         return Err(ApiError::BadRequest("ID cannot be negative".into()));
     }
 
-    let packet = state.event_packet_repo.get_event_packet(packet_id).await?;
-    Authorization::can_modify_resource(&user_claims, &packet, None)
-        .map_err(map_authorization_error)?;
+    if !user_claims.is_clients_service() {
+        let packet = state.event_packet_repo.get_event_packet(packet_id).await?;
+        Authorization::can_modify_resource(&user_claims, &packet, None)
+            .map_err(map_authorization_error)?;
+    }
 
     state
         .ticket_repo
