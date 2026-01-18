@@ -4,8 +4,9 @@ use crate::auth::auth_service_client::AuthServiceClient;
 use crate::email::email_service_client::EmailServiceClient;
 use crate::email::{
     ResendVerificationRequest, ResendVerificationResponse, SendPasswordResetRequest,
-    SendPasswordResetResponse, VerifyCodeRequest, VerifyCodeResponse,
-    VerifyPasswordResetCodeRequest, VerifyPasswordResetCodeResponse,
+    SendPasswordResetResponse, SendVerificationByEmailRequest, SendVerificationByEmailResponse,
+    VerifyCodeRequest, VerifyCodeResponse, VerifyPasswordResetCodeRequest,
+    VerifyPasswordResetCodeResponse,
 };
 use crate::gateway::map_grpc_error;
 use axum::{Json, Router, extract::State, http::StatusCode, routing::post};
@@ -16,6 +17,7 @@ pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/verify", post(verify_email))
         .route("/resend", post(resend_verification))
+        .route("/resend-by-email", post(resend_verification_by_email))
         .route("/forgot-password", post(forgot_password))
         .route("/verify-reset-code", post(verify_reset_code))
         .route("/reset-password", post(reset_password))
@@ -40,6 +42,18 @@ async fn resend_verification(
     let mut client = EmailServiceClient::new(state.email_channel.clone());
 
     match client.resend_verification_code(request).await {
+        Ok(response) => Ok(Json(response.into_inner())),
+        Err(e) => Err(map_grpc_error(e)),
+    }
+}
+
+async fn resend_verification_by_email(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<SendVerificationByEmailRequest>,
+) -> Result<Json<SendVerificationByEmailResponse>, StatusCode> {
+    let mut client = EmailServiceClient::new(state.email_channel.clone());
+
+    match client.send_verification_by_email(request).await {
         Ok(response) => Ok(Json(response.into_inner())),
         Err(e) => Err(map_grpc_error(e)),
     }

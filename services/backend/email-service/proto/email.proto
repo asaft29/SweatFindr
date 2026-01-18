@@ -8,6 +8,8 @@ service EmailService {
   rpc VerifyCode(VerifyCodeRequest) returns (VerifyCodeResponse);
   rpc ResendVerificationCode(ResendVerificationRequest)
       returns (ResendVerificationResponse);
+  rpc SendVerificationByEmail(SendVerificationByEmailRequest)
+      returns (SendVerificationByEmailResponse);
   rpc SendPasswordResetEmail(SendPasswordResetRequest)
       returns (SendPasswordResetResponse);
   rpc VerifyPasswordResetCode(VerifyPasswordResetCodeRequest)
@@ -67,3 +69,11 @@ message ValidateResetTokenRequest {
 }
 
 message ValidateResetTokenResponse { bool valid = 1; }
+
+message SendVerificationByEmailRequest { string email = 1; }
+
+message SendVerificationByEmailResponse {
+  bool success = 1;
+  string message = 2;
+  int32 user_id = 3;
+}

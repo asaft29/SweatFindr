@@ -455,7 +455,12 @@ pub fn hateoas_filtered(attr: TokenStream, item: TokenStream) -> TokenStream {
                 let items_per_page = #query_param.paginare.items_per_page.unwrap_or(10);
                 let item_count = #data_param.len();
 
-                for item in #data_param {
+                // Repository fetches items_per_page + 1 to check if there's a next page
+                // If we got more than items_per_page, there's a next page
+                let has_next_page = item_count > items_per_page as usize;
+
+                // Only iterate over items_per_page items (skip the extra one used for next page detection)
+                for item in #data_param.into_iter().take(items_per_page as usize) {
                     let mut self_href = format!("{}/{}", base_url, #resource);
                     let mut query_parts = vec![];
 
@@ -490,8 +495,8 @@ pub fn hateoas_filtered(attr: TokenStream, item: TokenStream) -> TokenStream {
                             response_builder = response_builder.link_with_types("prev", prev_url, &["GET"]);
                         }
 
-                        // Only add next link if we got a full page of results (indicating more pages exist)
-                        if item_count == items_per_page as usize {
+                        // Only add next link if there's actually a next page
+                        if has_next_page {
                             let next_page = current_page + 1;
                             let next_url = if non_page_params.is_empty() {
                                 format!("{}?page={}&items_per_page={}", base_with_params, next_page, items_per_page)

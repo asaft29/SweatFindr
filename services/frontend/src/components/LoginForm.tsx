@@ -89,14 +89,20 @@ export const LoginForm = () => {
           </button>
         </form>
 
-        <div className="text-center space-y-2">
+        <div className="text-center space-y-3">
           <a
             href="/forgot-password"
-            className="text-sm font-medium text-indigo-600 hover:text-indigo-500 transition"
+            className="block text-sm font-medium text-indigo-600 hover:text-indigo-500 transition"
           >
             Forgot password?
           </a>
-          <p className="text-sm text-gray-600">
+          <a
+            href="/resend-verification"
+            className="block text-sm font-medium text-indigo-600 hover:text-indigo-500 transition"
+          >
+            Resend verification code
+          </a>
+          <p className="text-sm text-gray-600 pt-1">
             Don't have an account?{' '}
             <a href="/register" className="font-medium text-indigo-600 hover:text-indigo-500 transition">
               Sign up

@@ -1,7 +1,6 @@
 use crate::models::UserRole;
 use crate::repository::UserRepository;
 use crate::services::{JwtService, TokenBlacklist};
-use email::email_service_client::EmailServiceClient;
 use std::str::FromStr;
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
@@ -280,7 +279,7 @@ impl AuthService for AuthServiceImpl {
         let email_service_url = self.email_service_url.clone();
         let user_email = req.email.clone();
         tokio::spawn(async move {
-            match EmailServiceClient::connect(email_service_url).await {
+            match EmailClient::connect(email_service_url).await {
                 Ok(mut client) => {
                     let email_request = email::SendVerificationRequest {
                         user_id,
@@ -388,6 +387,7 @@ impl AuthService for AuthServiceImpl {
                 success: true,
                 user_id: user.id,
                 message: "User found".to_string(),
+                email_verified: user.email_verified,
             })),
             Ok(_) => Err(Status::not_found("User not found")),
             Err(e) => Err(Status::internal(format!("Database error: {}", e))),

@@ -75,7 +75,7 @@ impl EventPacketRepo {
         let offset = (page - 1) * items_per_page;
 
         query_builder.push(" LIMIT ");
-        query_builder.push_bind(items_per_page);
+        query_builder.push_bind(items_per_page + 1);
         query_builder.push(" OFFSET ");
         query_builder.push_bind(offset);
     }

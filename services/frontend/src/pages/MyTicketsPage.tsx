@@ -1,8 +1,9 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { clientService } from "../lib/clientService";
 import type { TicketRef } from "../lib/types";
 import { SuccessModal } from "../components/SuccessModal";
 import { ErrorModal } from "../components/ErrorModal";
+import { useRefundNotifications } from "../hooks/useRefundNotifications";
 
 interface GroupedTickets {
   name: string;
@@ -21,9 +22,9 @@ export function MyTicketsPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const loadTickets = async () => {
+  const loadTickets = useCallback(async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       setError(null);
       const data = await clientService.getMyTickets();
       setTickets(data);
@@ -31,13 +32,19 @@ export function MyTicketsPage() {
       setError(err.response?.data?.error || err.message || "Failed to load tickets");
       console.error(err);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadTickets();
-  }, []);
+  }, [loadTickets]);
+
+  useRefundNotifications({
+    onRefundStatusChanged: useCallback(() => {
+      loadTickets(false);
+    }, [loadTickets]),
+  });
 
   const handleRefundRequest = async () => {
     if (!refundModal || !refundReason.trim()) return;

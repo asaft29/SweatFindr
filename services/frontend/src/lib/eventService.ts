@@ -9,10 +9,11 @@ const ENDPOINTS = {
 class EventService {
   private eventService = apiClient.getEventService();
 
-  async getEvents(filters?: { locatie?: string; nume?: string; page?: number; itemsPerPage?: number }): Promise<EventWithLinks[]> {
+  async getEvents(filters?: { locatie?: string; nume?: string; page?: number; itemsPerPage?: number; ownerId?: number }): Promise<EventWithLinks[]> {
     const params = new URLSearchParams();
     if (filters?.locatie) params.append("location", filters.locatie);
     if (filters?.nume) params.append("name", filters.nume);
+    if (filters?.ownerId !== undefined) params.append("owner_id", filters.ownerId.toString());
     if (filters?.page !== undefined) params.append("page", filters.page.toString());
     params.append("items_per_page", filters?.itemsPerPage?.toString() ?? "10");
 

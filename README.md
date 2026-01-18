@@ -1,23 +1,105 @@
-# POS - solutii proiect
+## Architecture Overview
 
-| **Deadline&nbsp;general** | **_18.01.2026_** (_duminica, S14_) |
-| :--- | :--- |
-| **_Branch_ proiect** | Acest _branch_ va fi folosit de studentii care doresc sa dezvolte proiectul propus pentru disciplina. _Commit_-urile trebuie realizate saptamanal. Codurile sursa vor fi organizate pe module, iar in cadrul fiecauri astfel de modul se vor incarca un set de _log_-uri demonstrative. |
-| **_Branch_&nbsp;laborator** | Acest _branch_ va fi folosit de studentii care se vor concentra doar pe aplicatiile de baza propuse. Pentru fiecare laborator se va crea cate un director separat in cadrul caruia se vor incarca fisierele sursa, alaturi de un set de _log_-uri demonstrative.<br/><br/>**_Fiecare laborator are un deadline de maxim doua saptamani de la data finalizarii acestuia!! Commit-urile ulterioare NU vor fi considerate in evaluare_** |
+```mermaid
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#1f2937', 'primaryTextColor': '#fff', 'primaryBorderColor': '#4b5563', 'lineColor': '#9ca3af', 'secondaryColor': '#374151', 'tertiaryColor': '#1f2937', 'background': '#000000'}}}%%
+flowchart TB
+    subgraph Frontend["Frontend (React)"]
+        FE[React App<br/>Port 5000]
+    end
 
-## Evaluare
+    subgraph Gateway["API Gateway"]
+        GW[Gateway<br/>Port 10000]
+    end
 
-Evaluarea activitatii de laborator consta in evaluarea solutiilor incarcate, urmarind:
+    subgraph Services["Backend Services"]
+        AUTH[Auth Service<br/>Port 50051<br/>gRPC]
+        EVENT[Event Service<br/>Port 8001<br/>REST]
+        CLIENT[Client Service<br/>Port 8002<br/>REST]
+        EMAIL[Email Service<br/>Port 50052<br/>gRPC]
+        NOTIF[Notification Service<br/>Port 8004<br/>WebSocket]
+    end
 
-- respectarea standardelor si a recomandarilor corespuzatoare tipului de serviciu analizat;
-- calitatea codului sursa;
-- gradul de indeplinire a cerintelor propuse.
+    subgraph MessageQueue["Message Queue"]
+        RMQ[RabbitMQ<br/>Port 5672]
+    end
 
-Solutiile **_remarcabile_** pot atrage bonusuri pentru nota de examen/media corespunzatoare disciplinei. **_Revedeti documentul de prezentare a disciplinei, disponibil pe platforma_** <https://edu.tuiasi.ro/>.
+    subgraph Databases["Databases"]
+        AUTH_DB[(PostgreSQL<br/>auth-db)]
+        EVENT_DB[(PostgreSQL<br/>event-db)]
+        CLIENT_DB[(MongoDB<br/>client-db)]
+        AUTH_REDIS[(Redis<br/>auth-redis)]
+        EMAIL_REDIS[(Redis<br/>email-redis)]
+    end
 
-## Link-uri utile
+    FE -->|JSON| GW
+    GW -->|gRPC| AUTH
+    GW -->|gRPC| EMAIL
+    GW -->|JSON| FE
 
-1. **Markdown** - limbaj de prezentare "pretty" pentru o documentatie `git` (in cazul in care considerati utila o scurta descriere a implementarii <https://www.markdownguide.org>)
-	- sintaxa de baza: <https://www.markdownguide.org/basic-syntax/>
-	- _cheat-sheet_: <https://www.markdownguide.org/cheat-sheet/>
-2. **Github** - comenzi uzuale: <https://education.github.com/git-cheat-sheet-education.pdf>
+    FE -->|REST| EVENT
+    FE -->|REST| CLIENT
+    FE -->|WebSocket| NOTIF
+
+    EVENT -->|gRPC| AUTH
+    CLIENT -->|gRPC| AUTH
+    CLIENT -->|gRPC| EMAIL
+    CLIENT -->|REST| EVENT
+    NOTIF -->|gRPC| AUTH
+
+    CLIENT -->|publish| RMQ
+    RMQ -->|consume| EVENT
+    EVENT -->|publish| RMQ
+    RMQ -->|consume| CLIENT
+    RMQ -->|consume| EMAIL
+    RMQ -->|consume| NOTIF
+
+    AUTH --> AUTH_DB
+    AUTH --> AUTH_REDIS
+    EVENT --> EVENT_DB
+    CLIENT --> CLIENT_DB
+    EMAIL --> EMAIL_REDIS
+
+    style RMQ fill:#ff6b6b,stroke:#c92a2a,color:#fff
+    style AUTH fill:#4dabf7,stroke:#1971c2,color:#fff
+    style EVENT fill:#69db7c,stroke:#2f9e44,color:#fff
+    style CLIENT fill:#ffd43b,stroke:#f59f00,color:#000
+    style EMAIL fill:#da77f2,stroke:#9c36b5,color:#fff
+    style NOTIF fill:#ff922b,stroke:#e8590c,color:#fff
+    style GW fill:#868e96,stroke:#495057,color:#fff
+    style FE fill:#20c997,stroke:#0ca678,color:#fff
+```
+
+> [!TIP]
+> The entire backend is built in **Rust** using the **Axum** web framework. Each service has detailed documentation in the `doc/` folder:
+>
+> **Services:**
+> - [Gateway](doc/gateway.md) — API Gateway with rate limiting (Port 10000)
+> - [Auth Service](doc/auth-service.md) — Authentication & JWT management (Port 50051, gRPC)
+> - [Event Service](doc/event-service.md) — Event, ticket & refund management (Port 8001, REST)
+> - [Client Service](doc/client-service.md) — Client profiles & ticket purchases (Port 8002, REST)
+> - [Email Service](doc/email-service.md) — Email delivery & verification codes (Port 50052, gRPC)
+> - [Notification Service](doc/notification-service.md) — Real-time WebSocket notifications (Port 8004)
+>
+> **Infrastructure:**
+> - [RabbitMQ](doc/rabbitmq.md) — Message broker for async communication
+> - [Grafana](doc/grafana.md) — Monitoring & logging dashboard
+
+## Quick Start
+
+```bash
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+
+# Full cleanup (removes database volumes)
+docker-compose down -v
+```
+
+> [!NOTE]
+> All databases are stored in Docker volumes for persistence. Use `docker-compose down -v` for a complete cleanup including all data.
+

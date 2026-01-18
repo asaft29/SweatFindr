@@ -32,6 +32,7 @@ pub fn build_simple_event(event: Event, base_url: &str) -> Response<Event> {}
     query_fields(
         ("locatie", "location"),
         ("nume", "name"),
+        ("owner_id", "owner_id"),
         ("paginare.page", "page"),
         ("paginare.items_per_page", "items_per_page")
     )

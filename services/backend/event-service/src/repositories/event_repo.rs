@@ -27,8 +27,18 @@ impl EventRepo {
         let location = params.locatie.filter(|s| !s.is_empty());
         let name = params.nume.filter(|s| !s.is_empty());
 
+        if let Some(owner_id) = params.owner_id {
+            query_builder.push(" WHERE id_owner = ");
+            query_builder.push_bind(owner_id);
+            has_condition = true;
+        }
+
         if let Some(location) = location {
-            query_builder.push(" WHERE unaccent(locatie) ILIKE unaccent(");
+            if has_condition {
+                query_builder.push(" AND unaccent(locatie) ILIKE unaccent(");
+            } else {
+                query_builder.push(" WHERE unaccent(locatie) ILIKE unaccent(");
+            }
             query_builder.push_bind(format!("%{}%", location));
             query_builder.push(")");
             has_condition = true;
@@ -51,7 +61,7 @@ impl EventRepo {
         let offset = (page - 1) * items_per_page;
 
         query_builder.push(" LIMIT ");
-        query_builder.push_bind(items_per_page);
+        query_builder.push_bind(items_per_page + 1);
         query_builder.push(" OFFSET ");
         query_builder.push_bind(offset);
 

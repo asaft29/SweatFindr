@@ -80,6 +80,7 @@ message GetUserIdByEmailResponse {
   bool success = 1;
   int32 user_id = 2;
   string message = 3;
+  bool email_verified = 4;
 }
 
 message UpdateRoleResponse {

@@ -69,6 +69,7 @@ pub async fn list_events(
 
     let has_filters = params.locatie.is_some()
         || params.nume.is_some()
+        || params.owner_id.is_some()
         || params.paginare.page.is_some()
         || params.paginare.items_per_page.is_some();
 

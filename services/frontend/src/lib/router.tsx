@@ -7,6 +7,7 @@ import { RegisterForm } from '../components/RegisterForm';
 import { VerifyEmailForm } from '../components/VerifyEmailForm';
 import { ForgotPasswordForm } from '../components/ForgotPasswordForm';
 import { ResetPasswordForm } from '../components/ResetPasswordForm';
+import { ResendVerificationForm } from '../components/ResendVerificationForm';
 import { HomePage } from '../pages/HomePage';
 import { UnauthorizedPage } from '../pages/UnauthorizedPage';
 import { EventsPage } from '../pages/EventsPage';
@@ -64,6 +65,14 @@ export const router = createBrowserRouter([
     element: (
       <AnimatedPage>
         <ResetPasswordForm />
+      </AnimatedPage>
+    ),
+  },
+  {
+    path: '/resend-verification',
+    element: (
+      <AnimatedPage>
+        <ResendVerificationForm />
       </AnimatedPage>
     ),
   },

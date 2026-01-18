@@ -82,6 +82,16 @@ export function EventPackagesPage() {
       setError(null);
       const data = await eventService.getEventPackagesByUrl(url);
 
+      const urlObj = new URL(url, window.location.origin);
+      const pageParam = urlObj.searchParams.get('page');
+      const currentUrlPage = pageParam ? parseInt(pageParam) : 1;
+
+      if (data.length === 0 && currentUrlPage > 1) {
+        urlObj.searchParams.set('page', String(currentUrlPage - 1));
+        loadPackagesByUrl(urlObj.pathname + urlObj.search);
+        return;
+      }
+
       setPackages(data);
       setCurrentLink(url);
 
@@ -93,11 +103,9 @@ export function EventPackagesPage() {
         setPrevLink(null);
       }
 
-      const urlObj = new URL(url, window.location.origin);
-      const pageParam = urlObj.searchParams.get('page');
       if (pageParam) {
         isHateoasNavigation.current = true;
-        setCurrentPage(parseInt(pageParam));
+        setCurrentPage(currentUrlPage);
       }
     } catch (err: any) {
       setError("Failed to load event packages");

@@ -15,8 +15,9 @@ use auth::{GetUserIdByEmailRequest, MarkEmailVerifiedRequest};
 use email::email_service_server::EmailService as EmailServiceTrait;
 use email::{
     ResendVerificationRequest, ResendVerificationResponse, SendPasswordResetRequest,
-    SendPasswordResetResponse, SendVerificationRequest, SendVerificationResponse,
-    ValidateResetTokenRequest, ValidateResetTokenResponse, VerifyCodeRequest, VerifyCodeResponse,
+    SendPasswordResetResponse, SendVerificationByEmailRequest, SendVerificationByEmailResponse,
+    SendVerificationRequest, SendVerificationResponse, ValidateResetTokenRequest,
+    ValidateResetTokenResponse, VerifyCodeRequest, VerifyCodeResponse,
     VerifyPasswordResetCodeRequest, VerifyPasswordResetCodeResponse,
 };
 
@@ -172,7 +173,7 @@ impl EmailServiceTrait for EmailServiceImpl {
         }
 
         let email_service = Arc::clone(&self.email_service);
-        let email_for_spawn = req.email.clone(); 
+        let email_for_spawn = req.email.clone();
         tokio::spawn(async move {
             if let Err(e) = email_service
                 .send_password_reset_email(&email_for_spawn, &reset_code)
@@ -224,5 +225,85 @@ impl EmailServiceTrait for EmailServiceImpl {
             .map_err(|e| Status::internal(format!("Failed to validate reset token: {}", e)))?;
 
         Ok(Response::new(ValidateResetTokenResponse { valid }))
+    }
+
+    async fn send_verification_by_email(
+        &self,
+        request: Request<SendVerificationByEmailRequest>,
+    ) -> Result<Response<SendVerificationByEmailResponse>, Status> {
+        let req = request.into_inner();
+
+        let user_info = match AuthServiceClient::connect(self.auth_service_url.clone()).await {
+            Ok(mut auth_client) => {
+                match auth_client
+                    .get_user_id_by_email(Request::new(GetUserIdByEmailRequest {
+                        email: req.email.clone(),
+                    }))
+                    .await
+                {
+                    Ok(response) => {
+                        let inner = response.into_inner();
+                        if inner.success {
+                            Some((inner.user_id, inner.email_verified))
+                        } else {
+                            None
+                        }
+                    }
+                    Err(e) => {
+                        tracing::error!("Failed to get user by email: {}", e);
+                        None
+                    }
+                }
+            }
+            Err(e) => {
+                tracing::error!("Failed to connect to auth service: {}", e);
+                None
+            }
+        };
+
+        let (user_id, email_verified) = match user_info {
+            Some((id, verified)) => (id, verified),
+            None => {
+                return Ok(Response::new(SendVerificationByEmailResponse {
+                    success: true,
+                    message: "If your email is registered, you will receive a verification code."
+                        .to_string(),
+                    user_id: 0,
+                }));
+            }
+        };
+
+        if email_verified {
+            return Ok(Response::new(SendVerificationByEmailResponse {
+                success: true,
+                message: "If your email is registered, you will receive a verification code."
+                    .to_string(),
+                user_id,
+            }));
+        }
+
+        let verification_code = EmailService::generate_verification_code();
+
+        self.verification_repo
+            .create_verification(user_id, &verification_code)
+            .await
+            .map_err(|e| Status::internal(format!("Failed to store verification code: {}", e)))?;
+
+        let email_service = Arc::clone(&self.email_service);
+        let email_for_spawn = req.email.clone();
+        tokio::spawn(async move {
+            if let Err(e) = email_service
+                .send_verification_email(&email_for_spawn, &verification_code)
+                .await
+            {
+                tracing::error!("Failed to send verification email: {}", e);
+            }
+        });
+
+        Ok(Response::new(SendVerificationByEmailResponse {
+            success: true,
+            message: "Verification code sent successfully".to_string(),
+            user_id,
+        }))
     }
 }

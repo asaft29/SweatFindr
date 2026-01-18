@@ -189,14 +189,13 @@ export function MyEventsPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [eventsData, packagesData] = await Promise.all([
-        eventService.getEvents(),
-        eventService.getEventPackages(),
-      ]);
       const userId = Number(user?.id);
-      const myEvents = eventsData.filter((e) => Number(e.id_owner) === userId);
+      const [eventsData, packagesData] = await Promise.all([
+        eventService.getEvents({ ownerId: userId, itemsPerPage: 100 }),
+        eventService.getEventPackages({ itemsPerPage: 100 }),
+      ]);
       const myPackages = packagesData.filter((p) => Number(p.id_owner) === userId);
-      setEvents(myEvents);
+      setEvents(eventsData);
       setPackages(myPackages);
     } catch (err: any) {
       setErrorModal({
@@ -220,10 +219,10 @@ export function MyEventsPage() {
       if (payload.numarlocuri === 0) payload.numarlocuri = undefined;
       if (!payload.locatie) payload.locatie = undefined;
       if (!payload.descriere) payload.descriere = undefined;
-      await eventService.createEvent(payload);
+      const newEvent = await eventService.createEvent(payload);
+      setEvents((prev) => [...prev, newEvent]);
       setShowEventModal(false);
       setEventForm({ nume: "", locatie: "", descriere: "", numarlocuri: 0 });
-      await loadData();
     } catch (err: any) {
       const details = err.response?.data?.details;
       const message = Array.isArray(details) && details.length > 0
