@@ -171,6 +171,16 @@ impl ClientRepo {
         Ok(())
     }
 
+    pub async fn delete_client_by_email(&self, email: &str) -> Result<bool, ClientRepoError> {
+        let result = self
+            .collection
+            .delete_one(doc! { "email": email })
+            .await
+            .map_err(|e| ClientRepoError::DatabaseError(e.to_string()))?;
+
+        Ok(result.deleted_count > 0)
+    }
+
     pub async fn get_client_tickets(&self, id: &str) -> Result<Vec<TicketRef>, ClientRepoError> {
         let client = self.get_client(id).await?;
         Ok(client.lista_bilete)

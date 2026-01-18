@@ -17,6 +17,10 @@ pub fn api_router() -> Router<Arc<AppState>> {
         .merge(refund::refund_router())
 }
 
+pub fn internal_router() -> Router<Arc<AppState>> {
+    Router::new().merge(client::internal_router())
+}
+
 pub fn auth_router() -> Router<Arc<AppState>> {
     Router::new().merge(auth::auth_router())
 }

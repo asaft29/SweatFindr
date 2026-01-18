@@ -90,7 +90,7 @@ UTILIZATORI
 
 ```bash
 DATABASE_URL=postgresql://user:pass@auth-db:5432/auth
-REDIS_URL=redis://auth-redis:6379
+REDIS_URL=redis://shared-redis:6379
 JWT_SECRET=your-secret-key
 JWT_EXPIRATION=3600
 ```

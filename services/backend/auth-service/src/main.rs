@@ -57,10 +57,10 @@ async fn main() -> Result<()> {
     let jwt_secret = std::env::var("JWT_SECRET").unwrap();
     let jwt_issuer =
         std::env::var("JWT_ISSUER").unwrap_or_else(|_| "http://localhost:50051".to_string());
-    let jwt_service = JwtService::new(jwt_secret, jwt_issuer);
+    let jwt_service = Arc::new(JwtService::new(jwt_secret, jwt_issuer));
 
     let redis_url =
-        std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://auth-redis:6379".to_string());
+        std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://shared-redis:6379".to_string());
     let redis_client =
         redis::Client::open(redis_url.as_str()).expect("Failed to create Redis client");
     let redis_conn = redis::aio::ConnectionManager::new(redis_client)
@@ -74,7 +74,11 @@ async fn main() -> Result<()> {
     let client_service_url = std::env::var("CLIENT_SERVICE_URL")
         .unwrap_or_else(|_| "http://client-service:8080".to_string());
 
-    let expiration_listener = ExpirationListener::new(Arc::clone(&user_repo));
+    let expiration_listener = ExpirationListener::new(
+        Arc::clone(&user_repo),
+        client_service_url.clone(),
+        Arc::clone(&jwt_service),
+    );
     let redis_url_clone = redis_url.clone();
     let expiration_task = tokio::spawn(async move {
         if let Err(e) = expiration_listener.start(redis_url_clone).await {

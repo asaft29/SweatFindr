@@ -27,8 +27,7 @@ flowchart TB
         AUTH_DB[(PostgreSQL<br/>auth-db)]
         EVENT_DB[(PostgreSQL<br/>event-db)]
         CLIENT_DB[(MongoDB<br/>client-db)]
-        AUTH_REDIS[(Redis<br/>auth-redis)]
-        EMAIL_REDIS[(Redis<br/>email-redis)]
+        SHARED_REDIS[(Redis<br/>shared-redis)]
     end
 
     FE -->|JSON| GW
@@ -54,10 +53,10 @@ flowchart TB
     RMQ -->|consume| NOTIF
 
     AUTH --> AUTH_DB
-    AUTH --> AUTH_REDIS
+    AUTH --> SHARED_REDIS
     EVENT --> EVENT_DB
     CLIENT --> CLIENT_DB
-    EMAIL --> EMAIL_REDIS
+    EMAIL --> SHARED_REDIS
 
     style RMQ fill:#ff6b6b,stroke:#c92a2a,color:#fff
     style AUTH fill:#4dabf7,stroke:#1971c2,color:#fff

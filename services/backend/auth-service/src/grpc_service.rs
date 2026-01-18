@@ -20,7 +20,7 @@ use auth::*;
 
 pub struct AuthServiceImpl {
     pub user_repo: Arc<UserRepository>,
-    pub jwt_service: JwtService,
+    pub jwt_service: Arc<JwtService>,
     pub blacklist: TokenBlacklist,
     pub email_service_url: String,
     pub client_service_url: String,

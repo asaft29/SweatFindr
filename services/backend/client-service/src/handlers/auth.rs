@@ -12,13 +12,12 @@ use validator::Validate;
 use crate::AppState;
 use crate::models::auth::{
     LoginRequest, LoginResponse, RegisterRequest, RegisterResponse, ResendVerificationRequest,
-    ResendVerificationResponse, UpdateRoleRequest, UpdateRoleResponse, VerifyEmailRequest,
-    VerifyEmailResponse,
+    ResendVerificationResponse, UpdateRoleRequest, VerifyEmailRequest, VerifyEmailResponse,
 };
 use crate::models::client::CreateClient;
 use crate::utils::auth_links::{
     Response, build_login_response, build_register_response, build_resend_verification_response,
-    build_update_role_response, build_verify_email_response,
+    build_verify_email_response,
 };
 use crate::utils::error::ClientApiError;
 use common::authorization::UserClaims;
@@ -359,7 +358,10 @@ pub async fn verify_email(
         message: "Email verified successfully".to_string(),
     };
 
-    Ok(Json(build_verify_email_response(verify_response, &state.base_url)))
+    Ok(Json(build_verify_email_response(
+        verify_response,
+        &state.base_url,
+    )))
 }
 
 #[utoipa::path(
@@ -425,5 +427,8 @@ pub async fn resend_verification(
         message: response.message,
     };
 
-    Ok(Json(build_resend_verification_response(resend_response, &state.base_url)))
+    Ok(Json(build_resend_verification_response(
+        resend_response,
+        &state.base_url,
+    )))
 }

@@ -20,13 +20,13 @@ services:
       - RUST_LOG=info,auth_service=info
       - SERVER_HOST=0.0.0.0
       - SERVER_PORT=50051
-      - REDIS_URL=redis://auth-redis:6379
+      - REDIS_URL=redis://shared-redis:6379
       - EMAIL_SERVICE_URL=http://email-service:50052
       - CLIENT_SERVICE_URL=http://client-service:8080
     depends_on:
       auth-db:
         condition: service_healthy
-      auth-redis:
+      shared-redis:
         condition: service_started
     networks:
       - auth-network
@@ -52,15 +52,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    networks:
-      - auth-network
-    restart: unless-stopped
-
-  auth-redis:
-    image: redis:7-alpine
-    container_name: auth-redis
-    ports:
-      - "6381:6379"
     networks:
       - auth-network
     restart: unless-stopped

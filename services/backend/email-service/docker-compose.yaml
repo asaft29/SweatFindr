@@ -8,7 +8,7 @@ services:
     ports:
       - "50052:50052"
     environment:
-      - REDIS_URL=redis://email-redis:6379
+      - REDIS_URL=redis://shared-redis:6379
       - RUST_LOG=info,email_service=info
       - SERVER_HOST=0.0.0.0
       - SERVER_PORT=50052
@@ -20,26 +20,10 @@ services:
       - SMTP_FROM_EMAIL=${SMTP_USERNAME}
       - RABBITMQ_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
     depends_on:
-      email-redis:
+      shared-redis:
         condition: service_started
       rabbitmq:
         condition: service_healthy
     networks:
-      - email-network
       - shared-network
     restart: unless-stopped
-
-  email-redis:
-    image: redis:7-alpine
-    container_name: email-redis
-    user: "999:999"
-    command: redis-server --notify-keyspace-events Ex
-    ports:
-      - "6380:6379"
-    networks:
-      - email-network
-    restart: unless-stopped
-
-networks:
-  email-network:
-    driver: bridge

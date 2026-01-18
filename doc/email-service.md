@@ -59,7 +59,11 @@ When a user registers, a 6-digit verification code is generated, stored in Redis
 
 **Flow:** User registers → Client Service calls `SendVerificationEmail` → Code stored in Redis → Email sent → User enters code → `VerifyCode` validates against Redis
 
-![Verification Email](img/verification-email.png)
+<div align="center">
+
+![Verification Email](img/email-service/verification-email.png)
+
+</div>
 
 ---
 
@@ -67,7 +71,11 @@ When a user registers, a 6-digit verification code is generated, stored in Redis
 
 If the code expires or user didn't receive it, they can request a new code. Old code is invalidated and new one generated.
 
-![Resend Verification](img/resend-verification.png)
+<div align="center">
+
+![Resend Verification](img/email-service/resend-verification.png)
+
+</div>
 
 ---
 
@@ -77,7 +85,11 @@ User requests password reset → 6-digit code generated → Stored in Redis (15-
 
 **Flow:** Forgot password → `SendPasswordResetEmail` → Code in Redis → User enters code → `VerifyPasswordResetCode` → Password updated
 
-![Password Reset Email](img/password-reset-email.png)
+<div align="center">
+
+![Password Reset Email](img/email-service/password-reset-email.png)
+
+</div>
 
 ---
 
@@ -87,7 +99,11 @@ When an event owner approves a refund request, the Email Service consumes the `r
 
 **Content:** Ticket code, event name, confirmation that refund was approved.
 
-![Refund Approved](img/refund-approved-email.png)
+<div align="center">
+
+![Refund Approved](img/email-service/refund-approved-email.png)
+
+</div>
 
 ---
 
@@ -97,7 +113,11 @@ When a refund is rejected, the requester receives an email with the rejection re
 
 **Content:** Ticket code, event name, rejection message.
 
-![Refund Rejected](img/refund-rejected-email.png)
+<div align="center">
+
+![Refund Rejected](img/email-service/refund-rejected-email.png)
+
+</div>
 
 ---
 
@@ -120,7 +140,7 @@ When a refund is rejected, the requester receives an email with the rejection re
 ## Environment Variables
 
 ```bash
-REDIS_URL=redis://email-redis:6379
+REDIS_URL=redis://shared-redis:6379
 RABBITMQ_URL=amqp://admin:password@rabbitmq:5672
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587

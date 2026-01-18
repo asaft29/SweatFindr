@@ -654,3 +654,44 @@ pub async fn get_client_by_ticket(
         &state.base_url,
     )))
 }
+
+pub fn internal_router() -> Router<Arc<AppState>> {
+    Router::new().route(
+        "/clients/delete-by-email",
+        axum::routing::post(delete_client_by_email_internal),
+    )
+}
+
+#[derive(serde::Deserialize, utoipa::ToSchema)]
+pub struct DeleteByEmailRequest {
+    pub email: String,
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/internal/clients/delete-by-email",
+    request_body = DeleteByEmailRequest,
+    responses(
+        (status = 204, description = "Client deleted successfully"),
+        (status = 401, description = "Unauthorized - Missing or invalid token"),
+        (status = 403, description = "Forbidden - clients-service role required")
+    ),
+    security(
+        ("bearer_auth" = [])
+    ),
+    tag = "internal"
+)]
+pub async fn delete_client_by_email_internal(
+    State(state): State<Arc<AppState>>,
+    Extension(user_claims): Extension<UserClaims>,
+    Json(payload): Json<DeleteByEmailRequest>,
+) -> Result<StatusCode, ClientApiError> {
+    if !user_claims.is_clients_service() && !user_claims.is_admin() {
+        return Err(ClientApiError::Forbidden(
+            "clients-service or admin role required".to_string(),
+        ));
+    }
+
+    state.client_repo.delete_client_by_email(&payload.email).await?;
+    Ok(StatusCode::NO_CONTENT)
+}

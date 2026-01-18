@@ -67,9 +67,23 @@ Grafana connects to Prometheus for metrics and Loki for logs.
 
 ## Dashboard Overview
 
+<div align="center">
+
 ![Dashboard Overview 1](img/grafana/dashboard-overview-1.png)
+
+</div>
+
+<div align="center">
+
 ![Dashboard Overview 2](img/grafana/dashboard-overview-2.png)
+
+</div>
+
+<div align="center">
+
 ![Dashboard Overview 3](img/grafana/dashboard-overview-3.png)
+
+</div>
 
 
 
@@ -84,4 +98,4 @@ Default credentials: admin / admin
 
 ## Configuration
 
-Grafana configuration is located in `grafana/` directory with pre-configured dashboards and Prometheus data source.
+Grafana configuration is located in `yamls/grafana/` directory with pre-configured dashboards and Prometheus data source.

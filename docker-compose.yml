@@ -5,9 +5,10 @@ include:
   - services/backend/email-service/docker-compose.yaml
   - services/backend/gateway/docker-compose.yaml
   - services/backend/notification-service/docker-compose.yaml
-  - rabbitmq/docker-compose.yaml
   - services/frontend/docker-compose.yaml
-  - grafana/docker-compose.yaml
+  - yamls/rabbitmq/docker-compose.yaml
+  - yamls/grafana/docker-compose.yaml
+  - yamls/shared-redis/docker-compose.yaml
 
 networks:
   shared-network:

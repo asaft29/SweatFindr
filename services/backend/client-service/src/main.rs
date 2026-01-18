@@ -128,6 +128,13 @@ async fn main() -> Result<()> {
                 auth_middleware,
             )),
         )
+        .nest(
+            "/api/internal",
+            handlers::internal_router().layer(middleware::from_fn_with_state(
+                app_state.clone(),
+                auth_middleware,
+            )),
+        )
         .merge(handlers::swagger_router())
         .layer(prometheus_layer)
         .layer(cors)
