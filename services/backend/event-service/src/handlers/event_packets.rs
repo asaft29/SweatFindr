@@ -125,7 +125,7 @@ pub async fn get_event_packet(
     params(("id" = i32, Path, description = "Event packet ID")),
     request_body = UpdateEventPacket,
     responses(
-        (status = 200, description = "Update an existing event packet", body = Response<EventPackets>),
+        (status = 204, description = "Event packet updated"),
         (status = 401, description = "Missing or invalid authentication token"),
         (status = 403, description = "Forbidden - Only packet owner or admin can update"),
         (status = 404, description = "Event packet not found"),
@@ -161,14 +161,12 @@ pub async fn update_event_packet(
     let Json(payload) = payload?;
     payload.validate()?;
 
-    let event_packet = state
+    state
         .event_packet_repo
         .update_event_packet(id, payload)
         .await?;
 
-    let packet_response = build_simple_event_packet(event_packet, &state.base_url);
-
-    Ok(Json(packet_response))
+    Ok(StatusCode::NO_CONTENT)
 }
 
 #[utoipa::path(

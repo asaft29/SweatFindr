@@ -80,6 +80,10 @@ export interface Event {
   numarlocuri: number | null;
 }
 
+export interface EventWithLinks extends Event {
+  _links?: HateoasLinks;
+}
+
 export interface EventPackage {
   id: number;
   id_owner: number;

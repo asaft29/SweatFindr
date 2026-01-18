@@ -217,7 +217,7 @@ pub async fn login(
     ),
     request_body = UpdateRoleRequest,
     responses(
-        (status = 200, description = "Role updated successfully", body = Response<UpdateRoleResponse>),
+        (status = 204, description = "Role updated successfully"),
         (status = 400, description = "Invalid input"),
         (status = 401, description = "Unauthorized - admin only"),
         (status = 404, description = "User not found"),
@@ -233,7 +233,7 @@ pub async fn update_user_role(
     Extension(user_claims): Extension<UserClaims>,
     Path(id): Path<i32>,
     payload: Result<Json<UpdateRoleRequest>, JsonRejection>,
-) -> Result<Json<Response<UpdateRoleResponse>>, ClientApiError> {
+) -> Result<StatusCode, ClientApiError> {
     let Json(payload) = payload?;
 
     if user_claims.role != "admin" {
@@ -274,12 +274,7 @@ pub async fn update_user_role(
         return Err(ClientApiError::InternalError(response.message));
     }
 
-    let update_role_response = UpdateRoleResponse {
-        success: true,
-        message: response.message,
-    };
-
-    Ok(Json(build_update_role_response(update_role_response, id, &state.base_url)))
+    Ok(StatusCode::NO_CONTENT)
 }
 
 #[utoipa::path(

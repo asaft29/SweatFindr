@@ -104,7 +104,8 @@ pub async fn list_tickets(
         ("cod" = String, Path, description = "Ticket code")
     ),
     responses(
-        (status = 200, description = "Ticket updated", body = Response<Ticket>),
+        (status = 201, description = "Ticket created (PUT with non-existing ticket code)", body = Response<Ticket>),
+        (status = 204, description = "Ticket updated (PUT with existing ticket code)"),
         (status = 401, description = "Missing or invalid authentication token"),
         (status = 403, description = "Forbidden - Only event/packet owner or admin can update tickets"),
         (status = 404, description = "Ticket not found"),
@@ -137,9 +138,8 @@ pub async fn update_ticket(
                 .map_err(map_authorization_error)?;
         }
 
-        let ticket = state.ticket_repo.update_ticket(&cod, payload).await?;
-        let ticket_response = links::build_simple_ticket(ticket, &state.base_url);
-        return Ok(Json(ticket_response));
+        state.ticket_repo.update_ticket(&cod, payload).await?;
+        return Ok(StatusCode::NO_CONTENT.into_response());
     }
 
     if !user_claims.is_clients_service() {
@@ -154,24 +154,25 @@ pub async fn update_ticket(
         }
     }
 
-    let ticket = if let Some(event_id) = payload.id_event {
+    if let Some(event_id) = payload.id_event {
         state
             .ticket_repo
-            .create_ticket_with_code_for_event(cod, event_id)
-            .await?
+            .create_ticket_with_code_for_event(cod.clone(), event_id)
+            .await?;
     } else if let Some(packet_id) = payload.id_pachet {
         state
             .ticket_repo
-            .create_ticket_with_code_for_packet(cod, packet_id)
-            .await?
+            .create_ticket_with_code_for_packet(cod.clone(), packet_id)
+            .await?;
     } else {
         return Err(ApiError::BadRequest(
             "Must specify either evenimentid or pachetid".to_string(),
         ));
-    };
+    }
 
+    let ticket = state.ticket_repo.get_ticket(&cod).await?;
     let ticket_response = links::build_simple_ticket(ticket, &state.base_url);
-    Ok(Json(ticket_response))
+    Ok((StatusCode::CREATED, Json(ticket_response)).into_response())
 }
 
 #[utoipa::path(

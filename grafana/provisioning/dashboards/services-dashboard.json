@@ -58,7 +58,7 @@
       "gridPos": {
         "h": 3,
         "w": 4,
-        "x": 2,
+        "x": 0,
         "y": 1
       },
       "id": 1,
@@ -132,7 +132,7 @@
       "gridPos": {
         "h": 3,
         "w": 4,
-        "x": 6,
+        "x": 4,
         "y": 1
       },
       "id": 2,
@@ -206,7 +206,7 @@
       "gridPos": {
         "h": 3,
         "w": 4,
-        "x": 10,
+        "x": 8,
         "y": 1
       },
       "id": 3,
@@ -280,7 +280,81 @@
       "gridPos": {
         "h": 3,
         "w": 4,
-        "x": 14,
+        "x": 12,
+        "y": 1
+      },
+      "id": 6,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "value",
+        "text": {
+          "titleSize": 14,
+          "valueSize": 24
+        }
+      },
+      "targets": [
+        {
+          "expr": "up{job=\"notification-service\"}",
+          "refId": "A"
+        }
+      ],
+      "title": "Notification Service",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "dark-red",
+                  "index": 0,
+                  "text": "DOWN"
+                },
+                "1": {
+                  "color": "dark-green",
+                  "index": 1,
+                  "text": "UP"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "dark-red",
+                "value": null
+              },
+              {
+                "color": "dark-green",
+                "value": 1
+              }
+            ]
+          }
+        }
+      },
+      "gridPos": {
+        "h": 3,
+        "w": 4,
+        "x": 16,
         "y": 1
       },
       "id": 4,
@@ -354,7 +428,7 @@
       "gridPos": {
         "h": 3,
         "w": 4,
-        "x": 18,
+        "x": 20,
         "y": 1
       },
       "id": 5,
@@ -922,6 +996,131 @@
         "x": 0,
         "y": 38
       },
+      "id": 106,
+      "title": "Notification Service",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "lineWidth": 2,
+            "gradientMode": "opacity"
+          },
+          "unit": "reqps"
+        }
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 39
+      },
+      "id": 60,
+      "targets": [
+        {
+          "expr": "sum(rate(axum_http_requests_total{job=\"notification-service\"}[1m])) by (status)",
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Request Rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "lineWidth": 2,
+            "gradientMode": "opacity"
+          },
+          "unit": "s"
+        }
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 8,
+        "y": 39
+      },
+      "id": 61,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(axum_http_requests_duration_seconds_bucket{job=\"notification-service\"}[1m])) by (le))",
+          "legendFormat": "p95",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(axum_http_requests_duration_seconds_bucket{job=\"notification-service\"}[1m])) by (le))",
+          "legendFormat": "p50",
+          "refId": "B"
+        }
+      ],
+      "title": "Latency",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "lineWidth": 2,
+            "gradientMode": "opacity"
+          },
+          "unit": "percent"
+        }
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 16,
+        "y": 39
+      },
+      "id": 62,
+      "targets": [
+        {
+          "expr": "sum(rate(axum_http_requests_total{job=\"notification-service\",status=~\"[45]..\"}[1m])) by (status) or vector(0)",
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Error Rate",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 45
+      },
       "id": 105,
       "title": "Logs",
       "type": "row"
@@ -935,7 +1134,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 39
+        "y": 46
       },
       "id": 50,
       "options": {
@@ -948,7 +1147,7 @@
       },
       "targets": [
         {
-          "expr": "{container=~\"event-service|client-service|auth-service|email-service|gateway\"}",
+          "expr": "{container=~\"event-service|client-service|auth-service|email-service|gateway|notification-service\"}",
           "refId": "A"
         }
       ],

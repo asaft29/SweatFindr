@@ -1,31 +1,23 @@
-FROM rust:1.90.0-slim AS builder
+FROM rust:1.90.0-slim AS chef
+RUN cargo install cargo-chef
 WORKDIR /app
 
+FROM chef AS planner
+COPY services/backend/ .
+RUN cargo chef prepare --recipe-path recipe.json --bin auth-service
+
+FROM chef AS builder
 RUN apt-get update && apt-get install -y \
     pkg-config \
     libssl-dev \
     protobuf-compiler \
     && rm -rf /var/lib/apt/lists/*
 
+COPY --from=planner /app/recipe.json recipe.json
+RUN cargo chef cook --release --recipe-path recipe.json
+
 COPY services/backend/ .
-
-RUN mkdir -p auth-service/src && \
-    echo "fn main() {}" > auth-service/src/main.rs && \
-    mkdir -p client-service/src && \
-    echo "fn main() {}" > client-service/src/main.rs && \
-    mkdir -p event-service/src && \
-    echo "fn main() {}" > event-service/src/main.rs && \
-    mkdir -p email-service/src && \
-    echo "fn main() {}" > email-service/src/main.rs
-
-RUN cargo build --release --manifest-path auth-service/Cargo.toml
-
-RUN rm -rf auth-service/src
-
-COPY services/backend/auth-service/src ./auth-service/src
-
-RUN touch auth-service/src/main.rs && \
-    cargo build --release --manifest-path auth-service/Cargo.toml
+RUN cargo build --release --bin auth-service
 
 FROM debian:bookworm-slim
 

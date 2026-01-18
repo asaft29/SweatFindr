@@ -1,35 +1,23 @@
-FROM rust:1.90.0-slim AS builder
+FROM rust:1.90.0-slim AS chef
+RUN cargo install cargo-chef
 WORKDIR /app
 
+FROM chef AS planner
+COPY services/backend/ .
+RUN cargo chef prepare --recipe-path recipe.json --bin notification-service
+
+FROM chef AS builder
 RUN apt-get update && apt-get install -y \
     pkg-config \
     libssl-dev \
     protobuf-compiler \
     && rm -rf /var/lib/apt/lists/*
 
+COPY --from=planner /app/recipe.json recipe.json
+RUN cargo chef cook --release --recipe-path recipe.json
+
 COPY services/backend/ .
-
-RUN mkdir -p notification-service/src && \
-    echo "fn main() {}" > notification-service/src/main.rs && \
-    mkdir -p client-service/src && \
-    echo "fn main() {}" > client-service/src/main.rs && \
-    mkdir -p auth-service/src && \
-    echo "fn main() {}" > auth-service/src/main.rs && \
-    mkdir -p event-service/src && \
-    echo "fn main() {}" > event-service/src/main.rs && \
-    mkdir -p email-service/src && \
-    echo "fn main() {}" > email-service/src/main.rs
-
-RUN cargo build --release --manifest-path notification-service/Cargo.toml
-
-RUN rm -rf notification-service/src
-
-COPY services/backend/notification-service/src ./notification-service/src
-COPY services/backend/notification-service/build.rs ./notification-service/build.rs
-COPY services/backend/notification-service/proto ./notification-service/proto
-
-RUN touch notification-service/src/main.rs && \
-    cargo build --release --manifest-path notification-service/Cargo.toml
+RUN cargo build --release --bin notification-service
 
 FROM debian:bookworm-slim
 

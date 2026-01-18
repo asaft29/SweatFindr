@@ -227,7 +227,6 @@ export function EventPackagesPage() {
                   setItemsPerPage(cappedItemsValue);
                   setItemsPerPageInput(cappedItemsValue.toString());
                 }
-                // Cap available tickets filter if it exceeds the max
                 if (filters.availableTickets) {
                   const ticketsValue = parseInt(filters.availableTickets);
                   if (!isNaN(ticketsValue) && ticketsValue > MAX_AVAILABLE_TICKETS) {

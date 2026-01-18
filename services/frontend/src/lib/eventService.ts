@@ -1,5 +1,5 @@
 import { apiClient } from "./api";
-import type { Event, EventPackage, EventPackageWithLinks, CreateEventRequest, UpdateEventRequest, CreatePackageRequest, UpdatePackageRequest } from "./types";
+import type { Event, EventWithLinks, EventPackage, EventPackageWithLinks, CreateEventRequest, UpdateEventRequest, CreatePackageRequest, UpdatePackageRequest } from "./types";
 
 const ENDPOINTS = {
   EVENTS: "/api/event-manager/events",
@@ -9,20 +9,26 @@ const ENDPOINTS = {
 class EventService {
   private eventService = apiClient.getEventService();
 
-  async getEvents(filters?: { locatie?: string; nume?: string }): Promise<Event[]> {
+  async getEvents(filters?: { locatie?: string; nume?: string; page?: number; itemsPerPage?: number }): Promise<EventWithLinks[]> {
     const params = new URLSearchParams();
     if (filters?.locatie) params.append("location", filters.locatie);
     if (filters?.nume) params.append("name", filters.nume);
-    params.append("items_per_page", "100");
+    if (filters?.page !== undefined) params.append("page", filters.page.toString());
+    params.append("items_per_page", filters?.itemsPerPage?.toString() ?? "10");
 
     const url = `${ENDPOINTS.EVENTS}?${params.toString()}`;
 
-    const response = await this.eventService.get<Event[]>(url);
+    const response = await this.eventService.get<EventWithLinks[]>(url);
     return response.data;
   }
 
   async getEventById(id: number): Promise<Event> {
     const response = await this.eventService.get<Event>(`${ENDPOINTS.EVENTS}/${id}`);
+    return response.data;
+  }
+
+  async getEventsByUrl(url: string): Promise<EventWithLinks[]> {
+    const response = await this.eventService.get<EventWithLinks[]>(url);
     return response.data;
   }
 

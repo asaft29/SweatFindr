@@ -278,7 +278,7 @@ pub async fn get_client(
     ),
     request_body = UpdateClient,
     responses(
-        (status = 200, description = "Client updated successfully", body = Client),
+        (status = 204, description = "Client updated successfully"),
         (status = 401, description = "Unauthorized - Missing or invalid token"),
         (status = 404, description = "Client not found"),
         (status = 422, description = "Validation error"),
@@ -294,7 +294,7 @@ pub async fn update_client(
     Extension(user_claims): Extension<UserClaims>,
     Path(id): Path<String>,
     payload: Result<Json<UpdateClient>, JsonRejection>,
-) -> Result<Json<Response<Client>>, ClientApiError> {
+) -> Result<StatusCode, ClientApiError> {
     let existing_client = state.client_repo.get_client(&id).await?;
 
     let user_email = get_user_email(&state, user_claims.user_id).await;
@@ -304,9 +304,9 @@ pub async fn update_client(
     let Json(payload) = payload?;
     payload.validate()?;
 
-    let client = state.client_repo.update_client(&id, payload).await?;
+    state.client_repo.update_client(&id, payload).await?;
 
-    Ok(Json(build_simple_client(client, &state.base_url)))
+    Ok(StatusCode::NO_CONTENT)
 }
 
 #[utoipa::path(
@@ -317,7 +317,7 @@ pub async fn update_client(
     ),
     request_body = UpdateClient,
     responses(
-        (status = 200, description = "Client partially updated successfully", body = Client),
+        (status = 204, description = "Client partially updated successfully"),
         (status = 401, description = "Unauthorized - Missing or invalid token"),
         (status = 404, description = "Client not found"),
         (status = 422, description = "Validation error"),
@@ -333,7 +333,7 @@ pub async fn patch_client(
     Extension(user_claims): Extension<UserClaims>,
     Path(id): Path<String>,
     payload: Result<Json<UpdateClient>, JsonRejection>,
-) -> Result<Json<Response<Client>>, ClientApiError> {
+) -> Result<StatusCode, ClientApiError> {
     let existing_client = state.client_repo.get_client(&id).await?;
 
     let user_email = get_user_email(&state, user_claims.user_id).await;
@@ -343,9 +343,9 @@ pub async fn patch_client(
     let Json(payload) = payload?;
     payload.validate()?;
 
-    let client = state.client_repo.update_client(&id, payload).await?;
+    state.client_repo.update_client(&id, payload).await?;
 
-    Ok(Json(build_simple_client(client, &state.base_url)))
+    Ok(StatusCode::NO_CONTENT)
 }
 
 #[utoipa::path(

@@ -122,7 +122,7 @@ pub async fn get_event(
     ),
     request_body = UpdateEvent,
     responses(
-        (status = 200, description = "Updated event", body = Response<Event>),
+        (status = 204, description = "Event updated"),
         (status = 401, description = "Missing or invalid authentication token"),
         (status = 403, description = "Forbidden - Only event owner or admin can update"),
         (status = 404, description = "Event not found")
@@ -149,10 +149,9 @@ pub async fn update_event(
     let Json(payload) = payload?;
     payload.validate()?;
 
-    let event = state.event_repo.update_event(id, payload).await?;
-    let event_response = build_simple_event(event, &state.base_url);
+    state.event_repo.update_event(id, payload).await?;
 
-    Ok(Json(event_response))
+    Ok(StatusCode::NO_CONTENT)
 }
 
 #[utoipa::path(

@@ -33,19 +33,26 @@ class ClientService {
   }
 
   async getMyProfile(): Promise<Client> {
-    const response = await this.clientService.get<Client>(
+    const response = await this.clientService.get<any>(
       `/api/client-manager/clients/me`
     );
-    return response.data;
+    const data = response.data;
+    if (data._id && typeof data._id === "object" && data._id.$oid) {
+      data._id = data._id.$oid;
+    }
+    if (data._id) {
+      this.cachedClientId = data._id;
+    }
+    return data as Client;
   }
 
   async updateMyProfile(data: Partial<Client>): Promise<Client> {
     const clientId = await this.getMyClientId();
-    const response = await this.clientService.put<Client>(
+    await this.clientService.put(
       `/api/client-manager/clients/${clientId}`,
       data
     );
-    return response.data;
+    return this.getMyProfile();
   }
 
   async getMyTickets(): Promise<TicketRef[]> {
