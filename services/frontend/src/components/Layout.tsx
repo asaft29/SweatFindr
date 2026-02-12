@@ -22,7 +22,7 @@ export const Layout = ({ children }: LayoutProps) => {
           <div className="flex justify-between items-center h-24 py-4">
             <div className="flex-shrink-0">
               <h1 className="text-4xl font-black text-white cursor-pointer hover:text-indigo-200 transition-all duration-300 drop-shadow-2xl tracking-tight" onClick={() => navigate('/')}>
-                SweatFindr
+                CargoTicket
               </h1>
             </div>
 
@@ -88,7 +88,7 @@ export const Layout = ({ children }: LayoutProps) => {
 
       <footer className="bg-white border-t border-gray-200">
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-gray-500 text-sm">&copy; 2025 SweatFindr. All rights reserved.</p>
+          <p className="text-center text-gray-500 text-sm">&copy; 2025 CargoTicket. All rights reserved.</p>
         </div>
       </footer>
     </div>

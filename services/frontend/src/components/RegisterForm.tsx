@@ -87,7 +87,7 @@ export const RegisterForm = () => {
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-2xl">
         <div>
           <h1 className="text-center text-3xl font-extrabold text-gray-900">Create Account</h1>
-          <p className="mt-2 text-center text-sm text-gray-600">Join SweatFindr today</p>
+          <p className="mt-2 text-center text-sm text-gray-600">Join CargoTicket today</p>
         </div>
 
         {error && (
